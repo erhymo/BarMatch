@@ -11,14 +11,20 @@ import { Bar } from '@/lib/models';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useRatings } from '@/contexts/RatingsContext';
 
-// Simple football (soccer ball) icon for bar markers, rendered as inline SVG
+// Simple but tydelig fotball-ikon for bar-markører
+// (egen tegnet SVG, så vi slipper eksterne assets og lisensstyr)
 const FOOTBALL_SVG =
-  '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">' +
-  '<circle cx="20" cy="20" r="18" fill="white" stroke="#111827" stroke-width="2" />' +
-  '<path d="M20 7l6 3 2 6-4 4h-8l-4-4 2-6z" fill="#111827" />' +
-  '<path d="M20 7l-4 4-2 6 3 6 3 8" stroke="#111827" stroke-width="1.5" fill="none" />' +
-  '<path d="M20 7l4 4 2 6-3 6-3 8" stroke="#111827" stroke-width="1.5" fill="none" />' +
-  '</svg>';
+	  '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">' +
+	  // Ytre sirkel
+	  '<circle cx="20" cy="20" r="18" fill="#F9FAFB" stroke="#111827" stroke-width="2" />' +
+	  // Midtre femkant
+	  '<path d="M20 9l5.5 3 1.5 5.5-4 3.5h-6l-4-3.5L12.5 12z" fill="#111827" />' +
+	  // Enkle panel-linjer rundt ballen
+	  '<path d="M20 9l-4 4-2 5 3 5 3 7" stroke="#4B5563" stroke-width="1.3" fill="none" />' +
+	  '<path d="M20 9l4 4 2 5-3 5-3 7" stroke="#4B5563" stroke-width="1.3" fill="none" />' +
+	  '<path d="M9 18l4-1 3 5-2 4-4 1" stroke="#4B5563" stroke-width="1.1" fill="none" />' +
+	  '<path d="M31 18l-4-1-3 5 2 4 4 1" stroke="#4B5563" stroke-width="1.1" fill="none" />' +
+	  '</svg>';
 
 const FOOTBALL_ICON_URL = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
   FOOTBALL_SVG,
@@ -321,17 +327,20 @@ export default function GoogleMap({
 	              }}
 	              icon={{
 	                url: FOOTBALL_ICON_URL,
-	                // Gi favorittbarer litt høyere zIndex så de synes bedre
+	                // Litt større ikon for favorittbarer så de skiller seg ut
 	                scaledSize: isFavorite
 	                  ? ({ width: 42, height: 42 } as google.maps.Size)
 	                  : ({ width: 36, height: 36 } as google.maps.Size),
+	                // Flytt label (rating) oppover slik at den ligger over ballen
+	                labelOrigin: isFavorite
+	                  ? ({ x: 21, y: 6 } as google.maps.Point)
+	                  : ({ x: 18, y: 6 } as google.maps.Point),
 	              }}
 	              label={
 	                labelText
 	                  ? {
 	                      text: labelText,
-	                      // Gul ratingtekst over fotball-ikonet
-	                      color: '#FACC15', // tailwind yellow-400
+	                      color: '#FACC15', // gul ratingtekst
 	                      fontSize: '10px',
 	                      fontWeight: 'bold',
 	                    }

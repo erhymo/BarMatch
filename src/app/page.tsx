@@ -1,6 +1,6 @@
 	'use client';
-	
-	import { useMemo, useState } from 'react';
+
+	import { Suspense, useMemo, useState } from 'react';
 	import { useSearchParams } from 'next/navigation';
 	import GoogleMap from '@/components/map/GoogleMap';
 	import SportFilterPanel from '@/components/filter/SportFilterPanel';
@@ -9,39 +9,39 @@
 	import { Bar } from '@/lib/models';
 	import { useBarFilter } from '@/lib/hooks';
 	import { BarService } from '@/lib/services';
-	
-	export default function Home() {
+
+	function HomeContent() {
 	  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 	  const searchParams = useSearchParams();
 	  const initialMatchId = searchParams.get('matchId');
-	
+
 	  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
 	  const [selectedMatchId, setSelectedMatchId] = useState<string | null>(
 	    initialMatchId
 	  );
 	  const [selectedBar, setSelectedBar] = useState<Bar | null>(null);
-	
+
 	  // Filter bars based on selected team using hook, then by match if valgt via Kamper-siden
 	  const barsFilteredByTeam = useBarFilter(dummyBars, selectedTeam);
 	  const filteredBars = useMemo(
 	    () => BarService.filterBarsByMatch(barsFilteredByTeam, selectedMatchId),
 	    [barsFilteredByTeam, selectedMatchId]
 	  );
-	
+
 	  const handleTeamSelect = (teamId: string | null) => {
 	    // Når brukeren velger lag på kartet, nullstiller vi evt. aktiv kamp-filter
 	    setSelectedMatchId(null);
 	    setSelectedTeam(teamId);
 	  };
-	
+
 	  const handleBarClick = (bar: Bar) => {
 	    setSelectedBar(bar);
 	  };
-	
+
 	  const handleClosePanel = () => {
 	    setSelectedBar(null);
 	  };
-	
+
 	  return (
 	    <div className="flex flex-col h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black">
 	      {/* Header Section */}
@@ -55,7 +55,7 @@
 	          </p>
 	        </div>
 	      </div>
-	
+
 	      {/* Map Section - Takes up remaining space */}
 	      <div className="flex-1 relative overflow-hidden">
 	        <div className="absolute inset-0">
@@ -67,7 +67,7 @@
 	            onBarClick={handleBarClick}
 	          />
 	        </div>
-	
+
 	        {/* Empty state when no bars match the current team filter */}
 	        {selectedTeam && filteredBars.length === 0 && (
 	          <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
@@ -99,10 +99,23 @@
 	        {/* Sport Filter Panel - Overlay on map */}
 	        <SportFilterPanel onTeamSelect={handleTeamSelect} />
 	      </div>
-	
+
 	      {/* Bar Details Panel - Bottom sheet */}
 	      <BarDetailsPanel bar={selectedBar} onClose={handleClosePanel} />
 	    </div>
 	  );
 	}
-	
+
+	export default function Home() {
+	  return (
+	    <Suspense
+	      fallback={
+	        <div className="flex h-screen items-center justify-center bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black text-zinc-500 dark:text-zinc-400">
+	          Laster inn siden...
+	        </div>
+	      }
+	    >
+	      <HomeContent />
+	    </Suspense>
+	  );
+	}
