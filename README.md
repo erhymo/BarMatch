@@ -1,24 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BarMatch
 
-## Getting Started
+BarMatch er en Next.js-applikasjon som hjelper brukere med å finne sin neste favorittbar ved hjelp av Google Maps.
 
-First, run the development server:
+## Teknologier
+
+- **Next.js 16** - React-rammeverk med App Router
+- **TypeScript** - Type-sikkerhet
+- **Tailwind CSS** - Styling
+- **Google Maps API** - Kartfunksjonalitet
+- **Firebase** (forberedt) - Autentisering og database
+
+## Kom i gang
+
+### 1. Installer avhengigheter
+
+```bash
+npm install
+```
+
+### 2. Sett opp Google Maps API
+
+1. Gå til [Google Cloud Console](https://console.cloud.google.com/google/maps-apis)
+2. Opprett et nytt prosjekt eller velg et eksisterende
+3. Aktiver Google Maps JavaScript API
+4. Opprett en API-nøkkel
+5. Kopier `.env.example` til `.env.local`:
+   ```bash
+   cp .env.example .env.local
+   ```
+6. Legg til din Google Maps API-nøkkel i `.env.local`:
+   ```
+   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=din_api_nøkkel_her
+   ```
+
+### 3. Kjør utviklingsserveren
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Åpne [http://localhost:3000](http://localhost:3000) i nettleseren for å se resultatet.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Prosjektstruktur
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── page.tsx           # Hjemmeside
+│   ├── layout.tsx         # Root layout
+│   └── globals.css        # Globale stiler
+├── components/            # React-komponenter
+│   └── map/
+│       └── GoogleMap.tsx  # Google Maps-komponent
+└── lib/                   # Hjelpefunksjoner og konfigurasjoner
+    └── firebase/
+        └── config.ts      # Firebase-konfigurasjon (forberedt)
+```
 
 ## Learn More
 
