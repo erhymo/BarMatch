@@ -2,9 +2,10 @@ import { Bar } from '../models';
 import { dummyMatches } from './matches';
 
 export const dummyBars: Bar[] = [
-  {
-    id: '1',
-    name: 'Oslo Mekaniske Verksted',
+	  // Oslo
+	  {
+	    id: '1',
+	    name: 'Oslo Mekaniske Verksted',
     position: {
       lat: 59.9127,
       lng: 10.7461,
@@ -236,17 +237,443 @@ export const dummyBars: Bar[] = [
     rating: 4.2,
     matches: [dummyMatches[0], dummyMatches[15]], // Premier League + Eliteserien
   },
-  {
-    id: '12',
-    name: 'Olympen',
-    position: {
-      lat: 59.9145,
-      lng: 10.7623,
-    },
-    address: 'Grønlandsleiret 15, 0190 Oslo',
-    description: 'Historisk bar med konsertscene og restaurant',
-    rating: 4.4,
-    matches: [dummyMatches[1], dummyMatches[2], dummyMatches[18]], // Premier League + Serie A
-  },
+	  {
+	    id: '12',
+	    name: 'Olympen',
+	    position: {
+	      lat: 59.9145,
+	      lng: 10.7623,
+	    },
+	    address: 'Grønlandsleiret 15, 0190 Oslo',
+	    description: 'Historisk bar med konsertscene og restaurant',
+	    rating: 4.4,
+	    matches: [dummyMatches[1], dummyMatches[2], dummyMatches[18]], // Premier League + Serie A
+	  },
+
+	  // Bergen
+	  {
+	    id: '13',
+	    name: 'Fotballpuben Bryggen',
+	    position: {
+	      lat: 60.3974,
+	      lng: 5.3245,
+	    },
+	    address: 'Bryggen 29, 5003 Bergen',
+	    description:
+	      'Klassisk fotballpub ved Bryggen med stort fokus på Brann og Premier League',
+	    rating: 4.6,
+	    matches: [dummyMatches[15], dummyMatches[13], dummyMatches[1]], // Brann, Rosenborg, Liverpool
+	    phone: '+47 55 00 11 22',
+	    facilities: {
+	      screens: 10,
+	      hasFood: true,
+	      hasOutdoorSeating: true,
+	      hasWifi: true,
+	      capacity: 180,
+	    },
+	    openingHours: {
+	      monday: '16:00 - 00:00',
+	      tuesday: '16:00 - 00:00',
+	      wednesday: '16:00 - 00:00',
+	      thursday: '16:00 - 01:00',
+	      friday: '14:00 - 02:30',
+	      saturday: '12:00 - 02:30',
+	      sunday: '14:00 - 23:00',
+	    },
+	  },
+	  {
+	    id: '14',
+	    name: 'Torgallmenningen Sportsbar',
+	    position: {
+	      lat: 60.3929,
+	      lng: 5.3245,
+	    },
+	    address: 'Torgallmenningen 8, 5012 Bergen',
+	    description:
+	      'Stor sportsbar midt i sentrum med mange skjermer og Premier League på lyd',
+	    rating: 4.3,
+	    matches: [dummyMatches[15], dummyMatches[0], dummyMatches[4]], // Brann + Spurs/Chelsea/Arsenal
+	    phone: '+47 55 22 33 44',
+	    facilities: {
+	      screens: 14,
+	      hasFood: true,
+	      hasOutdoorSeating: true,
+	      hasWifi: true,
+	      capacity: 220,
+	    },
+	    openingHours: {
+	      monday: '12:00 - 23:30',
+	      tuesday: '12:00 - 23:30',
+	      wednesday: '12:00 - 23:30',
+	      thursday: '12:00 - 01:00',
+	      friday: '11:00 - 02:30',
+	      saturday: '11:00 - 02:30',
+	      sunday: '13:00 - 23:00',
+	    },
+	  },
+	  {
+	    id: '15',
+	    name: 'Nøstet Sportsbar',
+	    position: {
+	      lat: 60.3945,
+	      lng: 5.3175,
+	    },
+	    address: 'Nøstegaten 32, 5010 Bergen',
+	    description:
+	      'Lokal pub på Nøstet med fokus på Eliteserien og italiensk fotball på søndager',
+	    rating: 4.2,
+	    matches: [dummyMatches[13], dummyMatches[14], dummyMatches[18]], // RBK, Molde/Bodø, Serie A
+	    phone: '+47 55 66 77 88',
+	    facilities: {
+	      screens: 6,
+	      hasFood: true,
+	      hasOutdoorSeating: false,
+	      hasWifi: true,
+	      capacity: 120,
+	    },
+	    openingHours: {
+	      monday: 'Stengt',
+	      tuesday: '17:00 - 23:30',
+	      wednesday: '17:00 - 23:30',
+	      thursday: '17:00 - 01:00',
+	      friday: '16:00 - 02:00',
+	      saturday: '14:00 - 02:00',
+	      sunday: '15:00 - 23:00',
+	    },
+	  },
+	  {
+	    id: '16',
+	    name: 'Vågsbunnen Corner',
+	    position: {
+	      lat: 60.395,
+	      lng: 5.325,
+	    },
+	    address: 'Vågsallmenningen 16, 5014 Bergen',
+	    description:
+	      'Intim fotballpub med Brann på alle skjermer når det er kampdag og Serie A ellers',
+	    rating: 4.4,
+	    matches: [dummyMatches[15], dummyMatches[17], dummyMatches[19]], // Brann, Juventus, Roma
+	    phone: '+47 55 98 76 54',
+	    facilities: {
+	      screens: 5,
+	      hasFood: false,
+	      hasOutdoorSeating: true,
+	      hasWifi: true,
+	      capacity: 90,
+	    },
+	    openingHours: {
+	      monday: '16:00 - 23:00',
+	      tuesday: '16:00 - 23:00',
+	      wednesday: '16:00 - 23:00',
+	      thursday: '16:00 - 00:00',
+	      friday: '15:00 - 02:00',
+	      saturday: '14:00 - 02:00',
+	      sunday: '14:00 - 22:00',
+	    },
+	  },
+	  {
+	    id: '17',
+	    name: 'Solheimsviken Sportsbar',
+	    position: {
+	      lat: 60.379,
+	      lng: 5.341,
+	    },
+	    address: 'Solheimsgaten 3, 5054 Bergen',
+	    description:
+	      'Moderne sportsbar ved vannkanten med Happy Hour på kampdager',
+	    rating: 4.5,
+	    matches: [dummyMatches[1], dummyMatches[3], dummyMatches[16]], // Liverpool, United, Vålerenga/Molde
+	    phone: '+47 55 44 33 22',
+	    facilities: {
+	      screens: 12,
+	      hasFood: true,
+	      hasOutdoorSeating: true,
+	      hasWifi: true,
+	      capacity: 200,
+	    },
+	    openingHours: {
+	      monday: '15:00 - 23:30',
+	      tuesday: '15:00 - 23:30',
+	      wednesday: '15:00 - 23:30',
+	      thursday: '15:00 - 00:00',
+	      friday: '14:00 - 02:00',
+	      saturday: '13:00 - 02:00',
+	      sunday: '14:00 - 22:30',
+	    },
+	  },
+
+	  // Førde
+	  {
+	    id: '18',
+	    name: 'Førde Sportsbar & Grill',
+	    position: {
+	      lat: 61.4507,
+	      lng: 5.8583,
+	    },
+	    address: 'Naustdalsvegen 1, 6800 Førde',
+	    description:
+	      'Familievennlig sportsbar med burger, lokaløl og storskjerm på Eliteserien',
+	    rating: 4.1,
+	    matches: [dummyMatches[14], dummyMatches[1], dummyMatches[17]], // Molde/Bodø, Liverpool, Juventus
+	    phone: '+47 57 82 10 10',
+	    facilities: {
+	      screens: 7,
+	      hasFood: true,
+	      hasOutdoorSeating: true,
+	      hasWifi: true,
+	      capacity: 130,
+	    },
+	    openingHours: {
+	      monday: '14:00 - 22:00',
+	      tuesday: '14:00 - 22:00',
+	      wednesday: '14:00 - 22:00',
+	      thursday: '14:00 - 23:00',
+	      friday: '12:00 - 01:00',
+	      saturday: '12:00 - 01:00',
+	      sunday: '14:00 - 22:00',
+	    },
+	  },
+	  {
+	    id: '19',
+	    name: 'Sunnfjord Sportspub',
+	    position: {
+	      lat: 61.4518,
+	      lng: 5.8599,
+	    },
+	    address: 'Storehagen 9, 6800 Førde',
+	    description:
+	      'Lokal pub med fokus på Molde, Bodø/Glimt og toppkamper fra Premier League',
+	    rating: 4.0,
+	    matches: [dummyMatches[14], dummyMatches[18], dummyMatches[2]], // Molde/Bodø, Milan, Arsenal/Tottenham
+	    phone: '+47 57 82 20 20',
+	    facilities: {
+	      screens: 4,
+	      hasFood: false,
+	      hasOutdoorSeating: false,
+	      hasWifi: true,
+	      capacity: 70,
+	    },
+	    openingHours: {
+	      monday: 'Stengt',
+	      tuesday: '17:00 - 23:00',
+	      wednesday: '17:00 - 23:00',
+	      thursday: '17:00 - 00:00',
+	      friday: '16:00 - 01:00',
+	      saturday: '15:00 - 01:00',
+	      sunday: '16:00 - 22:00',
+	    },
+	  },
+	  {
+	    id: '20',
+	    name: 'Elvatun Pub',
+	    position: {
+	      lat: 61.4526,
+	      lng: 5.854,
+	    },
+	    address: 'Naustdalsvegen 24, 6800 Førde',
+	    description:
+	      'Klassisk brun pub ved elva med gode priser under kamp (Happy Hour)',
+	    rating: 3.9,
+	    matches: [dummyMatches[13], dummyMatches[14], dummyMatches[9]], // RBK, Molde/Bodø, Bayern
+	    phone: '+47 57 82 30 30',
+	    facilities: {
+	      screens: 3,
+	      hasFood: false,
+	      hasOutdoorSeating: true,
+	      hasWifi: false,
+	      capacity: 60,
+	    },
+	    openingHours: {
+	      monday: '16:00 - 22:00',
+	      tuesday: '16:00 - 22:00',
+	      wednesday: '16:00 - 22:00',
+	      thursday: '16:00 - 23:00',
+	      friday: '16:00 - 01:00',
+	      saturday: '14:00 - 01:00',
+	      sunday: '16:00 - 21:00',
+	    },
+	  },
+	  {
+	    id: '21',
+	    name: 'Førde Stadion Pub',
+	    position: {
+	      lat: 61.448,
+	      lng: 5.842,
+	    },
+	    address: 'Angedalsvegen 122, 6811 Førde',
+	    description:
+	      'Pub nær stadion med stor uteservering og alle Eliteserien-kampene på skjerm',
+	    rating: 4.2,
+	    matches: [dummyMatches[14], dummyMatches[3], dummyMatches[8]], // Molde/Bodø, United/Liverpool, Bayern/Dortmund
+	    phone: '+47 57 82 40 40',
+	    facilities: {
+	      screens: 8,
+	      hasFood: true,
+	      hasOutdoorSeating: true,
+	      hasWifi: true,
+	      capacity: 150,
+	    },
+	    openingHours: {
+	      monday: '15:00 - 22:30',
+	      tuesday: '15:00 - 22:30',
+	      wednesday: '15:00 - 22:30',
+	      thursday: '15:00 - 23:30',
+	      friday: '14:00 - 01:00',
+	      saturday: '13:00 - 01:00',
+	      sunday: '15:00 - 22:00',
+	    },
+	  },
+
+	  // Trondheim
+	  {
+	    id: '22',
+	    name: 'Solsiden Sportsbar & Grill',
+	    position: {
+	      lat: 63.435,
+	      lng: 10.412,
+	    },
+	    address: 'Havnegata 7, 7010 Trondheim',
+	    description:
+	      'Stor sportsbar på Solsiden med Champions League på storskjerm og uteservering ved vannet',
+	    rating: 4.5,
+	    matches: [dummyMatches[13], dummyMatches[1], dummyMatches[17]], // Rosenborg, Liverpool, Juventus
+	    phone: '+47 73 80 10 10',
+	    facilities: {
+	      screens: 16,
+	      hasFood: true,
+	      hasOutdoorSeating: true,
+	      hasWifi: true,
+	      capacity: 260,
+	    },
+	    openingHours: {
+	      monday: '12:00 - 23:30',
+	      tuesday: '12:00 - 23:30',
+	      wednesday: '12:00 - 23:30',
+	      thursday: '12:00 - 01:00',
+	      friday: '11:00 - 02:30',
+	      saturday: '11:00 - 02:30',
+	      sunday: '13:00 - 23:00',
+	    },
+	  },
+	  {
+	    id: '23',
+	    name: 'Rosenborg Corner Pub',
+	    position: {
+	      lat: 63.422,
+	      lng: 10.396,
+	    },
+	    address: 'Elgeseter gate 20, 7030 Trondheim',
+	    description:
+	      'Trondheims mest ihuga Rosenborg-pub – fullt hus hver gang RBK spiller',
+	    rating: 4.7,
+	    matches: [dummyMatches[13], dummyMatches[15], dummyMatches[0]], // Rosenborg, Brann, Spurs/Chelsea
+	    phone: '+47 73 80 20 20',
+	    facilities: {
+	      screens: 9,
+	      hasFood: true,
+	      hasOutdoorSeating: false,
+	      hasWifi: true,
+	      capacity: 140,
+	    },
+	    openingHours: {
+	      monday: '16:00 - 23:00',
+	      tuesday: '16:00 - 23:00',
+	      wednesday: '16:00 - 23:00',
+	      thursday: '16:00 - 00:00',
+	      friday: '15:00 - 02:00',
+	      saturday: '14:00 - 02:00',
+	      sunday: '15:00 - 22:00',
+	    },
+	  },
+	  {
+	    id: '24',
+	    name: 'Munkegata Fotballpub',
+	    position: {
+	      lat: 63.4321,
+	      lng: 10.395,
+	    },
+	    address: 'Munkegata 26, 7011 Trondheim',
+	    description:
+	      'Sentrumsnær fotballpub med Premier League på storskjerm og Serie A på søndager',
+	    rating: 4.3,
+	    matches: [dummyMatches[13], dummyMatches[4], dummyMatches[18]], // Rosenborg, Chelsea/Arsenal, Milan
+	    phone: '+47 73 80 30 30',
+	    facilities: {
+	      screens: 8,
+	      hasFood: true,
+	      hasOutdoorSeating: false,
+	      hasWifi: true,
+	      capacity: 120,
+	    },
+	    openingHours: {
+	      monday: '15:00 - 23:00',
+	      tuesday: '15:00 - 23:00',
+	      wednesday: '15:00 - 23:00',
+	      thursday: '15:00 - 00:00',
+	      friday: '14:00 - 01:30',
+	      saturday: '13:00 - 01:30',
+	      sunday: '15:00 - 22:30',
+	    },
+	  },
+	  {
+	    id: '25',
+	    name: 'Lerkendal Sportsbar',
+	    position: {
+	      lat: 63.414,
+	      lng: 10.395,
+	    },
+	    address: 'Klostergata 90, 7030 Trondheim',
+	    description:
+	      'Bar rett ved Lerkendal med oppvarming før kamp og Happy Hour når RBK vinner',
+	    rating: 4.4,
+	    matches: [dummyMatches[13], dummyMatches[19], dummyMatches[3]], // Rosenborg, Roma/Juventus, United/Liverpool
+	    phone: '+47 73 80 40 40',
+	    facilities: {
+	      screens: 11,
+	      hasFood: true,
+	      hasOutdoorSeating: true,
+	      hasWifi: true,
+	      capacity: 180,
+	    },
+	    openingHours: {
+	      monday: '16:00 - 23:00',
+	      tuesday: '16:00 - 23:00',
+	      wednesday: '16:00 - 23:00',
+	      thursday: '16:00 - 00:00',
+	      friday: '15:00 - 02:00',
+	      saturday: '14:00 - 02:00',
+	      sunday: '15:00 - 22:00',
+	    },
+	  },
+	  {
+	    id: '26',
+	    name: 'Bakklandet Corner',
+	    position: {
+	      lat: 63.4296,
+	      lng: 10.3985,
+	    },
+	    address: 'Nedre Bakklandet 20, 7014 Trondheim',
+	    description:
+	      'Koselig pub på Bakklandet med Eliteserien og utvalgte Premier League-kamper',
+	    rating: 4.1,
+	    matches: [dummyMatches[13], dummyMatches[14], dummyMatches[2]], // Rosenborg, Molde/Bodø, Arsenal/Tottenham
+	    phone: '+47 73 80 50 50',
+	    facilities: {
+	      screens: 5,
+	      hasFood: false,
+	      hasOutdoorSeating: true,
+	      hasWifi: true,
+	      capacity: 80,
+	    },
+	    openingHours: {
+	      monday: '16:00 - 22:30',
+	      tuesday: '16:00 - 22:30',
+	      wednesday: '16:00 - 22:30',
+	      thursday: '16:00 - 23:30',
+	      friday: '15:00 - 01:00',
+	      saturday: '14:00 - 01:00',
+	      sunday: '16:00 - 22:00',
+	    },
+	  },
 ];
 
