@@ -125,9 +125,9 @@
 				                ⚽
 				              </span>
 				            </button>
-				            <h1 className="flex-1 text-3xl font-bold tracking-tight text-center text-zinc-900 dark:text-zinc-50">
-				              MatchBar
-				            </h1>
+            <h1 className="flex-1 text-3xl font-bold tracking-tight text-center text-zinc-900 dark:text-zinc-50">
+              Bar Match
+            </h1>
 				            <button
 				              type="button"
 				              aria-label="Velg sprak"

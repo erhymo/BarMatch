@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Bar Match ikon</title>
+  <desc id="desc">Grønn bakgrunn med fotball og øl-emoji</desc>
+  <rect x="0" y="0" width="512" height="512" rx="96" fill="#14532d" />
+  <text x="180" y="320" font-size="210" text-anchor="middle">⚽</text>
+  <text x="350" y="320" font-size="210" text-anchor="middle">🍺</text>
+</svg>
+
