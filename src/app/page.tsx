@@ -109,37 +109,48 @@
 			    <div className="flex flex-col h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black">
 			      {/* Header Section */}
 			      <div className="flex-shrink-0 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
-			        <div className="container mx-auto px-4 py-4">
-			          <div className="flex items-center justify-between">
-			            <button
-			              type="button"
-			              onClick={toggleFilterPanel}
-			              className={`flex h-10 w-10 items-center justify-center rounded-full border text-xl transition-colors ${
-			                isFilterPanelOpen
-			                  ? 'bg-green-500/20 border-green-400/70 text-green-300'
-			                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-700/60'
-			              }`}
-			              aria-label="Apne filter for liga og lag"
-			            >
-			              <span className="text-sm font-semibold">L</span>
-			            </button>
-			            <h1 className="flex-1 text-3xl font-bold tracking-tight text-center text-zinc-900 dark:text-zinc-50">
-			              MatchBar
-			            </h1>
-			            <button
-			              type="button"
-			              onClick={toggleCityPanel}
-			              className={`flex h-10 w-10 items-center justify-center rounded-full border text-xl transition-colors ${
-			                isCityPanelOpen
-			                  ? 'bg-blue-500/20 border-blue-400/70 text-blue-300'
-			                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-700/60'
-			              }`}
-			              aria-label="Apne valg for by"
-			            >
-			              <span className="text-sm font-semibold">By</span>
-			            </button>
-			          </div>
-			        </div>
+				        <div className="container mx-auto px-4 py-4">
+				          <div className="flex items-center justify-between gap-3">
+				            <button
+				              type="button"
+				              onClick={toggleFilterPanel}
+				              className={`flex h-10 w-10 items-center justify-center rounded-full border text-xl transition-colors ${
+				                isFilterPanelOpen
+				                  ? 'bg-green-500/20 border-green-400/70 text-green-300'
+				                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-700/60'
+				              }`}
+				              aria-label="Apne filter for liga og lag"
+				            >
+				              <span aria-hidden="true" className="text-xl">
+				                ⚽
+				              </span>
+				            </button>
+				            <h1 className="flex-1 text-3xl font-bold tracking-tight text-center text-zinc-900 dark:text-zinc-50">
+				              MatchBar
+				            </h1>
+				            <button
+				              type="button"
+				              aria-label="Velg sprak"
+				              className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-lg shadow-sm hover:bg-zinc-100 hover:border-zinc-300 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+				            >
+				              <span aria-hidden="true">🇬🇧</span>
+				            </button>
+				            <button
+				              type="button"
+				              onClick={toggleCityPanel}
+				              className={`flex h-10 w-10 items-center justify-center rounded-full border text-xl transition-colors ${
+				                isCityPanelOpen
+				                  ? 'bg-blue-500/20 border-blue-400/70 text-blue-300'
+				                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-700/60'
+				              }`}
+				              aria-label="Apne valg for by"
+				            >
+				              <span aria-hidden="true" className="text-xl">
+				                🏙️
+				              </span>
+				            </button>
+				          </div>
+				        </div>
 			      </div>
 			
 			      {/* Filter / City panels under header */}

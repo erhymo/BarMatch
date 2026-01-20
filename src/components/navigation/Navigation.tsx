@@ -53,16 +53,8 @@ export default function Navigation() {
               </div>
             </div>
 
-	            {/* Språkvalg (flagg) + Admin/Login Link */}
-	            <div className="flex items-center gap-3">
-	              <button
-	                type="button"
-	                aria-label="Velg sprak"
-	                className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-lg shadow-sm hover:bg-zinc-100 hover:border-zinc-300 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
-	              >
-	                <span aria-hidden="true">🇬🇧</span>
-	              </button>
-	
+	            {/* Admin/Login Link */}
+	            <div>
 	              {isAuthenticated ? (
 	                <Link
 	                  href="/admin"
