@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { dummyMatches } from "@/lib/data/matches";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import { useLeagues, useTeamSelection } from "@/lib/hooks";
@@ -18,9 +18,11 @@ export default function SportFilterPanel({
 	favoriteCity,
 	onFavoriteCityChange,
 }: SportFilterPanelProps) {
-	const [selectedLeague, setSelectedLeague] = useState<string>("");
-	const [selectedTeam, setSelectedTeam] = useState<string>("");
-	const [isExpanded, setIsExpanded] = useState(true);
+		const [selectedLeague, setSelectedLeague] = useState<string>("");
+		const [selectedTeam, setSelectedTeam] = useState<string>("");
+		const [isExpanded, setIsExpanded] = useState(true);
+		const [showCityList, setShowCityList] = useState(false);
+		const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const { favoriteTeams, toggleFavoriteTeam, isFavoriteTeam } = useFavorites();
 
   // Extract unique leagues using hook
@@ -29,11 +31,47 @@ export default function SportFilterPanel({
   // Extract and sort teams for selected league using hook
   const teams = useTeamSelection(dummyMatches, selectedLeague, favoriteTeams);
 
-  // Reset team selection when league changes
-  useEffect(() => {
-    setSelectedTeam('');
-    onTeamSelect(null);
-  }, [selectedLeague, onTeamSelect]);
+	  // Reset team selection when league changes
+	  useEffect(() => {
+	    setSelectedTeam('');
+	    onTeamSelect(null);
+	  }, [selectedLeague, onTeamSelect]);
+
+	  // Hent brukerens posisjon for å kunne sortere byene etter nærhet
+	  useEffect(() => {
+	    if (!navigator.geolocation) return;
+
+	    navigator.geolocation.getCurrentPosition(
+	      (position) => {
+	        setUserLocation({
+	          lat: position.coords.latitude,
+	          lng: position.coords.longitude,
+	        });
+	      },
+	      () => {
+	        // Ignorer feil – vi faller tilbake til standard rekkefølge
+	      },
+	      {
+	        enableHighAccuracy: true,
+	        timeout: 10000,
+	        maximumAge: 0,
+	      }
+	    );
+	  }, []);
+
+	  const sortedCities = useMemo(() => {
+	    if (!userLocation) return CITIES;
+
+	    const distanceSq = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+	      const dLat = a.lat - b.lat;
+	      const dLng = a.lng - b.lng;
+	      return dLat * dLat + dLng * dLng;
+	    };
+
+	    return [...CITIES].sort(
+	      (a, b) => distanceSq(userLocation, a.center) - distanceSq(userLocation, b.center)
+	    );
+	  }, [userLocation]);
 
   const handleLeagueChange = (league: string) => {
     setSelectedLeague(league);
@@ -52,13 +90,13 @@ export default function SportFilterPanel({
 
 
 
-	  return (
-	    <div className="absolute top-4 left-4 right-4 md:left-4 md:right-auto z-10">
-	      <div className="bg-gradient-to-br from-zinc-900/95 to-zinc-800/95 backdrop-blur-md 
-	                    rounded-2xl shadow-2xl border border-zinc-700/50 
-	                    max-w-md w-full">
+		  return (
+		    <div className="absolute top-2 left-4 right-4 md:left-4 md:right-auto z-10">
+		      <div className="bg-gradient-to-br from-zinc-900/95 to-zinc-800/95 backdrop-blur-md 
+		                    rounded-2xl shadow-2xl border border-zinc-700/50 
+			                    max-w-md w-full text-sm">
 	        {/* Header */}
-	        <div className="px-5 py-4 border-b border-zinc-700/50">
+		        <div className="px-4 py-3 border-b border-zinc-700/50">
 	          <div className="flex items-center justify-between">
 	            <div className="flex items-center gap-3">
 	              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 
@@ -74,56 +112,68 @@ export default function SportFilterPanel({
 	                </p>
 	              </div>
 	            </div>
-	            <button
-	              onClick={() => setIsExpanded(!isExpanded)}
-	              className="p-2 hover:bg-zinc-700/50 rounded-lg transition-colors"
-	            >
-	              <span className="text-zinc-400 text-xl">
-	                {isExpanded ? '−' : '+'}
-	              </span>
-	            </button>
-	          </div>
+		            <button
+		              onClick={() => setIsExpanded(!isExpanded)}
+		              className="p-1.5 hover:bg-zinc-700/50 rounded-lg transition-colors"
+		              aria-label={isExpanded ? 'Skjul filter' : 'Vis filter'}
+		            >
+		              <span className="text-zinc-400 text-lg">
+		                {isExpanded ? '−' : '+'}
+		              </span>
+		            </button>
+		          </div>
 
-	          {/* Favoritt-by velger */}
-	          <div className="mt-3">
-	            <p className="text-[11px] text-zinc-400 mb-1">
-	              Favoritt-by{' '}
-	              <span className="text-zinc-500">
-	                (brukes som startposisjon for kartet)
-	              </span>
-	            </p>
-	            <div className="flex flex-wrap gap-2">
-	              <button
-	                type="button"
-	                onClick={() => onFavoriteCityChange && onFavoriteCityChange(null)}
-	                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border 
-	                  ${
-	                    !favoriteCity
-	                      ? 'bg-zinc-100/10 text-zinc-100 border-zinc-400/60'
-	                      : 'bg-transparent text-zinc-400 hover:bg-zinc-800/60 border-zinc-700/80'
-	                  }`}
-	              >
-	                Ingen
-	              </button>
-	              {CITIES.map((city) => (
-	                <button
-	                  key={city.id}
-	                  type="button"
-	                  onClick={() =>
-	                    onFavoriteCityChange && onFavoriteCityChange(city.id)
-	                  }
-	                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border 
-	                    ${
-	                      favoriteCity === city.id
-	                        ? 'bg-green-500/20 text-green-300 border-green-400/70'
-	                        : 'bg-transparent text-zinc-300 hover:bg-zinc-800/60 border-zinc-700/80'
-	                    }`}
-	                >
-	                  {city.name}
-	                </button>
-	              ))}
-	            </div>
-	          </div>
+		          {/* Favoritt-by seksjon */}
+		          <div className="mt-2">
+		            <div className="flex items-center justify-between gap-2">
+		              <p className="text-[11px] text-zinc-400">
+		                Finn din by
+		                <span className="text-zinc-500"> (startposisjon for kartet)</span>
+		              </p>
+		              <button
+		                type="button"
+		                onClick={() => setShowCityList((prev) => !prev)}
+		                className="ml-2 flex h-6 w-6 items-center justify-center rounded-full border border-zinc-600 text-xs text-zinc-300 hover:bg-zinc-800/80 hover:text-white transition-colors"
+		                aria-label={showCityList ? 'Skjul byliste' : 'Vis byliste'}
+		              >
+		                {showCityList ? '−' : '+'}
+		              </button>
+		            </div>
+
+		            {showCityList && (
+		              <div className="mt-2 flex flex-wrap gap-2">
+		                <button
+		                  type="button"
+		                  onClick={() => onFavoriteCityChange && onFavoriteCityChange(null)}
+		                  className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-all border 
+		                    ${
+		                      !favoriteCity
+		                        ? 'bg-zinc-100/10 text-zinc-100 border-zinc-400/60'
+		                        : 'bg-transparent text-zinc-400 hover:bg-zinc-800/60 border-zinc-700/80'
+		                    }`}
+		                >
+		                  Ingen
+		                </button>
+		                {sortedCities.map((city) => (
+		                  <button
+		                    key={city.id}
+		                    type="button"
+		                    onClick={() =>
+		                      onFavoriteCityChange && onFavoriteCityChange(city.id)
+		                    }
+		                    className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-all border 
+		                      ${
+		                        favoriteCity === city.id
+		                          ? 'bg-green-500/20 text-green-300 border-green-400/70'
+		                          : 'bg-transparent text-zinc-300 hover:bg-zinc-800/60 border-zinc-700/80'
+		                      }`}
+		                  >
+		                    {city.name}
+		                  </button>
+		                ))}
+		              </div>
+		            )}
+		          </div>
 	        </div>
 
         {/* Content */}
