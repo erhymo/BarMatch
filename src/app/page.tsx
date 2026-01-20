@@ -1,11 +1,12 @@
 	'use client';
 
-	import { Suspense, useMemo, useState } from 'react';
+	import { Suspense, useEffect, useMemo, useState } from 'react';
 	import { useSearchParams } from 'next/navigation';
 	import GoogleMap from '@/components/map/GoogleMap';
 	import SportFilterPanel from '@/components/filter/SportFilterPanel';
 	import BarDetailsPanel from '@/components/bar/BarDetailsPanel';
 	import { dummyBars } from '@/lib/data/bars';
+	import { CITY_COORDINATES, type CityId } from '@/lib/data/cities';
 	import { Bar } from '@/lib/models';
 	import { useBarFilter } from '@/lib/hooks';
 	import { BarService } from '@/lib/services';
@@ -20,6 +21,36 @@
 	    initialMatchId
 	  );
 	  const [selectedBar, setSelectedBar] = useState<Bar | null>(null);
+	  const [favoriteCity, setFavoriteCity] = useState<CityId | null>(null);
+
+	  // Les inn favoritt-by fra localStorage ved oppstart
+	  useEffect(() => {
+	    if (typeof window === 'undefined') return;
+
+	    try {
+	      const stored = window.localStorage.getItem('matchbar.favoriteCity');
+	      if (stored && (stored === 'oslo' || stored === 'bergen' || stored === 'forde' || stored === 'trondheim')) {
+	        setFavoriteCity(stored as CityId);
+	      }
+	    } catch {
+	      // Ignorer feil fra localStorage
+	    }
+	  }, []);
+
+	  // Lagre endringer i favoritt-by til localStorage
+	  useEffect(() => {
+	    if (typeof window === 'undefined') return;
+
+	    try {
+	      if (favoriteCity) {
+	        window.localStorage.setItem('matchbar.favoriteCity', favoriteCity);
+	      } else {
+	        window.localStorage.removeItem('matchbar.favoriteCity');
+	      }
+	    } catch {
+	      // Ignorer feil fra localStorage
+	    }
+	  }, [favoriteCity]);
 
 	  // Filter bars based on selected team using hook, then by match if valgt via Kamper-siden
 	  const barsFilteredByTeam = useBarFilter(dummyBars, selectedTeam);
@@ -42,31 +73,36 @@
 	    setSelectedBar(null);
 	  };
 
+	  const handleFavoriteCityChange = (city: CityId | null) => {
+	    setFavoriteCity(city);
+	  };
+
+	  const mapCenter = favoriteCity ? CITY_COORDINATES[favoriteCity] : undefined;
+
 	  return (
-	    <div className="flex flex-col h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black">
-	      {/* Header Section */}
-	      <div className="flex-shrink-0 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
-	        <div className="container mx-auto px-4 py-6">
-	          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-1">
-	            Finn din neste favorittbar
-	          </h1>
-	          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-	            Utforsk barer i nærheten og se hvor du kan se kommende kamper
-	          </p>
-	        </div>
-	      </div>
+		    <div className="flex flex-col h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black">
+		      {/* Header Section */}
+		      <div className="flex-shrink-0 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+		        <div className="container mx-auto px-4 py-6">
+		          <h1 className="text-3xl font-bold tracking-tight text-center text-zinc-900 dark:text-zinc-50">
+		            MatchBar
+		          </h1>
+		        </div>
+		      </div>
 
 	      {/* Map Section - Takes up remaining space */}
-	      <div className="flex-1 relative overflow-hidden">
-	        <div className="absolute inset-0">
-	          <GoogleMap
-	            apiKey={apiKey}
-	            zoom={13}
-	            useGeolocation={true}
-	            bars={filteredBars}
-	            onBarClick={handleBarClick}
-	          />
-	        </div>
+		      <div className="flex-1 relative overflow-hidden">
+		        <div className="absolute inset-0">
+		          <GoogleMap
+		            apiKey={apiKey}
+		            center={mapCenter}
+		            zoom={13}
+		            useGeolocation={true}
+		            disableAutoPanToUser={Boolean(favoriteCity)}
+		            bars={filteredBars}
+		            onBarClick={handleBarClick}
+		          />
+		        </div>
 
 	        {/* Empty state when no bars match the current team filter */}
 	        {selectedTeam && filteredBars.length === 0 && (
@@ -96,8 +132,12 @@
 	          </div>
 	        )}
 
-	        {/* Sport Filter Panel - Overlay on map */}
-	        <SportFilterPanel onTeamSelect={handleTeamSelect} />
+		        {/* Sport Filter Panel - Overlay on map */}
+		        <SportFilterPanel
+		          onTeamSelect={handleTeamSelect}
+		          favoriteCity={favoriteCity}
+		          onFavoriteCityChange={handleFavoriteCityChange}
+		        />
 	      </div>
 
 	      {/* Bar Details Panel - Bottom sheet */}

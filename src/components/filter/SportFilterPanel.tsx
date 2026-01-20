@@ -1,19 +1,26 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { dummyMatches } from '@/lib/data/matches';
-import { useFavorites } from '@/contexts/FavoritesContext';
-import { useLeagues, useTeamSelection } from '@/lib/hooks';
-import { MatchService } from '@/lib/services';
+import { useEffect, useState } from "react";
+import { dummyMatches } from "@/lib/data/matches";
+import { useFavorites } from "@/contexts/FavoritesContext";
+import { useLeagues, useTeamSelection } from "@/lib/hooks";
+import { MatchService } from "@/lib/services";
+import { CITIES, type CityId } from "@/lib/data/cities";
 
 interface SportFilterPanelProps {
-  onTeamSelect: (teamId: string | null) => void;
+	onTeamSelect: (teamId: string | null) => void;
+	favoriteCity?: CityId | null;
+	onFavoriteCityChange?: (city: CityId | null) => void;
 }
 
-export default function SportFilterPanel({ onTeamSelect }: SportFilterPanelProps) {
-  const [selectedLeague, setSelectedLeague] = useState<string>('');
-  const [selectedTeam, setSelectedTeam] = useState<string>('');
-  const [isExpanded, setIsExpanded] = useState(true);
+export default function SportFilterPanel({
+	onTeamSelect,
+	favoriteCity,
+	onFavoriteCityChange,
+}: SportFilterPanelProps) {
+	const [selectedLeague, setSelectedLeague] = useState<string>("");
+	const [selectedTeam, setSelectedTeam] = useState<string>("");
+	const [isExpanded, setIsExpanded] = useState(true);
   const { favoriteTeams, toggleFavoriteTeam, isFavoriteTeam } = useFavorites();
 
   // Extract unique leagues using hook
@@ -45,38 +52,79 @@ export default function SportFilterPanel({ onTeamSelect }: SportFilterPanelProps
 
 
 
-  return (
-    <div className="absolute top-4 left-4 right-4 md:left-4 md:right-auto z-10">
-      <div className="bg-gradient-to-br from-zinc-900/95 to-zinc-800/95 backdrop-blur-md 
-                    rounded-2xl shadow-2xl border border-zinc-700/50 
-                    max-w-md w-full">
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-zinc-700/50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 
-                            rounded-lg flex items-center justify-center shadow-lg">
-                <span className="text-2xl">⚽</span>
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">
-                  Finn din bar
-                </h2>
-                <p className="text-xs text-zinc-400">
-                  Velg liga og lag
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="p-2 hover:bg-zinc-700/50 rounded-lg transition-colors"
-            >
-              <span className="text-zinc-400 text-xl">
-                {isExpanded ? '−' : '+'}
-              </span>
-            </button>
-          </div>
-        </div>
+	  return (
+	    <div className="absolute top-4 left-4 right-4 md:left-4 md:right-auto z-10">
+	      <div className="bg-gradient-to-br from-zinc-900/95 to-zinc-800/95 backdrop-blur-md 
+	                    rounded-2xl shadow-2xl border border-zinc-700/50 
+	                    max-w-md w-full">
+	        {/* Header */}
+	        <div className="px-5 py-4 border-b border-zinc-700/50">
+	          <div className="flex items-center justify-between">
+	            <div className="flex items-center gap-3">
+	              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 
+	                            rounded-lg flex items-center justify-center shadow-lg">
+	                <span className="text-2xl">⚽</span>
+	              </div>
+	              <div>
+	                <h2 className="text-lg font-bold text-white">
+	                  Finn din bar
+	                </h2>
+	                <p className="text-xs text-zinc-400">
+	                  Velg liga og lag
+	                </p>
+	              </div>
+	            </div>
+	            <button
+	              onClick={() => setIsExpanded(!isExpanded)}
+	              className="p-2 hover:bg-zinc-700/50 rounded-lg transition-colors"
+	            >
+	              <span className="text-zinc-400 text-xl">
+	                {isExpanded ? '−' : '+'}
+	              </span>
+	            </button>
+	          </div>
+
+	          {/* Favoritt-by velger */}
+	          <div className="mt-3">
+	            <p className="text-[11px] text-zinc-400 mb-1">
+	              Favoritt-by{' '}
+	              <span className="text-zinc-500">
+	                (brukes som startposisjon for kartet)
+	              </span>
+	            </p>
+	            <div className="flex flex-wrap gap-2">
+	              <button
+	                type="button"
+	                onClick={() => onFavoriteCityChange && onFavoriteCityChange(null)}
+	                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border 
+	                  ${
+	                    !favoriteCity
+	                      ? 'bg-zinc-100/10 text-zinc-100 border-zinc-400/60'
+	                      : 'bg-transparent text-zinc-400 hover:bg-zinc-800/60 border-zinc-700/80'
+	                  }`}
+	              >
+	                Ingen
+	              </button>
+	              {CITIES.map((city) => (
+	                <button
+	                  key={city.id}
+	                  type="button"
+	                  onClick={() =>
+	                    onFavoriteCityChange && onFavoriteCityChange(city.id)
+	                  }
+	                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border 
+	                    ${
+	                      favoriteCity === city.id
+	                        ? 'bg-green-500/20 text-green-300 border-green-400/70'
+	                        : 'bg-transparent text-zinc-300 hover:bg-zinc-800/60 border-zinc-700/80'
+	                    }`}
+	                >
+	                  {city.name}
+	                </button>
+	              ))}
+	            </div>
+	          </div>
+	        </div>
 
         {/* Content */}
         {isExpanded && (
