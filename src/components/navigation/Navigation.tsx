@@ -27,8 +27,8 @@ export default function Navigation() {
       {/* Top navigation (desktop/tablet) */}
       <nav className="hidden md:block bg-white dark:bg-zinc-800 shadow-md">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-1">
+	          <div className="flex items-center justify-between h-16">
+	            <div className="flex items-center space-x-1">
               <Link
                 href="/"
                 className="text-xl font-bold text-zinc-900 dark:text-zinc-50 mr-8"
@@ -53,32 +53,40 @@ export default function Navigation() {
               </div>
             </div>
 
-            {/* Admin/Login Link */}
-            <div>
-              {isAuthenticated ? (
-                <Link
-                  href="/admin"
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    pathname === '/admin'
-                      ? 'bg-blue-600 text-white dark:bg-blue-500'
-                      : 'text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-zinc-700'
-                  }`}
-                >
-                  Admin
-                </Link>
-              ) : (
-                <Link
-                  href="/login"
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    pathname === '/login'
-                      ? 'bg-blue-600 text-white dark:bg-blue-500'
-                      : 'text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-zinc-700'
-                  }`}
-                >
-                  Bar Login
-                </Link>
-              )}
-            </div>
+	            {/* Språkvalg (flagg) + Admin/Login Link */}
+	            <div className="flex items-center gap-3">
+	              <button
+	                type="button"
+	                aria-label="Velg sprak"
+	                className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-lg shadow-sm hover:bg-zinc-100 hover:border-zinc-300 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+	              >
+	                <span aria-hidden="true">🇬🇧</span>
+	              </button>
+	
+	              {isAuthenticated ? (
+	                <Link
+	                  href="/admin"
+	                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+	                    pathname === '/admin'
+	                      ? 'bg-blue-600 text-white dark:bg-blue-500'
+	                      : 'text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-zinc-700'
+	                  }`}
+	                >
+	                  Admin
+	                </Link>
+	              ) : (
+	                <Link
+	                  href="/login"
+	                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+	                    pathname === '/login'
+	                      ? 'bg-blue-600 text-white dark:bg-blue-500'
+	                      : 'text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-zinc-700'
+	                  }`}
+	                >
+	                  Bar Login
+	                </Link>
+	              )}
+	            </div>
           </div>
         </div>
       </nav>
