@@ -1,5 +1,6 @@
 'use client';
 
+	import type { MouseEvent } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +14,13 @@ const navItems = [
 export default function Navigation() {
   const pathname = usePathname();
   const { isAuthenticated } = useAuth();
+
+	  const handleHomeClick = (event: MouseEvent<HTMLAnchorElement>) => {
+	    if (pathname === '/') {
+	      event.preventDefault();
+	      window.dispatchEvent(new CustomEvent('barmatch:reset-home-filters'));
+	    }
+	  };
 
   const isActive = (href: string) => {
     // Treat /admin as part of "Min bar" for highlighting
@@ -41,6 +49,7 @@ export default function Navigation() {
                   <Link
                     key={item.href}
                     href={item.href}
+	                    onClick={item.href === '/' ? handleHomeClick : undefined}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                       isActive(item.href)
                         ? 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900'
@@ -98,6 +107,7 @@ export default function Navigation() {
               <Link
                 key={item.href}
                 href={item.href}
+	                onClick={item.href === '/' ? handleHomeClick : undefined}
                 className={`flex flex-col items-center justify-center text-xs font-medium transition-colors ${
                   active
                     ? 'text-zinc-900 dark:text-zinc-50'

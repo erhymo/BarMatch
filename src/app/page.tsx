@@ -57,6 +57,25 @@
 	    }
 	  }, [favoriteCity]);
 
+		  // Nullstill lag- og kampfiltre når "Hjem" klikkes på nytt mens vi allerede er på forsiden
+		  useEffect(() => {
+		    if (typeof window === 'undefined') return;
+
+		    const handleResetFilters = (_event: Event) => {
+		      setSelectedTeam(null);
+		      setSelectedMatchId(null);
+		      setSelectedBar(null);
+		      setIsFilterPanelOpen(false);
+		      setIsCityPanelOpen(false);
+		    };
+
+		    window.addEventListener('barmatch:reset-home-filters', handleResetFilters);
+
+		    return () => {
+		      window.removeEventListener('barmatch:reset-home-filters', handleResetFilters);
+		    };
+		  }, []);
+
 	  // Filter bars based on selected team using hook, then by match if valgt via Kamper-siden
 	  const barsFilteredByTeam = useBarFilter(dummyBars, selectedTeam);
 	  const filteredBars = useMemo(
