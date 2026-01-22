@@ -16,7 +16,6 @@ export function useGoing() {
     if (typeof window === 'undefined') return;
 
     const loadedVotes = GoingService.loadVotes(localStorage);
-    setVotes(loadedVotes);
 
     const existingUserId = localStorage.getItem('barmatch_user_id');
     if (existingUserId) {
@@ -25,6 +24,42 @@ export function useGoing() {
       const newUserId = `user-${Math.random().toString(36).slice(2)}-${Date.now()}`;
       localStorage.setItem('barmatch_user_id', newUserId);
       setUserId(newUserId);
+    }
+
+    // Optional dev/demo seed: pre-populate some "Skal" votes so counts > 0 on selected matches
+    const isDemoSeedEnabled = process.env.NEXT_PUBLIC_GOING_DEMO_SEED === 'true';
+    const hasSeededDemo = localStorage.getItem('barmatch_going_demo_seeded_v1') === 'true';
+
+    if (isDemoSeedEnabled && !hasSeededDemo) {
+      const demoVotes: GoingVote[] = [
+        // Oslo Mekaniske Verksted (barId: '1')
+        { barId: '1', matchId: '1', userId: 'demo-user-1', timestamp: new Date().toISOString() },
+        { barId: '1', matchId: '1', userId: 'demo-user-2', timestamp: new Date().toISOString() },
+        { barId: '1', matchId: '1', userId: 'demo-user-3', timestamp: new Date().toISOString() },
+
+        // Territoriet (barId: '5')
+        { barId: '5', matchId: '2', userId: 'demo-user-4', timestamp: new Date().toISOString() },
+        { barId: '5', matchId: '2', userId: 'demo-user-5', timestamp: new Date().toISOString() },
+        { barId: '5', matchId: '2', userId: 'demo-user-6', timestamp: new Date().toISOString() },
+        { barId: '5', matchId: '2', userId: 'demo-user-7', timestamp: new Date().toISOString() },
+        { barId: '5', matchId: '2', userId: 'demo-user-8', timestamp: new Date().toISOString() },
+
+        // Fotballpuben Bryggen (barId: '13')
+        { barId: '13', matchId: '15', userId: 'demo-user-9', timestamp: new Date().toISOString() },
+        { barId: '13', matchId: '15', userId: 'demo-user-10', timestamp: new Date().toISOString() },
+        { barId: '13', matchId: '15', userId: 'demo-user-11', timestamp: new Date().toISOString() },
+        { barId: '13', matchId: '15', userId: 'demo-user-12', timestamp: new Date().toISOString() },
+        { barId: '13', matchId: '15', userId: 'demo-user-13', timestamp: new Date().toISOString() },
+        { barId: '13', matchId: '15', userId: 'demo-user-14', timestamp: new Date().toISOString() },
+        { barId: '13', matchId: '15', userId: 'demo-user-15', timestamp: new Date().toISOString() },
+      ];
+
+      const combinedVotes = [...loadedVotes, ...demoVotes];
+      setVotes(combinedVotes);
+      GoingService.saveVotes(combinedVotes, localStorage);
+      localStorage.setItem('barmatch_going_demo_seeded_v1', 'true');
+    } else {
+      setVotes(loadedVotes);
     }
 
     setIsInitialized(true);
