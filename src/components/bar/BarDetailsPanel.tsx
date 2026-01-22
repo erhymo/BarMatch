@@ -5,6 +5,7 @@ import { Bar } from '@/lib/models';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useRatings } from '@/contexts/RatingsContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useGoing } from '@/contexts/GoingContext';
 import { BarService, MatchService } from '@/lib/services';
 import { useCampaigns } from '@/lib/hooks';
 import ChatPanel from '@/components/chat/ChatPanel';
@@ -20,6 +21,7 @@ export default function BarDetailsPanel({ bar, onClose }: BarDetailsPanelProps) 
   const { getBarRating, getUserRatingForBar, rateBar } = useRatings();
 	  const { showToast } = useToast();
 		  const { getCampaignsForBar } = useCampaigns();
+  const { getGoingStatusForMatch, toggleGoing } = useGoing();
   const [showChat, setShowChat] = useState(false);
 
   // Get today's day name using service
@@ -241,26 +243,46 @@ export default function BarDetailsPanel({ bar, onClose }: BarDetailsPanelProps) 
                 Kommende kamper ({upcomingMatches.length})
               </h3>
               <div className="space-y-2">
-                {upcomingMatches.slice(0, 5).map((match) => (
-                  <div
-                    key={match.id}
-                    className="px-4 py-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg
-                             border border-zinc-200 dark:border-zinc-700"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                        {MatchService.formatDate(match.date)} • {match.time}
-                      </span>
-                      <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30
-                                     text-blue-700 dark:text-blue-300 rounded font-medium">
-                        {match.competition}
-                      </span>
-                    </div>
-                    <div className="font-semibold text-zinc-900 dark:text-zinc-50">
-                      {match.homeTeam.name} – {match.awayTeam.name}
-                    </div>
-                  </div>
-                ))}
+	                {upcomingMatches.slice(0, 5).map((match) => {
+	                  const { count, isGoing } = getGoingStatusForMatch(bar.id, match.id);
+
+	                  return (
+	                    <div
+	                      key={match.id}
+	                      className="px-4 py-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg
+	                               border border-zinc-200 dark:border-zinc-700"
+	                    >
+	                      <div className="flex items-center justify-between mb-1">
+	                        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+	                          {MatchService.formatDate(match.date)} • {match.time}
+	                        </span>
+	                        <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30
+	                                       text-blue-700 dark:text-blue-300 rounded font-medium">
+	                          {match.competition}
+	                        </span>
+	                      </div>
+	                      <div className="font-semibold text-zinc-900 dark:text-zinc-50">
+	                        {match.homeTeam.name} – {match.awayTeam.name}
+	                      </div>
+	                      <div className="mt-2 flex items-center gap-2">
+	                        <button
+	                          type="button"
+	                          onClick={() => toggleGoing(bar.id, match.id)}
+	                          className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${
+	                            isGoing
+	                              ? 'bg-green-600 hover:bg-green-700 text-white'
+	                              : 'bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600 text-zinc-900 dark:text-zinc-100'
+	                          }`}
+	                        >
+	                          Skal
+	                        </button>
+	                        <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+	                          {count}
+	                        </span>
+	                      </div>
+	                    </div>
+	                  );
+	                })}
               </div>
             </div>
           )}

@@ -75,10 +75,13 @@ export class BarService {
     if (!bar.matches) return [];
 
     const now = new Date();
-    const todayDate = now.toISOString().split('T')[0];
+    const cutoff = new Date(now.getTime() - 90 * 60 * 1000); // 1.5 hours ago
 
     return bar.matches
-      .filter((match) => match.date >= todayDate)
+      .filter((match) => {
+        const matchDateTime = new Date(`${match.date}T${match.time}`);
+        return matchDateTime >= cutoff;
+      })
       .sort((a, b) => {
         const dateA = new Date(`${a.date}T${a.time}`);
         const dateB = new Date(`${b.date}T${b.time}`);

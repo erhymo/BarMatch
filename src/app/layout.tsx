@@ -7,6 +7,7 @@ import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { RatingsProvider } from "@/contexts/RatingsContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { DemoProvider } from "@/contexts/DemoContext";
+import { GoingProvider } from "@/contexts/GoingContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,10 +39,12 @@ export default function RootLayout({
           <AuthProvider>
             <FavoritesProvider>
               <RatingsProvider>
-                <ToastProvider>
-                  <Navigation />
-                  {children}
-                </ToastProvider>
+                <GoingProvider>
+                  <ToastProvider>
+                    <Navigation />
+                    {children}
+                  </ToastProvider>
+                </GoingProvider>
               </RatingsProvider>
             </FavoritesProvider>
           </AuthProvider>
