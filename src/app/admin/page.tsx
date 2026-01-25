@@ -35,15 +35,16 @@ export default function AdminPage() {
     if (barId) {
       const foundBar = dummyBars.find((b) => b.id === barId);
       if (foundBar) {
-        setBar(foundBar);
-        setEditedBar(foundBar);
+	        // eslint-disable-next-line react-hooks/set-state-in-effect
+	        setBar(foundBar);
+	        setEditedBar(foundBar);
         updateBar(foundBar);
-        setSelectedMatchIds(foundBar.matches?.map((m) => m.id) || []);
+	        setSelectedMatchIds(foundBar.matches?.map((m) => m.id) || []);
 
         // Load cancelled matches from localStorage
         const savedCancelledMatches = localStorage.getItem(`cancelledMatches_${barId}`);
         if (savedCancelledMatches) {
-          setCancelledMatchIds(JSON.parse(savedCancelledMatches));
+	          setCancelledMatchIds(JSON.parse(savedCancelledMatches));
         }
       }
     }

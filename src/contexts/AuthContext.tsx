@@ -30,7 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (savedBarId) {
       // In a real app, fetch bar data from API
       // For now, we'll set authenticated state
-      setIsAuthenticated(true);
+	      // eslint-disable-next-line react-hooks/set-state-in-effect
+	      setIsAuthenticated(true);
     }
   }, []);
 

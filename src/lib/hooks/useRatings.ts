@@ -16,18 +16,19 @@ export function useRatings() {
     if (typeof window === 'undefined') return;
 
     const loadedRatings = RatingService.loadRatings(localStorage);
-    setRatings(loadedRatings);
+	    // eslint-disable-next-line react-hooks/set-state-in-effect
+	    setRatings(loadedRatings);
 
     const existingUserId = localStorage.getItem('barmatch_user_id');
     if (existingUserId) {
-      setUserId(existingUserId);
+	      setUserId(existingUserId);
     } else {
       const newUserId = `user-${Math.random().toString(36).slice(2)}-${Date.now()}`;
       localStorage.setItem('barmatch_user_id', newUserId);
-      setUserId(newUserId);
+	      setUserId(newUserId);
     }
 
-    setIsInitialized(true);
+	    setIsInitialized(true);
   }, []);
 
   // Save ratings to localStorage whenever they change

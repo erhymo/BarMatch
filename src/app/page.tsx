@@ -1,16 +1,15 @@
 		'use client';
 
-		import { Suspense, useEffect, useMemo, useState } from 'react';
-		import { useSearchParams } from 'next/navigation';
-		import GoogleMap from '@/components/map/GoogleMap';
-		import SportFilterPanel from '@/components/filter/SportFilterPanel';
-		import CityFilterPanel from '@/components/filter/CityFilterPanel';
-		import BarDetailsPanel from '@/components/bar/BarDetailsPanel';
-		import { dummyBars } from '@/lib/data/bars';
-		import { CITY_COORDINATES, type CityId } from '@/lib/data/cities';
-		import { Bar } from '@/lib/models';
-		import { useBarFilter } from '@/lib/hooks';
-		import { BarService } from '@/lib/services';
+			import { Suspense, useEffect, useState } from 'react';
+			import { useSearchParams } from 'next/navigation';
+			import GoogleMap from '@/components/map/GoogleMap';
+			import SportFilterPanel from '@/components/filter/SportFilterPanel';
+			import CityFilterPanel from '@/components/filter/CityFilterPanel';
+			import BarDetailsPanel from '@/components/bar/BarDetailsPanel';
+			import { dummyBars } from '@/lib/data/bars';
+			import { CITY_COORDINATES, type CityId } from '@/lib/data/cities';
+			import { Bar } from '@/lib/models';
+			import { useBarFilter } from '@/lib/hooks';
 
 	function HomeContent() {
 	  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
@@ -61,7 +60,7 @@
 		  useEffect(() => {
 		    if (typeof window === 'undefined') return;
 
-		    const handleResetFilters = (_event: Event) => {
+			  const handleResetFilters = () => {
 		      setSelectedTeam(null);
 		      setSelectedMatchId(null);
 		      setSelectedBar(null);
@@ -76,12 +75,15 @@
 		    };
 		  }, []);
 
-	  // Filter bars based on selected team using hook, then by match if valgt via Kamper-siden
-	  const barsFilteredByTeam = useBarFilter(dummyBars, selectedTeam);
-	  const filteredBars = useMemo(
-	    () => BarService.filterBarsByMatch(barsFilteredByTeam, selectedMatchId),
-	    [barsFilteredByTeam, selectedMatchId]
-	  );
+		  // Filter bars based on selected team using hook,
+		  // then further by match if valgt via Kamper-siden (matchId i querystring)
+		  const barsFilteredByTeam = useBarFilter(dummyBars, selectedTeam);
+		  const filteredBars =
+		    !selectedMatchId
+		      ? barsFilteredByTeam
+		      : barsFilteredByTeam.filter((bar) =>
+		          bar.matches?.some((match) => match.id === selectedMatchId)
+		        );
 
 	  const handleTeamSelect = (teamId: string | null) => {
 	    // Når brukeren velger lag på kartet, nullstiller vi evt. aktiv kamp-filter

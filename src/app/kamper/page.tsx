@@ -7,6 +7,50 @@ import { useFavorites } from "@/contexts/FavoritesContext";
 import type { Fixture, LeagueKey } from "@/lib/types/fixtures";
 import { getFixtureProvider } from "@/lib/providers/fixtures";
 
+function getErrorInfo(err: unknown): { message: string; details?: string } {
+  if (err && typeof err === "object") {
+    const maybe = err as Record<string, unknown>;
+
+    const message =
+      typeof maybe.message === "string" && maybe.message.length > 0
+        ? maybe.message
+        : "Kunne ikke laste kamper.";
+
+    const details =
+      typeof maybe.details === "string" && maybe.details.length > 0
+        ? maybe.details
+        : undefined;
+
+    return { message, details };
+  }
+
+  if (typeof err === "string" && err.length > 0) {
+    return { message: err };
+  }
+
+  return { message: "Kunne ikke laste kamper." };
+}
+
+function isRejected<T>(r: PromiseSettledResult<T>): r is PromiseRejectedResult {
+  return r.status === "rejected";
+}
+
+function getFixturesCountFromBody(body: unknown): number {
+  if (!body || typeof body !== "object") return 0;
+  const maybe = body as Record<string, unknown>;
+  const fixtures = maybe.fixtures;
+  return Array.isArray(fixtures) ? fixtures.length : 0;
+}
+
+function getApiErrorFromBody(body: unknown): { error?: string; details?: unknown } {
+  if (!body || typeof body !== "object") return {};
+  const maybe = body as Record<string, unknown>;
+  return {
+    error: typeof maybe.error === "string" ? maybe.error : undefined,
+    details: maybe.details,
+  };
+}
+
 const DEFAULT_RANGE_DAYS = 14;
 
 const LEAGUES: { key: LeagueKey; label: string }[] = [
@@ -68,6 +112,8 @@ function formatTimeFromUtc(kickoffUtc: string, locale: string = "nb-NO"): string
   });
 }
 
+const IS_DEV = process.env.NODE_ENV !== "production";
+
 export default function KamperPage() {
   const router = useRouter();
   const { favoriteTeams } = useFavorites();
@@ -82,47 +128,49 @@ export default function KamperPage() {
     NOR_ELITESERIEN: [],
     SERIE_A: [],
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+	  const [isLoading, setIsLoading] = useState(false);
+	  const [loadError, setLoadError] = useState<string | null>(null);
+	  const [selfTestResult, setSelfTestResult] = useState<string | null>(null);
+	  const [selfTestLoading, setSelfTestLoading] = useState(false);
 
-  // Enkel klient-cache per league+range for å unngå unødvendige kall
-  const cacheRef = useRef<Map<string, Fixture[]>>(new Map());
+	  // Enkel klient-cache per league+range for å unngå unødvendige kall
+	  const cacheRef = useRef<Map<string, Fixture[]>>(new Map());
 
-	  const fixtureProvider = getFixtureProvider();
+		  const fixtureProvider = useMemo(() => getFixtureProvider(), []);
 
 	  useEffect(() => {
-    let isCancelled = false;
+	    let isCancelled = false;
 
-		    async function fetchFixturesForLeague(league: LeagueKey): Promise<Fixture[]> {
-		      const cacheKey = `${league}|${range.from}|${range.to}`;
-		      const cached = cacheRef.current.get(cacheKey);
-		      if (cached) {
-		        return cached;
-		      }
-		
-		      const fixtures = await fixtureProvider.getUpcomingFixtures(
-		        league,
-		        range.from,
-		        range.to,
-		      );
-		
-		      if (process.env.NODE_ENV !== "production") {
-		        console.log(
-		          "[Fixtures]",
-		          league,
-		          "from",
-		          range.from,
-		          "to",
-		          range.to,
-		          "- count:",
-		          fixtures.length,
-		        );
-		      }
-		
-		      cacheRef.current.set(cacheKey, fixtures);
-		      return fixtures;
-		    }
-		
+	    async function fetchFixturesForLeague(league: LeagueKey): Promise<Fixture[]> {
+	      const cacheKey = `${league}|${range.from}|${range.to}`;
+	      const cached = cacheRef.current.get(cacheKey);
+	      if (cached) {
+	        return cached;
+	      }
+
+	      const fixtures = await fixtureProvider.getUpcomingFixtures(
+	        league,
+	        range.from,
+	        range.to,
+	      );
+
+		      if (IS_DEV) {
+	        console.log(
+	          "[Fixtures]",
+	          league,
+	          "from",
+	          range.from,
+	          "to",
+	          range.to,
+	          "- count:",
+	          fixtures.length,
+	        );
+	      }
+
+	      cacheRef.current.set(cacheKey, fixtures);
+	      return fixtures;
+	    }
+
 	    async function loadAllLeagues() {
 	      setIsLoading(true);
 	      setLoadError(null);
@@ -168,9 +216,23 @@ export default function KamperPage() {
 	          norEliteserienResult.status === "rejected" &&
 	          serieAResult.status === "rejected";
 	  
-	        if (allRejected) {
-	          setLoadError("Kunne ikke laste kamper. Prøv igjen senere.");
-	        }
+		        if (allRejected) {
+		          const rejectedResults = [
+		            eplResult,
+		            norEliteserienResult,
+		            serieAResult,
+		          ].filter(isRejected);
+
+		          const firstReason = rejectedResults[0]?.reason;
+		          const { message, details } = getErrorInfo(firstReason);
+
+			          const combinedMessage =
+			            IS_DEV && details && details.length > 0
+		              ? `${message} Detaljer: ${details.slice(0, 200)}`
+		              : message;
+
+		          setLoadError(combinedMessage);
+		        }
 	  
 	        setFixturesByLeague({
 	          EPL: epl,
@@ -180,7 +242,14 @@ export default function KamperPage() {
 	      } catch (error) {
 	        if (isCancelled) return;
 	        console.error("[Fixtures] Uventet feil ved lasting av kamper:", error);
-	        setLoadError("Kunne ikke laste kamper. Prøv igjen senere.");
+
+		        const { message: baseMessage, details } = getErrorInfo(error);
+			        const combinedMessage =
+			          IS_DEV && details && details.length > 0
+		            ? `${baseMessage} Detaljer: ${details.slice(0, 200)}`
+		            : baseMessage;
+
+		        setLoadError(combinedMessage);
 	      } finally {
 	        if (!isCancelled) {
 	          setIsLoading(false);
@@ -188,12 +257,12 @@ export default function KamperPage() {
 	      }
 	    }
 
-    loadAllLeagues();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [range.from, range.to]);
+	    loadAllLeagues();
+	
+	    return () => {
+	      isCancelled = true;
+	    };
+		  }, [fixtureProvider, range.from, range.to]);
 
   const allFixtures = useMemo(() => {
     const all = [
@@ -246,6 +315,50 @@ export default function KamperPage() {
     router.push(`/?matchId=${matchId}`);
   };
 
+			  const handleSelfTest = async () => {
+			    if (!IS_DEV) return;
+
+	    setSelfTestLoading(true);
+	    setSelfTestResult(null);
+
+		    try {
+		      const res = await fetch(
+		        "/api/fixtures?leagueKey=EPL&season=2025&from=2025-08-01&to=2025-08-20",
+		      );
+
+		      let body: unknown = null;
+	      try {
+	        body = await res.json();
+	      } catch {
+	        body = null;
+	      }
+
+		      if (res.ok) {
+		        const count = getFixturesCountFromBody(body);
+	        setSelfTestResult(
+	          `Test API OK (HTTP ${res.status}). Fixtures: ${count}`,
+	        );
+	      } else {
+		        const { error: apiError, details: apiDetails } = getApiErrorFromBody(body);
+		        const errMessage = apiError || "Ukjent feil";
+	        const msg = `Test API feilet (HTTP ${res.status}): ${errMessage}`;
+	        setSelfTestResult(msg);
+
+			        if (IS_DEV && apiDetails) {
+		          console.log("[Kamper Test API] details:", apiDetails);
+	        }
+	      }
+	    } catch (error) {
+	      const message =
+	        error instanceof Error && error.message
+	          ? error.message
+	          : "Ukjent feil ved Test API";
+	      setSelfTestResult(`Test API feilet: ${message}`);
+	    } finally {
+	      setSelfTestLoading(false);
+	    }
+	  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black">
       <main className="container mx-auto px-4 py-8 pb-24">
@@ -259,6 +372,33 @@ export default function KamperPage() {
               Se kommende kamper, filtrer på liga og fokuser på dine favorittlag.
             </p>
           </header>
+
+			          {IS_DEV && (
+	            <section className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-2xl p-4 text-xs text-amber-900 dark:text-amber-100">
+	              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+	                <div>
+	                  <p className="font-semibold">
+	                    Dev: Test API-Football via /api/fixtures
+	                  </p>
+			          <p className="text-[11px]">
+			            Kaller EPL 2025-08-01 til 2025-08-20 og viser antall kamper eller
+			            feil/status.
+			          </p>
+	                </div>
+	                <button
+	                  type="button"
+	                  onClick={handleSelfTest}
+	                  disabled={selfTestLoading}
+	                  className="inline-flex items-center justify-center rounded-full bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-60"
+		                >
+		                  {selfTestLoading ? "Tester…" : "Test API"}
+		                </button>
+	              </div>
+	              {selfTestResult && (
+	                <p className="mt-2 break-words">{selfTestResult}</p>
+	              )}
+	            </section>
+	          )}
 
           {/* Filters */}
           <section className="bg-white dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm p-4 sm:p-5">

@@ -12,7 +12,7 @@ interface BarChatManagerProps {
 }
 
 export default function BarChatManager({ barId, barName }: BarChatManagerProps) {
-  const { getThreadsForBar, sendMessage, markAsRead, closeThread, reopenThread, getThread } = useChat();
+	  const { getThreadsForBar, sendMessage, markAsRead, getThread } = useChat();
 	  const { showToast } = useToast();
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
@@ -27,7 +27,8 @@ export default function BarChatManager({ barId, barName }: BarChatManagerProps) 
       ...thread,
       unreadCount: ChatService.calculateUnreadCount(thread, 'bar'),
     }));
-    setBarThreads(threadsWithUnread);
+	    // eslint-disable-next-line react-hooks/set-state-in-effect
+	    setBarThreads(threadsWithUnread);
   }, [barId, getThreadsForBar]);
 
   // Update selected thread when messages change
@@ -39,7 +40,8 @@ export default function BarChatManager({ barId, barName }: BarChatManagerProps) 
           ...updatedThread,
           unreadCount: ChatService.calculateUnreadCount(updatedThread, 'bar'),
         };
-        setBarThreads((prev) =>
+	        // eslint-disable-next-line react-hooks/set-state-in-effect
+	        setBarThreads((prev) =>
           prev.map((t) => (t.id === selectedThreadId ? threadWithUnread : t))
         );
       }

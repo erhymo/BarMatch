@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Fixture, LeagueKey } from '@/lib/types/fixtures';
 import { getCompetitionByKey } from '@/lib/config/competitions';
-import { mapApiFootballFixtureToFixture } from '@/lib/providers/fixtures/apiFootballMapper';
+import {
+  mapApiFootballFixtureToFixture,
+  type ApiFootballFixtureLike,
+} from '@/lib/providers/fixtures/apiFootballMapper';
 
 const DEFAULT_RANGE_DAYS = 14;
 const API_BASE_URL = 'https://v3.football.api-sports.io/';
@@ -13,6 +16,8 @@ type CacheEntry = {
 };
 
 const memoryCache = new Map<string, CacheEntry>();
+
+let hasLoggedEnv = false;
 
 function isLeagueKey(value: string | null): value is LeagueKey {
   return value === 'NOR_ELITESERIEN' || value === 'EPL' || value === 'SERIE_A';
@@ -37,16 +42,6 @@ function isoToDateOnly(iso: string): string {
   return dt.toISOString().slice(0, 10);
 }
 
-function getApiFootballLeagueId(league: LeagueKey): number {
-  const competition = getCompetitionByKey(league);
-
-  if (!competition.apiFootballLeagueId) {
-    throw new Error(`Missing leagueId mapping for ${league}`);
-  }
-
-  return competition.apiFootballLeagueId;
-}
-
 function buildCacheKey(
   league: LeagueKey,
   fromDate: string,
@@ -57,68 +52,165 @@ function buildCacheKey(
 }
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-
-  // Støtt både nytt navn (leagueKey) og tidligere (league) for kompatibilitet
-  const leagueParam = searchParams.get('leagueKey') ?? searchParams.get('league');
-
-  if (!isLeagueKey(leagueParam)) {
-    return NextResponse.json(
-      { error: 'Ugyldig eller manglende leagueKey-parameter' },
-      { status: 400 },
-    );
-  }
-
-  const fromParam = searchParams.get('from');
-  const toParam = searchParams.get('to');
-  const seasonParam = searchParams.get('season');
-
-  const { from: defaultFrom, to: defaultTo } = getDefaultRange();
-
-  const fromIso = fromParam ?? defaultFrom;
-  const toIso = toParam ?? defaultTo;
-
-  const fromDate = isoToDateOnly(fromIso);
-  const toDate = isoToDateOnly(toIso);
-
-  const apiKey = process.env.APISPORTS_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: 'APISPORTS_KEY er ikke satt i miljøvariabler' },
-      { status: 500 },
-    );
-  }
-
-  const competition = getCompetitionByKey(leagueParam);
-
-  let season: number;
-  if (seasonParam && !Number.isNaN(Number(seasonParam))) {
-    season = Number(seasonParam);
-  } else if (competition.defaultSeason) {
-    season = competition.defaultSeason;
-  } else {
-    const fromDateObj = new Date(fromIso);
-    season = Number.isNaN(fromDateObj.getTime())
-      ? new Date().getUTCFullYear()
-      : fromDateObj.getUTCFullYear();
-  }
-
-  const cacheKey = buildCacheKey(leagueParam, fromDate, toDate, season);
-  const now = Date.now();
-  const cached = memoryCache.get(cacheKey);
-
-  if (cached && now - cached.createdAt < IN_MEMORY_TTL_MS) {
-    return NextResponse.json({ fixtures: cached.fixtures });
-  }
-
   try {
-    const leagueId = getApiFootballLeagueId(leagueParam);
+    const { searchParams } = new URL(req.url);
+
+    // Logg env ved første kall slik at vi ser om nøkkelen faktisk er tilgjengelig
+    if (!hasLoggedEnv) {
+      const hasKey = Boolean(process.env.APISPORTS_KEY);
+      // NB: logger bare bool, ikke selve nøkkelen
+      console.log('[/api/fixtures] APISPORTS_KEY present:', hasKey);
+      if (!hasKey) {
+        console.error(
+          '[/api/fixtures] APISPORTS_KEY mangler. Sørg for at den er satt i .env.local og at dev-server er restartet etter endring.',
+        );
+      }
+      hasLoggedEnv = true;
+    }
+
+    // Støtt både nytt navn (leagueKey) og tidligere (league) for kompatibilitet
+    const leagueParamRaw = searchParams.get('leagueKey') ?? searchParams.get('league');
+
+	    const fromParam = searchParams.get('from');
+	    const toParam = searchParams.get('to');
+	    const seasonParam = searchParams.get('season');
+	
+	    console.log('[/api/fixtures] Request params:', {
+	      leagueKey: leagueParamRaw,
+	      from: fromParam,
+	      to: toParam,
+	      season: seasonParam,
+	    });
+	
+	    if (!isLeagueKey(leagueParamRaw)) {
+	      console.error(
+	        '[/api/fixtures] Ugyldig eller manglende leagueKey-parameter:',
+	        leagueParamRaw,
+	      );
+      return NextResponse.json(
+        {
+          error: 'Ugyldig eller manglende leagueKey-parameter',
+          status: 400,
+          details: `leagueKey må være en av: NOR_ELITESERIEN, EPL, SERIE_A (fikk: ${leagueParamRaw})`,
+        },
+        { status: 400 },
+      );
+    }
+
+    const leagueParam = leagueParamRaw;
+
+    const { from: defaultFrom, to: defaultTo } = getDefaultRange();
+
+    const fromIso = fromParam ?? defaultFrom;
+    const toIso = toParam ?? defaultTo;
+
+	    let fromDate: string;
+	    let toDate: string;
+	    try {
+	      fromDate = isoToDateOnly(fromIso);
+	      toDate = isoToDateOnly(toIso);
+	    } catch (error) {
+	      const message =
+	        error instanceof Error && error.message ? error.message : 'Invalid date';
+	      console.error('[/api/fixtures] Ugyldig dato-parameter:', {
+	        from: fromIso,
+	        to: toIso,
+	        message,
+	      });
+	      return NextResponse.json(
+	        {
+	          error: 'Ugyldig from/to dato-parameter',
+	          status: 400,
+	          details: message,
+	        },
+	        { status: 400 },
+	      );
+	    }
+
+    const apiKey = process.env.APISPORTS_KEY;
+    if (!apiKey) {
+      console.error(
+        '[/api/fixtures] APISPORTS_KEY er ikke satt i miljøvariabler. Avbryter kall mot API-Football.',
+      );
+      return NextResponse.json(
+        {
+          error: 'APISPORTS_KEY er ikke satt i miljøvariabler',
+          status: 500,
+          details:
+            'Sett APISPORTS_KEY i .env.local og restart dev-server eller Vercel-deploy etter endring.',
+        },
+        { status: 500 },
+      );
+    }
+
+	    const competition = getCompetitionByKey(leagueParam);
+	    const leagueId = competition.apiFootballLeagueId;
+
+	    if (!leagueId) {
+      console.error(
+        '[/api/fixtures] Mangler apiFootballLeagueId for leagueKey=',
+        leagueParam,
+      );
+      return NextResponse.json(
+        {
+          error: `Missing competition id mapping for ${leagueParam}`,
+          status: 400,
+          details:
+            'Legg til apiFootballLeagueId i COMPETITIONS-konfigurasjonen for denne ligaen.',
+        },
+        { status: 400 },
+      );
+    }
+
+    let season: number;
+    if (seasonParam && !Number.isNaN(Number(seasonParam))) {
+      season = Number(seasonParam);
+    } else if (competition.defaultSeason) {
+      season = competition.defaultSeason;
+    } else {
+      const fromDateObj = new Date(fromIso);
+      season = Number.isNaN(fromDateObj.getTime())
+        ? new Date().getUTCFullYear()
+        : fromDateObj.getUTCFullYear();
+    }
+
+    const cacheKey = buildCacheKey(leagueParam, fromDate, toDate, season);
+    const now = Date.now();
+    const cached = memoryCache.get(cacheKey);
+
+    if (cached && now - cached.createdAt < IN_MEMORY_TTL_MS) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[/api/fixtures] Serving fixtures from in-memory cache for', {
+          league: leagueParam,
+          fromDate,
+          toDate,
+          season,
+        });
+      }
+      return NextResponse.json({ fixtures: cached.fixtures });
+    }
 
     const url = new URL(`${API_BASE_URL}fixtures`);
     url.searchParams.set('league', String(leagueId));
     url.searchParams.set('season', String(season));
     url.searchParams.set('from', fromDate);
     url.searchParams.set('to', toDate);
+
+    // Nyttig debug: eksakt URL, parametere og om nøkkelen er synlig
+    console.log('[/api/fixtures] url:', url.toString());
+    console.log(
+      '[/api/fixtures] leagueKey:',
+      leagueParam,
+      'leagueId:',
+      leagueId,
+      'season:',
+      season,
+      'from:',
+      fromDate,
+      'to:',
+      toDate,
+    );
+    console.log('[/api/fixtures] APISPORTS_KEY present:', Boolean(process.env.APISPORTS_KEY));
 
     const response = await fetch(url.toString(), {
       headers: {
@@ -130,26 +222,44 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    const status = response.status;
+    const statusText = response.statusText;
+
     if (!response.ok) {
       const body = await response.text().catch(() => '');
-      throw new Error(
-        `API-Football: ${response.status} ${response.statusText} - ${body.slice(
-          0,
-          200,
-        )}`,
+
+      console.error('[/api/fixtures] API-Football error response', {
+        status,
+        statusText,
+        url: url.toString(),
+        body: body ? body.slice(0, 500) : '',
+      });
+
+      // Viktig: ikke kast Error her. Vi returnerer med faktisk statuskode slik at klienten
+      // (ApiFootballFixtureProvider/Kamper-siden) kan vise korrekt HTTP-status og details.
+      return NextResponse.json(
+        {
+          error: 'API-Football request failed',
+          status,
+          statusText,
+          details: body,
+        },
+        { status },
       );
     }
 
     const json = (await response.json()) as {
-      response?: unknown[];
+      response?: ApiFootballFixtureLike[];
       results?: number;
       errors?: unknown;
     };
 
-    const rawFixtures = Array.isArray(json.response) ? json.response : [];
+    const rawFixtures: ApiFootballFixtureLike[] = Array.isArray(json.response)
+      ? json.response
+      : [];
 
     const fixtures: Fixture[] = rawFixtures.map((item) =>
-      mapApiFootballFixtureToFixture(item as any, leagueParam),
+      mapApiFootballFixtureToFixture(item, leagueParam),
     );
 
     memoryCache.set(cacheKey, { createdAt: now, fixtures });
@@ -161,10 +271,14 @@ export async function GET(req: NextRequest) {
         ? error.message
         : 'Kunne ikke hente kamper';
 
-    console.error('[API /api/fixtures] Feil ved henting av kamper:', error);
+    console.error('[/api/fixtures] Internal error:', error);
 
     return NextResponse.json(
-      { error: message },
+      {
+        error: 'Internal error',
+        status: 500,
+        details: message,
+      },
       { status: 500 },
     );
   }

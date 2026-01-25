@@ -20,6 +20,12 @@ export class TheSportsDbFixtureProvider implements FixtureProvider {
     fromUtcIso: string,
     toUtcIso: string,
   ): Promise<Fixture[]> {
+	  // Mark as used (provider is stubbed out for now)
+	  void league;
+	  void fromUtcIso;
+	  void toUtcIso;
+	  void API_BASE_URL;
+	  void mapTheSportsDbEventToFixture;
     throw new Error('TheSportsDB provider not enabled yet');
 
     /*
@@ -76,6 +82,10 @@ export class TheSportsDbFixtureProvider implements FixtureProvider {
     fromUtcIso: string,
     toUtcIso: string,
   ): Promise<Fixture[]> {
+	  void league;
+	  void teamName;
+	  void fromUtcIso;
+	  void toUtcIso;
     // TODO: Implementer team-baserte oppslag mot TheSportsDB naar provideren tas i bruk.
     throw new Error('TheSportsDB provider not enabled yet');
   }

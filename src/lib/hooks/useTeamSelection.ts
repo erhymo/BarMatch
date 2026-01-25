@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Match, Team } from '../models';
+import { Match } from '../models';
 import { MatchService } from '../services';
 
 /**

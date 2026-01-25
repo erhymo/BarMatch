@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ChatThread, ChatMessage, MessageSender } from '../models';
+import { ChatThread, MessageSender } from '../models';
 import { ChatService } from '../services';
 
 /**
@@ -15,8 +15,9 @@ export function useChat() {
     if (typeof window === 'undefined') return;
 
     const loadedThreads = ChatService.loadThreads(localStorage);
-    setThreads(loadedThreads);
-    setIsInitialized(true);
+	    // eslint-disable-next-line react-hooks/set-state-in-effect
+	    setThreads(loadedThreads);
+	    setIsInitialized(true);
   }, []);
 
   // Save threads to localStorage whenever they change

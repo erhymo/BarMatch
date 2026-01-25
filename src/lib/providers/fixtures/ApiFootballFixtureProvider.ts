@@ -4,6 +4,13 @@ import type { FixtureProvider } from './FixtureProvider';
 type FixturesResponse = {
   fixtures?: Fixture[];
   error?: string;
+  status?: number;
+  details?: string;
+};
+
+type FixturesError = Error & {
+  status?: number;
+  details?: string;
 };
 
 export class ApiFootballFixtureProvider implements FixtureProvider {
@@ -15,20 +22,76 @@ export class ApiFootballFixtureProvider implements FixtureProvider {
     const searchParams = new URLSearchParams(params);
     const url = `${this.basePath}?${searchParams.toString()}`;
 
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      throw new Error(
-        `Kunne ikke hente kamper (${response.status}). ${text.slice(0, 200)}`,
-      );
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[ApiFootballFixtureProvider] Henter fixtures fra', url);
     }
 
-    const data = (await response.json()) as FixturesResponse;
-
-    if (!data.fixtures) {
-      throw new Error(data.error || 'Uventet svar fra serveren (mangler fixtures)');
+    let response: Response;
+    try {
+      response = await fetch(url);
+    } catch (error) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error(
+          '[ApiFootballFixtureProvider] Fetch mot /api/fixtures feilet (nettverk/klient):',
+          error,
+        );
+      }
+      throw error;
     }
+
+    const contentType = response.headers.get('content-type') || '';
+    let data: FixturesResponse | null = null;
+    let rawText: string | null = null;
+
+    if (contentType.includes('application/json')) {
+      try {
+        data = (await response.json()) as FixturesResponse;
+      } catch (error) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error(
+            '[ApiFootballFixtureProvider] Klarte ikke å parse JSON fra /api/fixtures:',
+            error,
+          );
+        }
+        data = null;
+      }
+    } else {
+      rawText = await response.text().catch(() => '');
+    }
+
+	    if (!response.ok) {
+	      const status = response.status;
+	      const apiError = data?.error;
+	      const apiDetails = data?.details ?? rawText ?? '';
+	
+	      if (process.env.NODE_ENV !== 'production') {
+	        console.error('[ApiFootballFixtureProvider] /api/fixtures returnerte feil', {
+	          url,
+	          status,
+	          error: apiError,
+	          details: apiDetails ? apiDetails.slice(0, 300) : undefined,
+	        });
+	      }
+	
+	      const message = `Kunne ikke laste kamper (HTTP ${status}): ${
+	        apiError || 'Ukjent feil fra /api/fixtures'
+	      }`;
+	
+	      const err: FixturesError = new Error(message);
+	      err.status = status;
+	      if (apiDetails) {
+	        err.details = apiDetails.slice(0, 1000);
+	      }
+	      throw err;
+	    }
+
+	    if (!data || !data.fixtures) {
+	      const err: FixturesError = new Error(
+	        'Uventet svar fra serveren (mangler fixtures)',
+	      );
+	      err.status = 500;
+	      throw err;
+	    }
 
     return data.fixtures;
   }

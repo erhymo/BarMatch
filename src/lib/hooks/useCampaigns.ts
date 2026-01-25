@@ -13,8 +13,9 @@ export function useCampaigns() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const loaded = CampaignService.loadCampaigns(localStorage);
-    setCampaigns(loaded);
-    setIsInitialized(true);
+	    // eslint-disable-next-line react-hooks/set-state-in-effect
+	    setCampaigns(loaded);
+	    setIsInitialized(true);
   }, []);
 
   // Persist to localStorage when campaigns change

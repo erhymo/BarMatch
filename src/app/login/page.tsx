@@ -25,7 +25,7 @@ export default function LoginPage() {
       } else {
         setError('Ugyldig e-post eller passord');
       }
-    } catch (err) {
+	  } catch {
       setError('En feil oppstod. Prøv igjen.');
     } finally {
       setIsLoading(false);

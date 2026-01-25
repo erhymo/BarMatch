@@ -15,9 +15,10 @@ export function useFavorites() {
     if (typeof window === 'undefined') return;
 
     const favorites = FavoritesService.loadFavorites(localStorage);
-    setFavoriteTeams(favorites.teams);
-    setFavoriteBars(favorites.bars);
-    setIsInitialized(true);
+	    // eslint-disable-next-line react-hooks/set-state-in-effect
+	    setFavoriteTeams(favorites.teams);
+	    setFavoriteBars(favorites.bars);
+	    setIsInitialized(true);
   }, []);
 
   // Save favorite teams to localStorage whenever they change

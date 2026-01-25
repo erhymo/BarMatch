@@ -25,19 +25,22 @@ export default function ChatPanel({ barId, barName, onClose }: ChatPanelProps) {
   // Initialize or get existing thread
   useEffect(() => {
     const thread = getOrCreateThread(barId, barName, mockUserId, mockUserName);
-    setCurrentThread(thread);
+	    // eslint-disable-next-line react-hooks/set-state-in-effect
+	    setCurrentThread(thread);
     markAsRead(thread.id);
   }, [barId, barName, getOrCreateThread, markAsRead, mockUserId, mockUserName]);
 
+	  const currentThreadId = currentThread?.id;
+
   // Update thread when messages change
   useEffect(() => {
-    if (currentThread) {
-      const updatedThread = getThread(currentThread.id);
-      if (updatedThread) {
-        setCurrentThread(updatedThread);
-      }
-    }
-  }, [currentThread?.id, getThread]);
+	    if (!currentThreadId) return;
+	    const updatedThread = getThread(currentThreadId);
+	    if (updatedThread) {
+	      // eslint-disable-next-line react-hooks/set-state-in-effect
+	      setCurrentThread(updatedThread);
+	    }
+	  }, [currentThreadId, getThread]);
 
   // Scroll to bottom when messages change
   useEffect(() => {

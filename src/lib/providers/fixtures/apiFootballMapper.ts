@@ -1,6 +1,6 @@
 import type { Fixture, LeagueKey } from '@/lib/types/fixtures';
 
-type ApiFootballFixtureLike = {
+export type ApiFootballFixtureLike = {
   fixture?: {
     id?: number | string | null;
     date?: string | null;

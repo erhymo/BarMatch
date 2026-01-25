@@ -64,7 +64,7 @@ export default function BarCampaignManager({ barId, barName }: BarCampaignManage
         </h2>
         <p className="text-sm text-zinc-600 dark:text-zinc-400">
           Lag kampanjer som vises i barprofilen til gjestene. For eksempel
-          "Happy hour før kamp" eller "2-for-1 øl". Du kan legge til valgfrie tags
+	          &quot;Happy hour før kamp&quot; eller &quot;2-for-1 øl&quot;. Du kan legge til valgfrie tags
           for å strukturere tilbudene.
         </p>
       </div>
