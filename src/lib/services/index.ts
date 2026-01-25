@@ -6,5 +6,4 @@ export * from './chat.service';
 export * from './rating.service';
 export * from './campaign.service';
 export * from './demo.service';
-export * from './going.service';
 

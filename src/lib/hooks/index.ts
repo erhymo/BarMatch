@@ -5,5 +5,4 @@ export * from './useTeamSelection';
 export * from './useChat';
 export * from './useRatings';
 export * from './useCampaigns';
-export * from './useGoing';
 
