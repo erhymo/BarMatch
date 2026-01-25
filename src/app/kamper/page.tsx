@@ -93,64 +93,84 @@ export default function KamperPage() {
 	  useEffect(() => {
     let isCancelled = false;
 
-	    async function fetchFixturesForLeague(league: LeagueKey): Promise<Fixture[]> {
-	      const cacheKey = `${league}|${range.from}|${range.to}`;
-	      const cached = cacheRef.current.get(cacheKey);
-	      if (cached) {
-	        return cached;
-	      }
-
-	      const fixtures = await fixtureProvider.getUpcomingFixtures(
-	        league,
-	        range.from,
-	        range.to,
-	      );
-
-	      if (process.env.NODE_ENV !== "production") {
-	        console.log(
-	          "[Fixtures]",
-	          league,
-	          "from",
-	          range.from,
-	          "to",
-	          range.to,
-	          "- count:",
-	          fixtures.length,
+		    async function fetchFixturesForLeague(league: LeagueKey): Promise<Fixture[]> {
+		      const cacheKey = `${league}|${range.from}|${range.to}`;
+		      const cached = cacheRef.current.get(cacheKey);
+		      if (cached) {
+		        return cached;
+		      }
+		
+		      const fixtures = await fixtureProvider.getUpcomingFixtures(
+		        league,
+		        range.from,
+		        range.to,
+		      );
+		
+		      if (process.env.NODE_ENV !== "production") {
+		        console.log(
+		          "[Fixtures]",
+		          league,
+		          "from",
+		          range.from,
+		          "to",
+		          range.to,
+		          "- count:",
+		          fixtures.length,
+		        );
+		      }
+		
+		      cacheRef.current.set(cacheKey, fixtures);
+		      return fixtures;
+		    }
+		
+	    async function loadAllLeagues() {
+	      setIsLoading(true);
+	      setLoadError(null);
+	  
+	      try {
+	        const results = await Promise.allSettled(
+	          LEAGUES.map(({ key }) => fetchFixturesForLeague(key)),
 	        );
+	  
+	        if (isCancelled) return;
+	  
+	        const [eplResult, norEliteserienResult, serieAResult] = results;
+	  
+	        const toFixtures = (
+	          result: PromiseSettledResult<Fixture[]>,
+	        ): Fixture[] => {
+	          if (result.status === "fulfilled") {
+	            return result.value;
+	          }
+	  
+	          console.error("[Fixtures] Feil ved henting av kamper:", result.reason);
+	          return [];
+	        };
+	  
+	        const epl = toFixtures(eplResult);
+	        const norEliteserien = toFixtures(norEliteserienResult);
+	        const serieA = toFixtures(serieAResult);
+	  
+	        // Hvis absolutt alle ligaer feiler, vis feilmelding i UI
+	        if (!epl.length && !norEliteserien.length && !serieA.length) {
+	          setLoadError("Kunne ikke laste kamper. Prøv igjen senere.");
+	        }
+	  
+	        setFixturesByLeague({
+	          EPL: epl,
+	          NOR_ELITESERIEN: norEliteserien,
+	          SERIE_A: serieA,
+	        });
+	      } catch (error) {
+	        if (isCancelled) return;
+	        console.error("[Fixtures] Uventet feil ved lasting av kamper:", error);
+	        setLoadError("Kunne ikke laste kamper. Prøv igjen senere.");
+	      } finally {
+	        if (!isCancelled) {
+	          setIsLoading(false);
+	        }
 	      }
-
-	      cacheRef.current.set(cacheKey, fixtures);
-	      return fixtures;
 	    }
-
-    async function loadAllLeagues() {
-      setIsLoading(true);
-      setLoadError(null);
-
-      try {
-        const results = await Promise.all(
-          LEAGUES.map(({ key }) => fetchFixturesForLeague(key)),
-        );
-
-        if (isCancelled) return;
-
-        const [epl, norEliteserien, serieA] = results;
-
-        setFixturesByLeague({
-          EPL: epl,
-          NOR_ELITESERIEN: norEliteserien,
-          SERIE_A: serieA,
-        });
-      } catch (error) {
-        if (isCancelled) return;
-        console.error(error);
-        setLoadError("Kunne ikke laste kamper. Prøv igjen senere.");
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      }
-    }
 
     loadAllLeagues();
 
