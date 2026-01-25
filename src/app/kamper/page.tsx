@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { MatchService } from "@/lib/services";
 import { useFavorites } from "@/contexts/FavoritesContext";
 import type { Fixture, LeagueKey } from "@/lib/types/fixtures";
+import { getFixtureProvider } from "@/lib/providers/fixtures";
 
 const DEFAULT_RANGE_DAYS = 14;
 
@@ -87,40 +88,40 @@ export default function KamperPage() {
   // Enkel klient-cache per league+range for å unngå unødvendige kall
   const cacheRef = useRef<Map<string, Fixture[]>>(new Map());
 
-  useEffect(() => {
+	  const fixtureProvider = getFixtureProvider();
+
+	  useEffect(() => {
     let isCancelled = false;
 
-    async function fetchFixturesForLeague(league: LeagueKey): Promise<Fixture[]> {
-      const cacheKey = `${league}|${range.from}|${range.to}`;
-      const cached = cacheRef.current.get(cacheKey);
-      if (cached) {
-        return cached;
-      }
+	    async function fetchFixturesForLeague(league: LeagueKey): Promise<Fixture[]> {
+	      const cacheKey = `${league}|${range.from}|${range.to}`;
+	      const cached = cacheRef.current.get(cacheKey);
+	      if (cached) {
+	        return cached;
+	      }
 
-      const params = new URLSearchParams({
-        league,
-        from: range.from,
-        to: range.to,
-      });
+	      const fixtures = await fixtureProvider.getUpcomingFixtures(
+	        league,
+	        range.from,
+	        range.to,
+	      );
 
-      const response = await fetch(`/api/fixtures?${params.toString()}`);
+	      if (process.env.NODE_ENV !== "production") {
+	        console.log(
+	          "[Fixtures]",
+	          league,
+	          "from",
+	          range.from,
+	          "to",
+	          range.to,
+	          "- count:",
+	          fixtures.length,
+	        );
+	      }
 
-      if (!response.ok) {
-        throw new Error(`Kunne ikke hente kamper for ${league}`);
-      }
-
-      const data = (await response.json()) as {
-        fixtures?: Fixture[];
-        error?: string;
-      };
-
-      if (!data.fixtures) {
-        throw new Error(data.error || "Uventet svar fra serveren");
-      }
-
-      cacheRef.current.set(cacheKey, data.fixtures);
-      return data.fixtures;
-    }
+	      cacheRef.current.set(cacheKey, fixtures);
+	      return fixtures;
+	    }
 
     async function loadAllLeagues() {
       setIsLoading(true);
