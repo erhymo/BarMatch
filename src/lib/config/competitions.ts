@@ -26,8 +26,9 @@ export const COMPETITIONS: Competition[] = [
   {
     key: 'SERIE_A',
     label: 'Serie A',
-    type: 'league',
-    // apiFootballLeagueId: 0, // TODO: Sett korrekt ID fra API-Football
+	    type: 'league',
+	    apiFootballLeagueId: 135,
+	    defaultSeason: 2025,
   },
 ];
 

@@ -136,23 +136,39 @@ export default function KamperPage() {
 	  
 	        const [eplResult, norEliteserienResult, serieAResult] = results;
 	  
-	        const toFixtures = (
-	          result: PromiseSettledResult<Fixture[]>,
-	        ): Fixture[] => {
-	          if (result.status === "fulfilled") {
-	            return result.value;
-	          }
+	        const epl: Fixture[] =
+	          eplResult.status === "fulfilled"
+	            ? eplResult.value
+	            : (console.error(
+	                "[Fixtures] Feil ved henting av EPL-kamper:",
+	                eplResult.reason,
+	              ),
+	              []);
 	  
-	          console.error("[Fixtures] Feil ved henting av kamper:", result.reason);
-	          return [];
-	        };
+	        const norEliteserien: Fixture[] =
+	          norEliteserienResult.status === "fulfilled"
+	            ? norEliteserienResult.value
+	            : (console.error(
+	                "[Fixtures] Feil ved henting av Eliteserien-kamper:",
+	                norEliteserienResult.reason,
+	              ),
+	              []);
 	  
-	        const epl = toFixtures(eplResult);
-	        const norEliteserien = toFixtures(norEliteserienResult);
-	        const serieA = toFixtures(serieAResult);
+	        const serieA: Fixture[] =
+	          serieAResult.status === "fulfilled"
+	            ? serieAResult.value
+	            : (console.error(
+	                "[Fixtures] Feil ved henting av Serie A-kamper:",
+	                serieAResult.reason,
+	              ),
+	              []);
 	  
-	        // Hvis absolutt alle ligaer feiler, vis feilmelding i UI
-	        if (!epl.length && !norEliteserien.length && !serieA.length) {
+	        const allRejected =
+	          eplResult.status === "rejected" &&
+	          norEliteserienResult.status === "rejected" &&
+	          serieAResult.status === "rejected";
+	  
+	        if (allRejected) {
 	          setLoadError("Kunne ikke laste kamper. Prøv igjen senere.");
 	        }
 	  
