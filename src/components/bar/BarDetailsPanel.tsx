@@ -1,7 +1,42 @@
 'use client';
 
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 import { Bar } from '@/lib/models';
 import { useFavorites } from '@/contexts/FavoritesContext';
+import { useRatings } from '@/contexts/RatingsContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useCampaigns } from '@/lib/hooks';
+import StarRating from '@/components/rating/StarRating';
+import ChatPanel from '@/components/chat/ChatPanel';
+import type { Fixture, LeagueKey } from '@/lib/types/fixtures';
+import { getFixtureProvider } from '@/lib/providers/fixtures';
+import { getCompetitionByKey } from '@/lib/config/competitions';
+import { BarFixtureSelectionService } from '@/lib/services';
+
+const DEFAULT_RANGE_DAYS = 14;
+const LEAGUES: LeagueKey[] = ['EPL', 'NOR_ELITESERIEN', 'SERIE_A'];
+
+function createDefaultRange(): { from: string; to: string } {
+  const now = new Date();
+  const from = now.toISOString();
+  const toDate = new Date(now.getTime() + DEFAULT_RANGE_DAYS * 24 * 60 * 60 * 1000);
+  const to = toDate.toISOString();
+  return { from, to };
+}
+
+function formatFixtureDateTime(kickoffUtc: string): string {
+  const d = new Date(kickoffUtc);
+  const date = d.toLocaleDateString('nb-NO', { weekday: 'short', day: 'numeric', month: 'short' });
+  const time = d.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
+  return `${date} ${time}`;
+}
+
+function isPastCutoff(kickoffUtc: string, cutoffMinutes: number = 90): boolean {
+  const kickoffMs = new Date(kickoffUtc).getTime();
+  const cutoffMs = kickoffMs + cutoffMinutes * 60 * 1000;
+  return Date.now() > cutoffMs;
+}
 
 interface BarDetailsPanelProps {
   bar: Bar | null;
@@ -10,13 +45,111 @@ interface BarDetailsPanelProps {
 
 export default function BarDetailsPanel({ bar, onClose }: BarDetailsPanelProps) {
   const { isFavoriteBar, toggleFavoriteBar } = useFavorites();
+  const { getBarRating, getUserRatingForBar, rateBar, clearRatingForBar } = useRatings();
+  const { showToast } = useToast();
+  const { getCampaignsForBar } = useCampaigns();
+
+  const [showChat, setShowChat] = useState(false);
+
+  const [fixtures, setFixtures] = useState<Fixture[]>([]);
+  const [isLoadingFixtures, setIsLoadingFixtures] = useState(false);
+  const [fixturesError, setFixturesError] = useState<string | null>(null);
+  const [selectedFixtureIds, setSelectedFixtureIds] = useState<string[]>([]);
+  const [cancelledFixtureIds, setCancelledFixtureIds] = useState<string[]>([]);
+
+  const range = useMemo(() => createDefaultRange(), []);
+  const fixtureProvider = useMemo(() => getFixtureProvider(), []);
+
+  const todayKey = useMemo(() => {
+    // Date.getDay(): 0=sunday .. 6=saturday
+    const dayKeys: Array<
+      'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
+    > = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    return dayKeys[new Date().getDay()];
+  }, []);
+
+  const barId = bar?.id ?? null;
+
+  // Load selected/cancelled fixture ids for this bar
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!barId) {
+      setSelectedFixtureIds([]);
+      setCancelledFixtureIds([]);
+      return;
+    }
+
+    setSelectedFixtureIds(BarFixtureSelectionService.loadSelectedFixtureIds(barId, window.localStorage));
+    setCancelledFixtureIds(BarFixtureSelectionService.loadCancelledFixtureIds(barId, window.localStorage));
+  }, [barId]);
+
+  // Load fixtures (shared for this panel)
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadFixtures() {
+      setIsLoadingFixtures(true);
+      setFixturesError(null);
+      try {
+        const results = await Promise.allSettled(
+          LEAGUES.map((league) => fixtureProvider.getUpcomingFixtures(league, range.from, range.to)),
+        );
+        if (cancelled) return;
+
+        const all: Fixture[] = [];
+        results.forEach((r) => {
+          if (r.status === 'fulfilled') all.push(...r.value);
+          else console.error('[BarDetailsPanel] Fixture fetch failed:', r.reason);
+        });
+
+        const deduped = new Map<string, Fixture>();
+        all.forEach((f) => deduped.set(f.id, f));
+
+        const list = Array.from(deduped.values()).sort(
+          (a, b) => new Date(a.kickoffUtc).getTime() - new Date(b.kickoffUtc).getTime(),
+        );
+        setFixtures(list);
+      } catch (e) {
+        if (cancelled) return;
+        setFixturesError('Kunne ikke laste kamper fra API.');
+        console.error(e);
+      } finally {
+        if (!cancelled) setIsLoadingFixtures(false);
+      }
+    }
+
+    void loadFixtures();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fixtureProvider, range.from, range.to]);
+
+  type SelectedFixture = Fixture & { isCancelled: boolean };
+
+  const selectedFixtures: SelectedFixture[] = useMemo(() => {
+    const selectedSet = new Set(selectedFixtureIds);
+    const cancelledSet = new Set(cancelledFixtureIds);
+    return fixtures
+      .filter((f) => selectedSet.has(f.id))
+      .filter((f) => !isPastCutoff(f.kickoffUtc, 90))
+      .sort((a, b) => new Date(a.kickoffUtc).getTime() - new Date(b.kickoffUtc).getTime())
+      .map((f) => ({ ...f, isCancelled: cancelledSet.has(f.id) }));
+  }, [cancelledFixtureIds, fixtures, selectedFixtureIds]);
 
   if (!bar) return null;
+
+  const storedBarRating = getBarRating(bar.id);
+  const userRating = getUserRatingForBar(bar.id);
+  const displayRatingValue = storedBarRating?.averageRating ?? bar.rating ?? 0;
+  const displayTotalRatings = storedBarRating?.totalRatings;
+
+  const activeCampaigns = getCampaignsForBar(bar.id).filter((c) => c.isActive);
 
   return (
     <>
       {/* Backdrop */}
-      <div 
+      <div
         className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 transition-opacity"
         onClick={onClose}
       />
@@ -43,7 +176,7 @@ export default function BarDetailsPanel({ bar, onClose }: BarDetailsPanelProps) 
                 )}
               </div>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
-                📍 {bar.address}
+                📍 {bar.address ?? 'Adresse ikke tilgjengelig'}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -86,6 +219,31 @@ export default function BarDetailsPanel({ bar, onClose }: BarDetailsPanelProps) 
                 🗺️ Veibeskrivelse
               </a>
               <button
+                onClick={() => setShowChat(true)}
+                className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600
+                         text-white font-medium rounded-lg transition-colors text-sm"
+              >
+                💬 Send melding
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {bar.phone ? (
+                <a
+                  href={`tel:${bar.phone}`}
+                  className="px-4 py-3 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700
+                           text-zinc-900 dark:text-zinc-100 font-medium rounded-lg transition-colors text-center text-sm"
+                >
+                  📞 Ring
+                </a>
+              ) : (
+                <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-700
+                                text-zinc-500 dark:text-zinc-400 font-medium rounded-lg text-center text-sm">
+                  📞 Ingen telefon
+                </div>
+              )}
+
+              <button
                 onClick={onClose}
                 className="px-4 py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600
                          text-zinc-900 dark:text-zinc-100 font-medium rounded-lg transition-colors text-sm"
@@ -94,8 +252,293 @@ export default function BarDetailsPanel({ bar, onClose }: BarDetailsPanelProps) 
               </button>
             </div>
           </div>
+
+          {/* Rating */}
+          <div className="mt-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/40 p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                  Vurdering
+                </h3>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  {displayTotalRatings
+                    ? `${displayRatingValue.toFixed(1)} ★ (${displayTotalRatings})`
+                    : displayRatingValue
+                    ? `${displayRatingValue.toFixed(1)} ★`
+                    : 'Ingen vurderinger enda'}
+                </p>
+              </div>
+              {userRating && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearRatingForBar(bar.id);
+                    showToast({
+                      title: 'Vurdering fjernet',
+                      description: 'Din vurdering er fjernet.',
+                      variant: 'info',
+                    });
+                  }}
+                  className="text-xs font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 underline"
+                >
+                  Fjern min vurdering
+                </button>
+              )}
+            </div>
+
+            <div className="mt-3">
+              <StarRating
+                value={displayRatingValue}
+                totalRatings={displayTotalRatings}
+                onChange={(rating) => {
+                  rateBar(bar.id, rating);
+                  showToast({
+                    title: 'Takk!',
+                    description: `Du ga ${bar.name} ${rating} stjerner.`,
+                    variant: 'success',
+                  });
+                }}
+                label={userRating ? `Din vurdering: ${userRating.rating}★` : 'Gi din vurdering'}
+                size="md"
+              />
+            </div>
+          </div>
+
+          {/* Campaigns */}
+          <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
+              Kampanjer & tilbud
+            </h3>
+            {activeCampaigns.length === 0 ? (
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Ingen aktive kampanjer akkurat nå.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {activeCampaigns.map((campaign) => (
+                  <div
+                    key={campaign.id}
+                    className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-4"
+                  >
+                    <p className="text-sm text-zinc-900 dark:text-zinc-50">
+                      {campaign.text}
+                    </p>
+                    {campaign.tags && campaign.tags.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {campaign.tags.map((tag) => (
+                          <span
+                            key={`${campaign.id}-${tag}`}
+                            className="inline-flex items-center rounded-full bg-blue-600/10 dark:bg-blue-500/20 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-200"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Upcoming Matches (API fixtures) */}
+          <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+            <div className="flex items-start justify-between gap-4 mb-2">
+              <div>
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Kommende kamper</h3>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Kamper hentes fra API og vises basert på hva baren har valgt i admin.
+                </p>
+              </div>
+              <Link
+                href="/kamper"
+                className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                Se alle
+              </Link>
+            </div>
+
+            {isLoadingFixtures && (
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">Laster kamper…</p>
+            )}
+
+            {fixturesError && (
+              <p className="text-sm text-red-600 dark:text-red-400">{fixturesError}</p>
+            )}
+
+            {!isLoadingFixtures && !fixturesError && selectedFixtureIds.length === 0 && (
+              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-4">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Denne baren har ikke satt opp kamper enda.
+                </p>
+              </div>
+            )}
+
+            {!isLoadingFixtures && !fixturesError && selectedFixtureIds.length > 0 && selectedFixtures.length === 0 && (
+              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-4">
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  Ingen kommende kamper (eller de er passert 90-minutters cutoff).
+                </p>
+              </div>
+            )}
+
+            {!isLoadingFixtures && !fixturesError && selectedFixtures.length > 0 && (
+              <div className="space-y-2">
+                {selectedFixtures.slice(0, 8).map((f) => {
+                  const competition = getCompetitionByKey(f.league);
+                  const cancelled = f.isCancelled;
+                  return (
+                    <div
+                      key={f.id}
+                      className={`rounded-xl border p-3 ${
+                        cancelled
+                          ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 opacity-80'
+                          : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {formatFixtureDateTime(f.kickoffUtc)}
+                        </span>
+                        <span className="text-xs rounded bg-zinc-200/60 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-200">
+                          {competition.label}
+                        </span>
+                        {cancelled && (
+                          <span className="text-xs font-bold rounded bg-red-100 dark:bg-red-900/50 px-2 py-0.5 text-red-700 dark:text-red-300">
+                            AVLYST
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                        {f.homeTeam} – {f.awayTeam}
+                      </div>
+                      {f.venue && (
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400">{f.venue}</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Description */}
+          <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
+              Om baren
+            </h3>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              {bar.description ?? 'Ingen beskrivelse lagt til enda.'}
+            </p>
+          </div>
+
+          {/* Facilities */}
+          {bar.facilities && (
+            <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-3">
+                Fasiliteter
+              </h3>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">📺 Skjermer</p>
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                    {bar.facilities.screens}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">🍔 Mat</p>
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                    {bar.facilities.hasFood ? 'Ja' : 'Nei'}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">🌤️ Uteservering</p>
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                    {bar.facilities.hasOutdoorSeating ? 'Ja' : 'Nei'}
+                  </p>
+                </div>
+                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">📶 WiFi</p>
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                    {bar.facilities.hasWifi ? 'Ja' : 'Nei'}
+                  </p>
+                </div>
+              </div>
+
+              {typeof bar.facilities.capacity === 'number' && (
+                <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+                  👥 Kapasitet: {bar.facilities.capacity}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Opening hours */}
+          {bar.openingHours && (
+            <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-3">
+                Åpningstider
+              </h3>
+              <div className="space-y-2">
+                {(
+                  [
+                    { key: 'monday', label: 'Mandag' },
+                    { key: 'tuesday', label: 'Tirsdag' },
+                    { key: 'wednesday', label: 'Onsdag' },
+                    { key: 'thursday', label: 'Torsdag' },
+                    { key: 'friday', label: 'Fredag' },
+                    { key: 'saturday', label: 'Lørdag' },
+                    { key: 'sunday', label: 'Søndag' },
+                  ] as const
+                ).map(({ key, label }) => {
+                  const value = bar.openingHours?.[key] ?? '—';
+                  const isToday = key === todayKey;
+                  return (
+                    <div
+                      key={key}
+                      className={`flex items-center justify-between rounded-lg px-3 py-2 border ${
+                        isToday
+                          ? 'border-blue-300 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/30'
+                          : 'border-zinc-200 dark:border-zinc-800'
+                      }`}
+                    >
+                      <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                        {label}
+                      </span>
+                      <span className="text-sm text-zinc-600 dark:text-zinc-400">{value}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Contact */}
+          <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
+              Kontakt
+            </h3>
+            {bar.phone ? (
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Telefon: <span className="font-medium">{bar.phone}</span>
+              </p>
+            ) : (
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Ingen telefonnummer registrert.
+              </p>
+            )}
+          </div>
         </div>
       </div>
+
+      {showChat && (
+        <ChatPanel
+          barId={bar.id}
+          barName={bar.name}
+          onClose={() => setShowChat(false)}
+        />
+      )}
     </>
   );
 }

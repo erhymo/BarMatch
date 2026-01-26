@@ -12,23 +12,23 @@ export const COMPETITIONS: Competition[] = [
   {
     key: 'NOR_ELITESERIEN',
     label: 'Eliteserien',
-	    type: 'league',
-	    apiFootballLeagueId: 103,
-	    defaultSeason: 2026,
+    type: 'league',
+    apiFootballLeagueId: 103,
+    defaultSeason: 2026,
   },
   {
     key: 'EPL',
     label: 'Premier League',
-	    type: 'league',
-	    apiFootballLeagueId: 39,
-	    defaultSeason: 2025,
+    type: 'league',
+    apiFootballLeagueId: 39,
+    defaultSeason: 2025,
   },
   {
     key: 'SERIE_A',
     label: 'Serie A',
-	    type: 'league',
-	    apiFootballLeagueId: 135,
-	    defaultSeason: 2025,
+    type: 'league',
+    apiFootballLeagueId: 135,
+    defaultSeason: 2025,
   },
 ];
 

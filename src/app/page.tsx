@@ -1,6 +1,7 @@
-		'use client';
+			'use client';
 
-			import { Suspense, useEffect, useState } from 'react';
+				import { Suspense, useEffect, useMemo, useState } from 'react';
+				import { useSearchParams } from 'next/navigation';
 			import GoogleMap from '@/components/map/GoogleMap';
 			import SportFilterPanel from '@/components/filter/SportFilterPanel';
 			import CityFilterPanel from '@/components/filter/CityFilterPanel';
@@ -9,8 +10,12 @@
 			import { CITY_COORDINATES, type CityId } from '@/lib/data/cities';
 			import { Bar } from '@/lib/models';
 			import { useBarFilter } from '@/lib/hooks';
+				import { BarFixtureSelectionService } from '@/lib/services';
 
 	function HomeContent() {
+		  const searchParams = useSearchParams();
+		  const matchId = searchParams.get('matchId');
+
 	  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 			  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
 		  const [selectedBar, setSelectedBar] = useState<Bar | null>(null);
@@ -67,10 +72,22 @@
 		    };
 		  }, []);
 
-		  // Filter bars based on selected team using hook,
-			  // (matchId-basert filtrering er fjernet inntil vi har ekte bar->kamp data)
-		  const barsFilteredByTeam = useBarFilter(dummyBars, selectedTeam);
-			  const filteredBars = barsFilteredByTeam;
+			  // Filter bars based on selected team using hook
+			  const barsFilteredByTeam = useBarFilter(dummyBars, selectedTeam);
+
+			  // If navigated from /kamper (/?matchId=...), filter to bars that have selected that fixture in demo storage
+			  const filteredBars = useMemo(() => {
+			    if (!matchId) return barsFilteredByTeam;
+			    if (typeof window === 'undefined') return barsFilteredByTeam;
+
+			    return barsFilteredByTeam.filter((bar) => {
+			      const selectedFixtureIds = BarFixtureSelectionService.loadSelectedFixtureIds(
+			        bar.id,
+			        window.localStorage,
+			      );
+			      return selectedFixtureIds.includes(matchId);
+			    });
+			  }, [barsFilteredByTeam, matchId]);
 
 	  const handleTeamSelect = (teamId: string | null) => {
 	    setSelectedTeam(teamId);
@@ -208,6 +225,18 @@
 	            </div>
 	          </div>
 	        )}
+
+		        {/* Empty state when navigated via matchId */}
+		        {matchId && !selectedTeam && filteredBars.length === 0 && (
+		          <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
+		            <div className="pointer-events-auto max-w-md rounded-xl bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 px-4 py-3 shadow-md text-sm text-zinc-800 dark:text-zinc-100">
+		              <p className="font-medium mb-1">Ingen barer viser denne kampen akkurat nå.</p>
+		              <p className="text-xs text-zinc-600 dark:text-zinc-400">
+		                Tips: Logg inn som en bar og velg kamper i <span className="font-medium">Admin</span>.
+		              </p>
+		            </div>
+		          </div>
+		        )}
 
 		      </div>
 		

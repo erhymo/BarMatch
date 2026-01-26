@@ -3,14 +3,17 @@
 import type { MouseEvent } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 const navItems = [
   { name: 'Hjem', href: '/' },
   { name: 'Kamper', href: '/kamper' },
+  { name: 'Min bar', href: '/min-bar' },
 ];
 
 export default function Navigation() {
   const pathname = usePathname();
+  const { isAuthenticated } = useAuth();
 
   const handleHomeClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (pathname === '/') {
@@ -20,6 +23,10 @@ export default function Navigation() {
   };
 
   const isActive = (href: string) => {
+    // Treat /admin as part of "Min bar" for highlighting
+    if (href === '/min-bar') {
+      return pathname === '/min-bar' || pathname === '/admin';
+    }
     return pathname === href;
   };
 
@@ -56,7 +63,31 @@ export default function Navigation() {
             </div>
 
 	            {/* Right side reserved for future login/admin actions */}
-	            <div />
+		    	<div>
+		    	  {isAuthenticated ? (
+		    	    <Link
+		    	      href="/admin"
+		    	      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+		    	        pathname === '/admin'
+		    	          ? 'bg-blue-600 text-white dark:bg-blue-500'
+		    	          : 'text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-zinc-700'
+		    	      }`}
+		    	    >
+		    	      Admin
+		    	    </Link>
+		    	  ) : (
+		    	    <Link
+		    	      href="/login"
+		    	      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+		    	        pathname === '/login'
+		    	          ? 'bg-blue-600 text-white dark:bg-blue-500'
+		    	          : 'text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-zinc-700'
+		    	      }`}
+		    	    >
+		    	      Bar Login
+		    	    </Link>
+		    	  )}
+		    	</div>
 	          </div>
 	        </div>
       </nav>
@@ -70,6 +101,7 @@ export default function Navigation() {
             let icon = '⚽';
             if (item.name === 'Hjem') icon = '🏠';
             if (item.name === 'Kamper') icon = '📅';
+		  		  if (item.name === 'Min bar') icon = '🍻';
 
             return (
               <Link
