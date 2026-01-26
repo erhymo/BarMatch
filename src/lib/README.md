@@ -54,7 +54,10 @@ Plattform-agnostisk business logic. Ingen React-avhengigheter.
 - `bar.service.ts` - Bar-relaterte operasjoner (filtrering, sortering, avstand)
 - `match.service.ts` - Match-relaterte operasjoner (filtrering, formatering)
 - `favorites.service.ts` - Favoritt-håndtering (lagring, toggle)
+- `rating.service.ts` - Vurderinger/stjerner per bar (lagring, gjennomsnitt)
+- `campaign.service.ts` - Kampanjer og tilbud per bar
 - `chat.service.ts` - Chat/messaging-håndtering (tråder, meldinger, lagring)
+- `barfixtureselection.service.ts` - Hvilke kamper hver bar viser (valg/kansellering)
 
 **Bruk:**
 ```typescript
@@ -78,6 +81,8 @@ React hooks som wrapper services med state management.
 - `useBarFilter.ts` - Bar-filtrering med memoization
 - `useTeamSelection.ts` - Lag-valg og liga-ekstraksjon
 - `useChat.ts` - Chat-state med localStorage-persistering
+- `useRatings.ts` - Rating-state for barer med localStorage-persistering
+- `useCampaigns.ts` - Kampanje-state for barer med localStorage-persistering
 
 **Bruk:**
 ```typescript
@@ -95,7 +100,7 @@ Mock/dummy data for utvikling og testing.
 
 **Filer:**
 - `bars.ts` - Dummy-barer i Oslo
-- `matches.ts` - Dummy-kamper på tvers av ligaer
+- `matches.ts` - Placeholder for eventuelle dummy-kamper (per nå tom, ekte kamper hentes via API)
 
 ## 🔄 Migrering til Capacitor
 

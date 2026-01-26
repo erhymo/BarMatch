@@ -12,15 +12,16 @@ interface Where2WatchCalendarProps {
   cancelledFixtureIds: string[];
 }
 
-// Placeholder function for notifying users
+// Placeholder function for notifying users – implement real notifications her senere
 const notifyUsers = (fixtureId: string, barId: string) => {
-  console.log(`[NOTIFY USERS] Fixture ${fixtureId} cancelled at bar ${barId}`);
-  console.log(`Would send notifications to users who favorited this bar/match`);
-  // In a real app, this would:
-  // - Send push notifications
-  // - Send emails
-  // - Update user notifications in database
-};
+	  // Intentionally left as a no-op for now (kun dokumentasjon / placeholder).
+	  void fixtureId;
+	  void barId;
+	  // I en ekte app kan dette f.eks.:
+	  // - Sende push-varsler
+	  // - Sende e-poster
+	  // - Oppdatere brukervarsler i database
+	};
 
 export default function Where2WatchCalendar({
   fixtures,

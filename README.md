@@ -8,7 +8,7 @@ where2watch er en Next.js-applikasjon som hjelper brukere med å finne sin neste
 - **TypeScript** - Type-sikkerhet
 - **Tailwind CSS** - Styling
 - **Google Maps API** - Kartfunksjonalitet
-- **Firebase** (forberedt) - Autentisering og database
+- **Firebase** (valgfritt / planlagt) - For mulig fremtidig autentisering og database (ikke i bruk i dag)
 
 ## Kom i gang
 
@@ -45,16 +45,9 @@ npm run dev
 
 ```
 src/
-├── app/                    # Next.js App Router
-│   ├── page.tsx           # Hjemmeside
-│   ├── layout.tsx         # Root layout
-│   └── globals.css        # Globale stiler
-├── components/            # React-komponenter
-│   └── map/
-│       └── GoogleMap.tsx  # Google Maps-komponent
-└── lib/                   # Hjelpefunksjoner og konfigurasjoner
-    └── firebase/
-        └── config.ts      # Firebase-konfigurasjon (forberedt)
+├── app/            # Next.js App Router (sider, layout, routes)
+├── components/     # Gjenbrukbare React-komponenter (kart, filtre, admin, m.m.)
+└── lib/            # Kjernebibliotek (modeller, services, hooks, mock-data)
 ```
 
 ## Learn More
