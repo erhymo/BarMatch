@@ -209,26 +209,19 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* Fixtures status */}
-        {(isLoadingFixtures || fixturesError) && (
-          <div className="mb-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4">
-            {isLoadingFixtures && (
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">Laster fixtures fra API…</p>
-            )}
-            {fixturesError && (
-              <p className="text-sm text-red-600 dark:text-red-400">{fixturesError}</p>
-            )}
-          </div>
-        )}
-
-        {/* Match selection */}
-        <MatchSelector
-          fixtures={fixtures}
-          selectedFixtureIds={selectedFixtureIds}
-          onFixtureSelectionChange={setSelectedFixtureIds}
-        />
-
-        {/* Calendar */}
+		{/* Fixtures status */}
+		{(isLoadingFixtures || fixturesError) && (
+		  <div className="mb-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4">
+		    {isLoadingFixtures && (
+		      <p className="text-sm text-zinc-600 dark:text-zinc-400">Laster fixtures fra API…</p>
+		    )}
+		    {fixturesError && (
+		      <p className="text-sm text-red-600 dark:text-red-400">{fixturesError}</p>
+		    )}
+		  </div>
+		)}
+		
+		{/* Calendar */}
         <div className="mt-6 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
           <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">Kalender</h3>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
@@ -251,6 +244,13 @@ export default function AdminPage() {
         <div className="mt-6">
           <BarChatManager barId={barId} barName={bar.name} />
         </div>
+
+		{/* Match selection */}
+		<MatchSelector
+		  fixtures={fixtures}
+		  selectedFixtureIds={selectedFixtureIds}
+		  onFixtureSelectionChange={setSelectedFixtureIds}
+		/>
       </main>
     </div>
   );
