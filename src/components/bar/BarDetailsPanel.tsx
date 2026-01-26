@@ -347,7 +347,7 @@ export default function BarDetailsPanel({ bar, onClose }: BarDetailsPanelProps) 
               <div>
                 <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Kommende kamper</h3>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Kamper hentes fra API og vises basert på hva baren har valgt i admin.
+	                  Kamper hentes fra API og vises basert på hva baren har registrert at de viser.
                 </p>
               </div>
               <Link
