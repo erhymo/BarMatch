@@ -11,6 +11,9 @@ function competitionToLeagueKey(competition: string): LeagueKey | null {
       return 'NOR_ELITESERIEN';
     case 'Serie A':
       return 'SERIE_A';
+	    case 'Champions League':
+	    case 'UEFA Champions League':
+	      return 'UCL';
     default:
       return null;
   }

@@ -104,6 +104,8 @@ export class TheSportsDbFixtureProvider implements FixtureProvider {
         return '4358'; // Eliteserien (norsk liga)
       case 'SERIE_A':
         return '4332'; // Serie A (Italia)
+	      case 'UCL':
+	        throw new Error('TheSportsDB provider does not support UCL yet');
     }
   }
 }

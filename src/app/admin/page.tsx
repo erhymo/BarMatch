@@ -14,7 +14,7 @@ import BarCampaignManager from '@/components/admin/BarCampaignManager';
 import BarChatManager from '@/components/admin/BarChatManager';
 
 const DEFAULT_RANGE_DAYS = 14;
-const LEAGUES: LeagueKey[] = ['EPL', 'NOR_ELITESERIEN', 'SERIE_A'];
+const LEAGUES: LeagueKey[] = ['EPL', 'NOR_ELITESERIEN', 'SERIE_A', 'UCL'];
 
 function createDefaultRange(): { from: string; to: string } {
   const now = new Date();

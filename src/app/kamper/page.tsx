@@ -57,12 +57,14 @@ const LEAGUES: { key: LeagueKey; label: string }[] = [
   { key: "EPL", label: "Premier League" },
   { key: "NOR_ELITESERIEN", label: "Eliteserien" },
   { key: "SERIE_A", label: "Serie A" },
+  { key: "UCL", label: "UEFA Champions League" },
 ];
 
 const LEAGUE_LABEL_BY_KEY: Record<LeagueKey, string> = {
   EPL: "Premier League",
   NOR_ELITESERIEN: "Eliteserien",
   SERIE_A: "Serie A",
+  UCL: "UEFA Champions League",
 };
 
 // Mapping fra interne lag-ID-er (favoritter) til visningsnavn slik de kommer fra Fixture
@@ -126,7 +128,8 @@ export default function KamperPage() {
   >({
     EPL: [],
     NOR_ELITESERIEN: [],
-    SERIE_A: [],
+	    SERIE_A: [],
+	    UCL: [],
   });
 	  const [isLoading, setIsLoading] = useState(false);
 	  const [loadError, setLoadError] = useState<string | null>(null);
@@ -175,15 +178,16 @@ export default function KamperPage() {
 	      setIsLoading(true);
 	      setLoadError(null);
 	  
-	      try {
+		    try {
 	        const results = await Promise.allSettled(
 	          LEAGUES.map(({ key }) => fetchFixturesForLeague(key)),
 	        );
-	  
+	      
 	        if (isCancelled) return;
-	  
-	        const [eplResult, norEliteserienResult, serieAResult] = results;
-	  
+	      
+	        const [eplResult, norEliteserienResult, serieAResult, uclResult] =
+	          results;
+	      
 	        const epl: Fixture[] =
 	          eplResult.status === "fulfilled"
 	            ? eplResult.value
@@ -192,7 +196,7 @@ export default function KamperPage() {
 	                eplResult.reason,
 	              ),
 	              []);
-	  
+	      
 	        const norEliteserien: Fixture[] =
 	          norEliteserienResult.status === "fulfilled"
 	            ? norEliteserienResult.value
@@ -201,7 +205,7 @@ export default function KamperPage() {
 	                norEliteserienResult.reason,
 	              ),
 	              []);
-	  
+	      
 	        const serieA: Fixture[] =
 	          serieAResult.status === "fulfilled"
 	            ? serieAResult.value
@@ -210,34 +214,46 @@ export default function KamperPage() {
 	                serieAResult.reason,
 	              ),
 	              []);
-	  
+	      
+	        const ucl: Fixture[] =
+	          uclResult && uclResult.status === "fulfilled"
+	            ? uclResult.value
+	            : (console.error(
+	                "[Fixtures] Feil ved henting av Champions League-kamper:",
+	                (uclResult as PromiseRejectedResult | undefined)?.reason,
+	              ),
+	              []);
+	      
 	        const allRejected =
 	          eplResult.status === "rejected" &&
 	          norEliteserienResult.status === "rejected" &&
-	          serieAResult.status === "rejected";
-	  
+	          serieAResult.status === "rejected" &&
+	          uclResult?.status === "rejected";
+	      
 		        if (allRejected) {
 		          const rejectedResults = [
 		            eplResult,
 		            norEliteserienResult,
 		            serieAResult,
+		            uclResult,
 		          ].filter(isRejected);
-
+	
 		          const firstReason = rejectedResults[0]?.reason;
 		          const { message, details } = getErrorInfo(firstReason);
-
+	
 			          const combinedMessage =
-			            IS_DEV && details && details.length > 0
-		              ? `${message} Detaljer: ${details.slice(0, 200)}`
+			            IS_DEV && details && (details as string).length > 0
+		              ? `${message} Detaljer: ${(details as string).slice(0, 200)}`
 		              : message;
-
+	
 		          setLoadError(combinedMessage);
 		        }
-	  
+	      
 	        setFixturesByLeague({
 	          EPL: epl,
 	          NOR_ELITESERIEN: norEliteserien,
 	          SERIE_A: serieA,
+	          UCL: ucl,
 	        });
 	      } catch (error) {
 	        if (isCancelled) return;
@@ -268,7 +284,8 @@ export default function KamperPage() {
     const all = [
       ...fixturesByLeague.EPL,
       ...fixturesByLeague.NOR_ELITESERIEN,
-      ...fixturesByLeague.SERIE_A,
+	      ...fixturesByLeague.SERIE_A,
+	      ...fixturesByLeague.UCL,
     ];
 
     return all.sort((a, b) => {

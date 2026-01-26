@@ -1,4 +1,4 @@
-export type LeagueKey = "NOR_ELITESERIEN" | "EPL" | "SERIE_A";
+export type LeagueKey = "NOR_ELITESERIEN" | "EPL" | "SERIE_A" | "UCL";
 
 export type Fixture = {
   id: string;
