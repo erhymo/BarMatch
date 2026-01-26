@@ -42,6 +42,33 @@ function isoToDateOnly(iso: string): string {
   return dt.toISOString().slice(0, 10);
 }
 
+function hasNonEmptyErrors(errors: unknown): boolean {
+  if (errors === null || errors === undefined) return false;
+
+  if (Array.isArray(errors)) {
+    return errors.length > 0;
+  }
+
+  if (typeof errors === 'string') {
+    return errors.trim().length > 0;
+  }
+
+  if (typeof errors === 'object') {
+    return Object.keys(errors as Record<string, unknown>).length > 0;
+  }
+
+  // number/boolean/etc: treat truthy as an error indicator
+  return Boolean(errors);
+}
+
+function safeJsonStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
 function buildCacheKey(
   league: LeagueKey,
   fromDate: string,
@@ -54,6 +81,10 @@ function buildCacheKey(
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+
+    // Debug-modus for produksjon: lar oss se `results`/`errors` uten å lekke nøkler.
+    // Eksempel: /api/fixtures?...&debug=1
+    const debug = searchParams.get('debug') === '1';
 
     // Logg env ved første kall slik at vi ser om nøkkelen faktisk er tilgjengelig
     if (!hasLoggedEnv) {
@@ -254,6 +285,37 @@ export async function GET(req: NextRequest) {
       errors?: unknown;
     };
 
+	    // API-Football kan i noen tilfeller returnere HTTP 200 med `errors` i body.
+	    // Hvis vi ikke håndterer dette, ser klienten kun `{ fixtures: [] }`.
+	    if (hasNonEmptyErrors(json.errors)) {
+	      const details = safeJsonStringify({
+	        errors: json.errors,
+	        results: json.results,
+	        request: {
+	          leagueKey: leagueParam,
+	          leagueId,
+	          season,
+	          from: fromDate,
+	          to: toDate,
+	        },
+	      });
+
+	      console.error('[/api/fixtures] API-Football returned errors in JSON body', {
+	        url: url.toString(),
+	        results: json.results,
+	        errors: json.errors,
+	      });
+
+	      return NextResponse.json(
+	        {
+	          error: 'API-Football returned errors',
+	          status: 502,
+	          details,
+	        },
+	        { status: 502 },
+	      );
+	    }
+
     const rawFixtures: ApiFootballFixtureLike[] = Array.isArray(json.response)
       ? json.response
       : [];
@@ -264,7 +326,17 @@ export async function GET(req: NextRequest) {
 
     memoryCache.set(cacheKey, { createdAt: now, fixtures });
 
-    return NextResponse.json({ fixtures });
+	    if (debug) {
+	      return NextResponse.json({
+	        fixtures,
+	        meta: {
+	          results: json.results,
+	          errors: json.errors,
+	        },
+	      });
+	    }
+
+	    return NextResponse.json({ fixtures });
   } catch (error) {
     const message =
       error instanceof Error && error.message
