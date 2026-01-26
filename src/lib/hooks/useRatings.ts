@@ -19,12 +19,12 @@ export function useRatings() {
 	    // eslint-disable-next-line react-hooks/set-state-in-effect
 	    setRatings(loadedRatings);
 
-    const existingUserId = localStorage.getItem('barmatch_user_id');
+	    const existingUserId = localStorage.getItem('where2watch_user_id');
     if (existingUserId) {
 	      setUserId(existingUserId);
     } else {
       const newUserId = `user-${Math.random().toString(36).slice(2)}-${Date.now()}`;
-      localStorage.setItem('barmatch_user_id', newUserId);
+	      localStorage.setItem('where2watch_user_id', newUserId);
 	      setUserId(newUserId);
     }
 

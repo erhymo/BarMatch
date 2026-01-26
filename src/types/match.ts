@@ -16,7 +16,7 @@ export interface Match {
   status?: MatchStatus;
 }
 
-export interface BarMatch extends Match {
+export interface Where2WatchMatch extends Match {
   barId: string;
   cancelledAt?: string;
 }

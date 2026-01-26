@@ -1,6 +1,6 @@
-# BarMatch Library
+# where2watch Library
 
-Dette er kjernebiblioteket for BarMatch-applikasjonen. Koden her er strukturert for å være **plattform-agnostisk** og kan gjenbrukes i både web (Next.js) og mobile apps (Capacitor).
+Dette er kjernebiblioteket for where2watch-applikasjonen. Koden her er strukturert for å være **plattform-agnostisk** og kan gjenbrukes i både web (Next.js) og mobile apps (Capacitor).
 
 ## 📁 Struktur
 
@@ -37,7 +37,7 @@ TypeScript-typer og interfaces for hele applikasjonen.
 
 **Filer:**
 - `bar.model.ts` - Bar, BarFacilities, BarOpeningHours, Position
-- `match.model.ts` - Match, MatchStatus, BarMatch
+- `match.model.ts` - Match, MatchStatus, Where2WatchMatch
 - `team.model.ts` - Team
 - `favorites.model.ts` - Favorites, FAVORITES_STORAGE_KEYS
 - `chat.model.ts` - ChatThread, ChatMessage, ChatParticipant, CHAT_STORAGE_KEYS

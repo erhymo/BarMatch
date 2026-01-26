@@ -11,7 +11,7 @@ export interface Favorites {
  * Storage keys for localStorage
  */
 export const FAVORITES_STORAGE_KEYS = {
-  TEAMS: 'barmatch_favorite_teams',
-  BARS: 'barmatch_favorite_bars',
+  TEAMS: 'where2watch_favorite_teams',
+  BARS: 'where2watch_favorite_bars',
 } as const;
 

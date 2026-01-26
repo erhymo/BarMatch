@@ -18,7 +18,7 @@ export default function Navigation() {
   const handleHomeClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (pathname === '/') {
       event.preventDefault();
-      window.dispatchEvent(new CustomEvent('barmatch:reset-home-filters'));
+	    window.dispatchEvent(new CustomEvent('where2watch:reset-home-filters'));
     }
   };
 
@@ -41,7 +41,7 @@ export default function Navigation() {
                 href="/"
                 className="text-xl font-bold text-zinc-900 dark:text-zinc-50 mr-8"
               >
-                BarMatch
+	              where2watch
               </Link>
 
 	              <div className="flex space-x-1">

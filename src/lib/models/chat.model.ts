@@ -61,6 +61,6 @@ export interface ChatThread {
  * Storage keys for localStorage
  */
 export const CHAT_STORAGE_KEYS = {
-  THREADS: 'barmatch_chat_threads',
+  THREADS: 'where2watch_chat_threads',
 } as const;
 

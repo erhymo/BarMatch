@@ -1,6 +1,6 @@
-# BarMatch
+# where2watch
 
-BarMatch er en Next.js-applikasjon som hjelper brukere med å finne sin neste favorittbar ved hjelp av Google Maps.
+where2watch er en Next.js-applikasjon som hjelper brukere med å finne sin neste favorittbar ved hjelp av Google Maps.
 
 ## Teknologier
 

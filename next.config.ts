@@ -10,7 +10,7 @@ const nextConfig: NextConfigWithTurbopackRoot = {
   /* config options here */
   reactCompiler: true,
   // Fix for Turbopack choosing the wrong workspace root when multiple lockfiles exist.
-  // Ensures Next picks BarMatch as root (and thus loads BarMatch/.env.local correctly).
+	// Ensures Next picks the project root (and thus loads .env.local correctly).
   turbopack: {
     root: __dirname,
   },

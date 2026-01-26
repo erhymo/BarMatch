@@ -20,10 +20,10 @@ export interface Match {
 }
 
 /**
- * Bar Match model
+ * where2watch match model
  * Extends Match with bar-specific information
  */
-export interface BarMatch extends Match {
+export interface Where2WatchMatch extends Match {
   barId: string;
   cancelledAt?: string; // ISO datetime string
 }

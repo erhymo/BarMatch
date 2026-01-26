@@ -27,6 +27,6 @@ export interface BarRating {
  * Storage keys for localStorage
  */
 export const RATING_STORAGE_KEYS = {
-  RATINGS: 'barmatch_bar_ratings',
+  RATINGS: 'where2watch_bar_ratings',
 } as const;
 

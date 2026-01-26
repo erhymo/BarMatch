@@ -5,7 +5,7 @@ import { useToast } from '@/contexts/ToastContext';
 import type { Fixture } from '@/lib/types/fixtures';
 import { getCompetitionByKey } from '@/lib/config/competitions';
 
-interface BarMatchCalendarProps {
+interface Where2WatchCalendarProps {
   fixtures: Fixture[];
   barId: string;
   onCancelFixture: (fixtureId: string) => void;
@@ -22,12 +22,12 @@ const notifyUsers = (fixtureId: string, barId: string) => {
   // - Update user notifications in database
 };
 
-export default function BarMatchCalendar({
+export default function Where2WatchCalendar({
   fixtures,
   barId,
   onCancelFixture,
   cancelledFixtureIds,
-}: BarMatchCalendarProps) {
+}: Where2WatchCalendarProps) {
   const { showToast } = useToast();
 
   const sortedFixtures = useMemo(() => {

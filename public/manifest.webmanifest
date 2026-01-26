@@ -1,6 +1,6 @@
 {
-  "name": "Bar Match",
-  "short_name": "BarMatch",
+  "name": "where2watch",
+  "short_name": "where2watch",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#14532d",

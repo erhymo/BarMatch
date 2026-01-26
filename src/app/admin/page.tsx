@@ -9,7 +9,7 @@ import type { Fixture, LeagueKey } from '@/lib/types/fixtures';
 import { getFixtureProvider } from '@/lib/providers/fixtures';
 import { BarFixtureSelectionService } from '@/lib/services';
 import MatchSelector from '@/components/admin/MatchSelector';
-import BarMatchCalendar from '@/components/admin/BarMatchCalendar';
+import Where2WatchCalendar from '@/components/admin/Where2WatchCalendar';
 import BarCampaignManager from '@/components/admin/BarCampaignManager';
 import BarChatManager from '@/components/admin/BarChatManager';
 
@@ -234,7 +234,7 @@ export default function AdminPage() {
           <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
             Oversikt over valgte kamper. Du kan markere en kamp som avlyst for baren.
           </p>
-          <BarMatchCalendar
+          <Where2WatchCalendar
             fixtures={selectedFixtures}
             barId={barId}
             onCancelFixture={handleCancelFixture}

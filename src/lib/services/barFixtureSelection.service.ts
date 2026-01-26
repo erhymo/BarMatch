@@ -4,8 +4,8 @@
  */
 
 export const BAR_FIXTURE_STORAGE_KEYS = {
-  selectedFixtureIds: (barId: string) => `barmatch_bar_${barId}_fixtures`,
-  cancelledFixtureIds: (barId: string) => `barmatch_bar_${barId}_cancelled_fixtures`,
+  selectedFixtureIds: (barId: string) => `where2watch_bar_${barId}_fixtures`,
+  cancelledFixtureIds: (barId: string) => `where2watch_bar_${barId}_cancelled_fixtures`,
 } as const;
 
 function safeParseStringArray(value: string | null): string[] {

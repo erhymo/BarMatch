@@ -22,7 +22,7 @@
 		  const [favoriteCity, setFavoriteCity] = useState<CityId | null>(() => {
 		    if (typeof window === 'undefined') return null;
 		    try {
-		      const stored = window.localStorage.getItem('matchbar.favoriteCity');
+			      const stored = window.localStorage.getItem('where2watch.favoriteCity');
 		      if (
 		        stored === 'oslo' ||
 		        stored === 'bergen' ||
@@ -45,9 +45,9 @@
 
 	    try {
 	      if (favoriteCity) {
-	        window.localStorage.setItem('matchbar.favoriteCity', favoriteCity);
+		        window.localStorage.setItem('where2watch.favoriteCity', favoriteCity);
 	      } else {
-	        window.localStorage.removeItem('matchbar.favoriteCity');
+		        window.localStorage.removeItem('where2watch.favoriteCity');
 	      }
 	    } catch {
 	      // Ignorer feil fra localStorage
@@ -65,10 +65,10 @@
 		      setIsCityPanelOpen(false);
 		    };
 
-		    window.addEventListener('barmatch:reset-home-filters', handleResetFilters);
+		    window.addEventListener('where2watch:reset-home-filters', handleResetFilters);
 
 		    return () => {
-		      window.removeEventListener('barmatch:reset-home-filters', handleResetFilters);
+		      window.removeEventListener('where2watch:reset-home-filters', handleResetFilters);
 		    };
 		  }, []);
 
@@ -148,9 +148,9 @@
 				                ⚽
 				              </span>
 				            </button>
-            <h1 className="flex-1 text-3xl font-bold tracking-tight text-center text-zinc-900 dark:text-zinc-50">
-              Bar Match
-            </h1>
+	            <h1 className="flex-1 text-3xl font-bold tracking-tight text-center text-zinc-900 dark:text-zinc-50">
+	              where2watch
+	            </h1>
 				            <button
 				              type="button"
 				              aria-label="Velg sprak"

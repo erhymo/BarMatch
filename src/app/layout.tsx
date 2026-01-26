@@ -18,10 +18,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-	  title: "BarMatch - Finn din neste favorittbar",
-	  description: "BarMatch hjelper deg med å finne din neste favorittbar",
-	  manifest: "/manifest.webmanifest",
-	};
+		  title: "where2watch - Finn din neste favorittbar",
+		  description: "where2watch hjelper deg med å finne din neste favorittbar",
+		  manifest: "/manifest.webmanifest",
+		};
 
 export default function RootLayout({
   children,
