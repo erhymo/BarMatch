@@ -1,5 +1,7 @@
 import { Bar } from '../models';
-import { dummyMatches } from './matches';
+
+// Bar-lokasjoner beholdes som statisk data.
+// Kamper/fixtures hentes fra ekte API (se /api/fixtures og /kamper).
 
 export const dummyBars: Bar[] = [
 	  // Oslo
@@ -13,7 +15,7 @@ export const dummyBars: Bar[] = [
     address: 'Schweigaards gate 34, 0191 Oslo',
     description: 'Populær bar med god stemning og stort utvalg av øl',
     rating: 4.5,
-    matches: [dummyMatches[0], dummyMatches[1], dummyMatches[10]], // Premier League + Champions League
+	    matches: [],
     phone: '+47 22 17 09 15',
     facilities: {
       screens: 8,
@@ -42,7 +44,7 @@ export const dummyBars: Bar[] = [
     address: 'Torggata 32, 0183 Oslo',
     description: 'Rock-bar med live musikk og hyggelig atmosfære',
     rating: 4.3,
-    matches: [dummyMatches[2], dummyMatches[5]], // Premier League + La Liga
+	    matches: [],
     phone: '+47 22 20 33 22',
     facilities: {
       screens: 3,
@@ -71,7 +73,7 @@ export const dummyBars: Bar[] = [
     address: 'Storgata 27, 0184 Oslo',
     description: 'Cocktailbar med kreative drinker og lokal brennevin',
     rating: 4.7,
-    matches: [dummyMatches[4], dummyMatches[12]], // Premier League + Champions League
+	    matches: [],
     phone: '+47 22 42 99 80',
     facilities: {
       screens: 2,
@@ -100,7 +102,7 @@ export const dummyBars: Bar[] = [
     address: 'Torggata 11, 0181 Oslo',
     description: 'Avslappet bar med god mat og drikke',
     rating: 4.2,
-    matches: [dummyMatches[1], dummyMatches[3], dummyMatches[11]], // Premier League + Champions League
+	    matches: [],
     phone: '+47 22 99 68 80',
     facilities: {
       screens: 4,
@@ -129,7 +131,7 @@ export const dummyBars: Bar[] = [
     address: 'Markveien 58, 0554 Oslo',
     description: 'Sportsbar med storskjerm og god stemning under kamper',
     rating: 4.4,
-    matches: [dummyMatches[0], dummyMatches[2], dummyMatches[3], dummyMatches[8]], // Premier League + Bundesliga
+	    matches: [],
     phone: '+47 22 04 60 60',
     facilities: {
       screens: 12,
@@ -158,7 +160,7 @@ export const dummyBars: Bar[] = [
     address: 'Thorvald Meyers gate 30, 0555 Oslo',
     description: 'Mikrobryggeri med eget øl og god mat',
     rating: 4.6,
-    matches: [dummyMatches[0], dummyMatches[4], dummyMatches[6]], // Premier League + La Liga
+	    matches: [],
     phone: '+47 22 37 00 70',
     facilities: {
       screens: 5,
@@ -187,7 +189,7 @@ export const dummyBars: Bar[] = [
     address: 'Grønland 10, 0188 Oslo',
     description: 'Koselig uteservering og hyggelig atmosfære',
     rating: 4.1,
-    matches: [dummyMatches[1], dummyMatches[7]], // Premier League + La Liga
+	    matches: [],
   },
   {
     id: '8',
@@ -199,7 +201,7 @@ export const dummyBars: Bar[] = [
     address: 'Torggata 16, 0181 Oslo',
     description: 'Cocktailbar med botanisk tema og kreative drinker',
     rating: 4.5,
-    matches: [dummyMatches[2], dummyMatches[4], dummyMatches[9]], // Premier League + Bundesliga
+	    matches: [],
   },
   {
     id: '9',
@@ -211,7 +213,7 @@ export const dummyBars: Bar[] = [
     address: 'Brenneriveien 9, 0182 Oslo',
     description: 'Livlig bar med DJ og dansegulv',
     rating: 4.0,
-    matches: [dummyMatches[13], dummyMatches[14]], // Eliteserien
+	    matches: [],
   },
   {
     id: '10',
@@ -223,7 +225,7 @@ export const dummyBars: Bar[] = [
     address: 'Vulkan 100, 0178 Oslo',
     description: 'Moderne bar ved Akerselva med uteservering',
     rating: 4.3,
-    matches: [dummyMatches[3], dummyMatches[17]], // Premier League + Serie A
+	    matches: [],
   },
   {
     id: '11',
@@ -235,7 +237,7 @@ export const dummyBars: Bar[] = [
     address: 'Maridalsveien 3, 0178 Oslo',
     description: 'Sykkel-tema bar med god stemning',
     rating: 4.2,
-    matches: [dummyMatches[0], dummyMatches[15]], // Premier League + Eliteserien
+	    matches: [],
   },
 	  {
 	    id: '12',
@@ -247,7 +249,7 @@ export const dummyBars: Bar[] = [
 	    address: 'Grønlandsleiret 15, 0190 Oslo',
 	    description: 'Historisk bar med konsertscene og restaurant',
 	    rating: 4.4,
-	    matches: [dummyMatches[1], dummyMatches[2], dummyMatches[18]], // Premier League + Serie A
+		    matches: [],
 	  },
 
 	  // Bergen
@@ -262,7 +264,7 @@ export const dummyBars: Bar[] = [
 	    description:
 	      'Klassisk fotballpub ved Bryggen med stort fokus på Brann og Premier League',
 	    rating: 4.6,
-	    matches: [dummyMatches[15], dummyMatches[13], dummyMatches[1]], // Brann, Rosenborg, Liverpool
+		    matches: [],
 	    phone: '+47 55 00 11 22',
 	    facilities: {
 	      screens: 10,
@@ -292,7 +294,7 @@ export const dummyBars: Bar[] = [
 	    description:
 	      'Stor sportsbar midt i sentrum med mange skjermer og Premier League på lyd',
 	    rating: 4.3,
-	    matches: [dummyMatches[15], dummyMatches[0], dummyMatches[4]], // Brann + Spurs/Chelsea/Arsenal
+		    matches: [],
 	    phone: '+47 55 22 33 44',
 	    facilities: {
 	      screens: 14,
@@ -322,7 +324,7 @@ export const dummyBars: Bar[] = [
 	    description:
 	      'Lokal pub på Nøstet med fokus på Eliteserien og italiensk fotball på søndager',
 	    rating: 4.2,
-	    matches: [dummyMatches[13], dummyMatches[14], dummyMatches[18]], // RBK, Molde/Bodø, Serie A
+		    matches: [],
 	    phone: '+47 55 66 77 88',
 	    facilities: {
 	      screens: 6,
@@ -352,7 +354,7 @@ export const dummyBars: Bar[] = [
 	    description:
 	      'Intim fotballpub med Brann på alle skjermer når det er kampdag og Serie A ellers',
 	    rating: 4.4,
-	    matches: [dummyMatches[15], dummyMatches[17], dummyMatches[19]], // Brann, Juventus, Roma
+		    matches: [],
 	    phone: '+47 55 98 76 54',
 	    facilities: {
 	      screens: 5,
@@ -382,7 +384,7 @@ export const dummyBars: Bar[] = [
 	    description:
 	      'Moderne sportsbar ved vannkanten med Happy Hour på kampdager',
 	    rating: 4.5,
-	    matches: [dummyMatches[1], dummyMatches[3], dummyMatches[16]], // Liverpool, United, Vålerenga/Molde
+		    matches: [],
 	    phone: '+47 55 44 33 22',
 	    facilities: {
 	      screens: 12,
@@ -414,7 +416,7 @@ export const dummyBars: Bar[] = [
 	    description:
 	      'Familievennlig sportsbar med burger, lokaløl og storskjerm på Eliteserien',
 	    rating: 4.1,
-	    matches: [dummyMatches[14], dummyMatches[1], dummyMatches[17]], // Molde/Bodø, Liverpool, Juventus
+		    matches: [],
 	    phone: '+47 57 82 10 10',
 	    facilities: {
 	      screens: 7,
@@ -444,7 +446,7 @@ export const dummyBars: Bar[] = [
 	    description:
 	      'Lokal pub med fokus på Molde, Bodø/Glimt og toppkamper fra Premier League',
 	    rating: 4.0,
-	    matches: [dummyMatches[14], dummyMatches[18], dummyMatches[2]], // Molde/Bodø, Milan, Arsenal/Tottenham
+		    matches: [],
 	    phone: '+47 57 82 20 20',
 	    facilities: {
 	      screens: 4,
@@ -474,7 +476,7 @@ export const dummyBars: Bar[] = [
 	    description:
 	      'Klassisk brun pub ved elva med gode priser under kamp (Happy Hour)',
 	    rating: 3.9,
-	    matches: [dummyMatches[13], dummyMatches[14], dummyMatches[9]], // RBK, Molde/Bodø, Bayern
+		    matches: [],
 	    phone: '+47 57 82 30 30',
 	    facilities: {
 	      screens: 3,
@@ -504,7 +506,7 @@ export const dummyBars: Bar[] = [
 	    description:
 	      'Pub nær stadion med stor uteservering og alle Eliteserien-kampene på skjerm',
 	    rating: 4.2,
-	    matches: [dummyMatches[14], dummyMatches[3], dummyMatches[8]], // Molde/Bodø, United/Liverpool, Bayern/Dortmund
+		    matches: [],
 	    phone: '+47 57 82 40 40',
 	    facilities: {
 	      screens: 8,
@@ -536,7 +538,7 @@ export const dummyBars: Bar[] = [
 	    description:
 	      'Stor sportsbar på Solsiden med Champions League på storskjerm og uteservering ved vannet',
 	    rating: 4.5,
-	    matches: [dummyMatches[13], dummyMatches[1], dummyMatches[17]], // Rosenborg, Liverpool, Juventus
+		    matches: [],
 	    phone: '+47 73 80 10 10',
 	    facilities: {
 	      screens: 16,
@@ -566,7 +568,7 @@ export const dummyBars: Bar[] = [
 	    description:
 	      'Trondheims mest ihuga Rosenborg-pub – fullt hus hver gang RBK spiller',
 	    rating: 4.7,
-	    matches: [dummyMatches[13], dummyMatches[15], dummyMatches[0]], // Rosenborg, Brann, Spurs/Chelsea
+		    matches: [],
 	    phone: '+47 73 80 20 20',
 	    facilities: {
 	      screens: 9,
@@ -596,7 +598,7 @@ export const dummyBars: Bar[] = [
 	    description:
 	      'Sentrumsnær fotballpub med Premier League på storskjerm og Serie A på søndager',
 	    rating: 4.3,
-	    matches: [dummyMatches[13], dummyMatches[4], dummyMatches[18]], // Rosenborg, Chelsea/Arsenal, Milan
+		    matches: [],
 	    phone: '+47 73 80 30 30',
 	    facilities: {
 	      screens: 8,
@@ -626,7 +628,7 @@ export const dummyBars: Bar[] = [
 	    description:
 	      'Bar rett ved Lerkendal med oppvarming før kamp og Happy Hour når RBK vinner',
 	    rating: 4.4,
-	    matches: [dummyMatches[13], dummyMatches[19], dummyMatches[3]], // Rosenborg, Roma/Juventus, United/Liverpool
+		    matches: [],
 	    phone: '+47 73 80 40 40',
 	    facilities: {
 	      screens: 11,
@@ -656,7 +658,7 @@ export const dummyBars: Bar[] = [
 	    description:
 	      'Koselig pub på Bakklandet med Eliteserien og utvalgte Premier League-kamper',
 	    rating: 4.1,
-	    matches: [dummyMatches[13], dummyMatches[14], dummyMatches[2]], // Rosenborg, Molde/Bodø, Arsenal/Tottenham
+		    matches: [],
 	    phone: '+47 73 80 50 50',
 	    facilities: {
 	      screens: 5,

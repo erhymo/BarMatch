@@ -1,32 +1,25 @@
 'use client';
 
-	import type { MouseEvent } from 'react';
+import type { MouseEvent } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 
 const navItems = [
   { name: 'Hjem', href: '/' },
   { name: 'Kamper', href: '/kamper' },
-  { name: 'Min bar', href: '/min-bar' },
 ];
 
 export default function Navigation() {
   const pathname = usePathname();
-  const { isAuthenticated } = useAuth();
 
-	  const handleHomeClick = (event: MouseEvent<HTMLAnchorElement>) => {
-	    if (pathname === '/') {
-	      event.preventDefault();
-	      window.dispatchEvent(new CustomEvent('barmatch:reset-home-filters'));
-	    }
-	  };
+  const handleHomeClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (pathname === '/') {
+      event.preventDefault();
+      window.dispatchEvent(new CustomEvent('barmatch:reset-home-filters'));
+    }
+  };
 
   const isActive = (href: string) => {
-    // Treat /admin as part of "Min bar" for highlighting
-    if (href === '/min-bar') {
-      return pathname === '/min-bar' || pathname === '/admin';
-    }
     return pathname === href;
   };
 
@@ -34,7 +27,7 @@ export default function Navigation() {
     <>
       {/* Top navigation (desktop/tablet) */}
       <nav className="hidden md:block bg-white dark:bg-zinc-800 shadow-md">
-        <div className="container mx-auto px-4">
+	        <div className="container mx-auto px-4">
 	          <div className="flex items-center justify-between h-16">
 	            <div className="flex items-center space-x-1">
               <Link
@@ -44,7 +37,7 @@ export default function Navigation() {
                 BarMatch
               </Link>
 
-              <div className="flex space-x-1">
+	              <div className="flex space-x-1">
                 {navItems.map((item) => (
                   <Link
                     key={item.href}
@@ -62,34 +55,10 @@ export default function Navigation() {
               </div>
             </div>
 
-	            {/* Admin/Login Link */}
-	            <div>
-	              {isAuthenticated ? (
-	                <Link
-	                  href="/admin"
-	                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-	                    pathname === '/admin'
-	                      ? 'bg-blue-600 text-white dark:bg-blue-500'
-	                      : 'text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-zinc-700'
-	                  }`}
-	                >
-	                  Admin
-	                </Link>
-	              ) : (
-	                <Link
-	                  href="/login"
-	                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-	                    pathname === '/login'
-	                      ? 'bg-blue-600 text-white dark:bg-blue-500'
-	                      : 'text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-zinc-700'
-	                  }`}
-	                >
-	                  Bar Login
-	                </Link>
-	              )}
-	            </div>
-          </div>
-        </div>
+	            {/* Right side reserved for future login/admin actions */}
+	            <div />
+	          </div>
+	        </div>
       </nav>
 
       {/* Bottom navigation (mobile) */}
@@ -101,7 +70,6 @@ export default function Navigation() {
             let icon = '⚽';
             if (item.name === 'Hjem') icon = '🏠';
             if (item.name === 'Kamper') icon = '📅';
-            if (item.name === 'Min bar') icon = '🍻';
 
             return (
               <Link

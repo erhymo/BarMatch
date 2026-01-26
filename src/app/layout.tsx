@@ -6,7 +6,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { RatingsProvider } from "@/contexts/RatingsContext";
 import { ToastProvider } from "@/contexts/ToastContext";
-import { DemoProvider } from "@/contexts/DemoContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,18 +33,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <DemoProvider>
-          <AuthProvider>
-            <FavoritesProvider>
-              <RatingsProvider>
-                <ToastProvider>
-                  <Navigation />
-                  {children}
-                </ToastProvider>
-              </RatingsProvider>
-            </FavoritesProvider>
-          </AuthProvider>
-        </DemoProvider>
+	        <AuthProvider>
+	          <FavoritesProvider>
+	            <RatingsProvider>
+	              <ToastProvider>
+	                <Navigation />
+	                {children}
+	              </ToastProvider>
+	            </RatingsProvider>
+	          </FavoritesProvider>
+	        </AuthProvider>
       </body>
     </html>
   );

@@ -5,5 +5,5 @@ export * from './favorites.service';
 export * from './chat.service';
 export * from './rating.service';
 export * from './campaign.service';
-export * from './demo.service';
+// Demo/mock seeding removed – only real app services are re-exported here.
 

@@ -11,19 +11,11 @@ export class BarService {
    * Returns bars that show matches for the specified team
    */
   static filterBarsByTeam(bars: Bar[], teamId: string | null): Bar[] {
-    if (!teamId) {
-      return bars;
-    }
-
-    return bars.filter((bar) => {
-      if (!bar.matches || bar.matches.length === 0) {
-        return false;
-      }
-
-      return bar.matches.some(
-        (match) => match.homeTeam.id === teamId || match.awayTeam.id === teamId
-      );
-    });
+    // Vi har ikke lenger mock/demo-kobling mellom barer og kamper.
+    // Inntil vi har ekte bar->kamp data (backend), skal kartet alltid vise alle barer.
+    // (UI kan senere filtrere basert på ekte data.)
+    void teamId;
+    return bars;
   }
 
 	  /**
@@ -31,17 +23,10 @@ export class BarService {
 	   * Returns bars that show the specified match
 	   */
 	  static filterBarsByMatch(bars: Bar[], matchId: string | null): Bar[] {
-	    if (!matchId) {
-	      return bars;
-	    }
-
-	    return bars.filter((bar) => {
-	      if (!bar.matches || bar.matches.length === 0) {
-	        return false;
-	      }
-
-	      return bar.matches.some((match) => match.id === matchId);
-	    });
+	    // Vi har ikke lenger mock/demo-kobling mellom barer og kamper.
+	    // Inntil vi har ekte bar->kamp data (backend), skal kartet alltid vise alle barer.
+	    void matchId;
+	    return bars;
 	  }
 
   /**
@@ -72,21 +57,10 @@ export class BarService {
    * Get upcoming matches for a bar
    */
   static getUpcomingMatches(bar: Bar): NonNullable<typeof bar.matches> {
-    if (!bar.matches) return [];
-
-    const now = new Date();
-    const cutoff = new Date(now.getTime() - 90 * 60 * 1000); // 1.5 hours ago
-
-    return bar.matches
-      .filter((match) => {
-        const matchDateTime = new Date(`${match.date}T${match.time}`);
-        return matchDateTime >= cutoff;
-      })
-      .sort((a, b) => {
-        const dateA = new Date(`${a.date}T${a.time}`);
-        const dateB = new Date(`${b.date}T${b.time}`);
-        return dateA.getTime() - dateB.getTime();
-      });
+    // Barer har ikke lenger innebygde mock-kamper.
+    // Kommende kamper for en bar krever ekte data fra backend.
+    void bar;
+    return [];
   }
 
   /**

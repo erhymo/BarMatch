@@ -1,7 +1,6 @@
 		'use client';
 
 			import { Suspense, useEffect, useState } from 'react';
-			import { useSearchParams } from 'next/navigation';
 			import GoogleMap from '@/components/map/GoogleMap';
 			import SportFilterPanel from '@/components/filter/SportFilterPanel';
 			import CityFilterPanel from '@/components/filter/CityFilterPanel';
@@ -13,13 +12,7 @@
 
 	function HomeContent() {
 	  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
-	  const searchParams = useSearchParams();
-	  const initialMatchId = searchParams.get('matchId');
-
-		  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
-		  const [selectedMatchId, setSelectedMatchId] = useState<string | null>(
-		    initialMatchId
-		  );
+			  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
 		  const [selectedBar, setSelectedBar] = useState<Bar | null>(null);
 		  const [favoriteCity, setFavoriteCity] = useState<CityId | null>(() => {
 		    if (typeof window === 'undefined') return null;
@@ -62,7 +55,6 @@
 
 			  const handleResetFilters = () => {
 		      setSelectedTeam(null);
-		      setSelectedMatchId(null);
 		      setSelectedBar(null);
 		      setIsFilterPanelOpen(false);
 		      setIsCityPanelOpen(false);
@@ -76,18 +68,11 @@
 		  }, []);
 
 		  // Filter bars based on selected team using hook,
-		  // then further by match if valgt via Kamper-siden (matchId i querystring)
+			  // (matchId-basert filtrering er fjernet inntil vi har ekte bar->kamp data)
 		  const barsFilteredByTeam = useBarFilter(dummyBars, selectedTeam);
-		  const filteredBars =
-		    !selectedMatchId
-		      ? barsFilteredByTeam
-		      : barsFilteredByTeam.filter((bar) =>
-		          bar.matches?.some((match) => match.id === selectedMatchId)
-		        );
+			  const filteredBars = barsFilteredByTeam;
 
 	  const handleTeamSelect = (teamId: string | null) => {
-	    // Når brukeren velger lag på kartet, nullstiller vi evt. aktiv kamp-filter
-	    setSelectedMatchId(null);
 	    setSelectedTeam(teamId);
 	  };
 
@@ -219,20 +204,6 @@
 	              </p>
 	              <p className="text-xs text-zinc-600 dark:text-zinc-400">
 	                Prov et annet lag, en annen liga eller fjern filtrene for a se flere barer.
-	              </p>
-	            </div>
-	          </div>
-	        )}
-
-		        {/* Empty state when no bars match the current match filter */}
-	        {selectedMatchId && filteredBars.length === 0 && (
-	          <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
-	            <div className="pointer-events-auto max-w-md rounded-xl bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 px-4 py-3 shadow-md text-sm text-zinc-800 dark:text-zinc-100">
-	              <p className="font-medium mb-1">
-	                Ingen barer har registrert at de viser denne kampen ennå.
-	              </p>
-	              <p className="text-xs text-zinc-600 dark:text-zinc-400">
-	                Sjekk igjen senere eller velg et lag i filteret for å se andre barer.
 	              </p>
 	            </div>
 	          </div>
