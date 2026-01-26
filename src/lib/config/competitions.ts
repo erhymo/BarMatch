@@ -37,6 +37,13 @@ export const COMPETITIONS: Competition[] = [
     apiFootballLeagueId: 2,
     defaultSeason: 2025,
   },
+	  {
+	    key: 'UEL',
+	    label: 'UEFA Europa League',
+	    type: 'tournament',
+	    apiFootballLeagueId: 3,
+	    defaultSeason: 2025,
+	  },
 ];
 
 export function getCompetitionByKey(key: LeagueKey): Competition {

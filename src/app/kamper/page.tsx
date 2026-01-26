@@ -58,6 +58,7 @@ const LEAGUES: { key: LeagueKey; label: string }[] = [
   { key: "NOR_ELITESERIEN", label: "Eliteserien" },
   { key: "SERIE_A", label: "Serie A" },
   { key: "UCL", label: "UEFA Champions League" },
+  { key: "UEL", label: "UEFA Europa League" },
 ];
 
 const LEAGUE_LABEL_BY_KEY: Record<LeagueKey, string> = {
@@ -65,6 +66,7 @@ const LEAGUE_LABEL_BY_KEY: Record<LeagueKey, string> = {
   NOR_ELITESERIEN: "Eliteserien",
   SERIE_A: "Serie A",
   UCL: "UEFA Champions League",
+  UEL: "UEFA Europa League",
 };
 
 // Mapping fra interne lag-ID-er (favoritter) til visningsnavn slik de kommer fra Fixture
@@ -128,8 +130,9 @@ export default function KamperPage() {
   >({
     EPL: [],
     NOR_ELITESERIEN: [],
-	    SERIE_A: [],
-	    UCL: [],
+		    SERIE_A: [],
+		    UCL: [],
+		    UEL: [],
   });
 	  const [isLoading, setIsLoading] = useState(false);
 	  const [loadError, setLoadError] = useState<string | null>(null);
@@ -185,8 +188,13 @@ export default function KamperPage() {
 	      
 	        if (isCancelled) return;
 	      
-	        const [eplResult, norEliteserienResult, serieAResult, uclResult] =
-	          results;
+		        const [
+		          eplResult,
+		          norEliteserienResult,
+		          serieAResult,
+		          uclResult,
+		          uelResult,
+		        ] = results;
 	      
 	        const epl: Fixture[] =
 	          eplResult.status === "fulfilled"
@@ -223,20 +231,31 @@ export default function KamperPage() {
 	                (uclResult as PromiseRejectedResult | undefined)?.reason,
 	              ),
 	              []);
+		      
+		        const uel: Fixture[] =
+		          uelResult && uelResult.status === "fulfilled"
+		            ? uelResult.value
+		            : (console.error(
+		                "[Fixtures] Feil ved henting av Europa League-kamper:",
+		                (uelResult as PromiseRejectedResult | undefined)?.reason,
+		              ),
+		              []);
 	      
 	        const allRejected =
 	          eplResult.status === "rejected" &&
 	          norEliteserienResult.status === "rejected" &&
 	          serieAResult.status === "rejected" &&
-	          uclResult?.status === "rejected";
+		          uclResult?.status === "rejected" &&
+		          uelResult?.status === "rejected";
 	      
-		        if (allRejected) {
-		          const rejectedResults = [
-		            eplResult,
-		            norEliteserienResult,
-		            serieAResult,
-		            uclResult,
-		          ].filter(isRejected);
+			        if (allRejected) {
+			          const rejectedResults = [
+			            eplResult,
+			            norEliteserienResult,
+			            serieAResult,
+			            uclResult,
+			            uelResult,
+			          ].filter(isRejected);
 	
 		          const firstReason = rejectedResults[0]?.reason;
 		          const { message, details } = getErrorInfo(firstReason);
@@ -249,12 +268,13 @@ export default function KamperPage() {
 		          setLoadError(combinedMessage);
 		        }
 	      
-	        setFixturesByLeague({
-	          EPL: epl,
-	          NOR_ELITESERIEN: norEliteserien,
-	          SERIE_A: serieA,
-	          UCL: ucl,
-	        });
+		        setFixturesByLeague({
+		          EPL: epl,
+		          NOR_ELITESERIEN: norEliteserien,
+		          SERIE_A: serieA,
+		          UCL: ucl,
+		          UEL: uel,
+		        });
 	      } catch (error) {
 	        if (isCancelled) return;
 	        console.error("[Fixtures] Uventet feil ved lasting av kamper:", error);
@@ -284,8 +304,9 @@ export default function KamperPage() {
     const all = [
       ...fixturesByLeague.EPL,
       ...fixturesByLeague.NOR_ELITESERIEN,
-	      ...fixturesByLeague.SERIE_A,
-	      ...fixturesByLeague.UCL,
+		      ...fixturesByLeague.SERIE_A,
+		      ...fixturesByLeague.UCL,
+		      ...fixturesByLeague.UEL,
     ];
 
     return all.sort((a, b) => {

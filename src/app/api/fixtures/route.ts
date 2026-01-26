@@ -20,13 +20,14 @@ const memoryCache = new Map<string, CacheEntry>();
 let hasLoggedEnv = false;
 
 function isLeagueKey(value: string | null): value is LeagueKey {
-	  return (
-	    value === 'NOR_ELITESERIEN' ||
-	    value === 'EPL' ||
-	    value === 'SERIE_A' ||
-	    value === 'UCL'
-	  );
-}
+		  return (
+		    value === 'NOR_ELITESERIEN' ||
+		    value === 'EPL' ||
+		    value === 'SERIE_A' ||
+		    value === 'UCL' ||
+		    value === 'UEL'
+		  );
+	}
 
 function getDefaultRange(): { from: string; to: string } {
   const now = new Date();
@@ -127,9 +128,9 @@ export async function GET(req: NextRequest) {
         {
           error: 'Ugyldig eller manglende leagueKey-parameter',
           status: 400,
-	          details:
-	            'leagueKey må være en av: NOR_ELITESERIEN, EPL, SERIE_A, UCL ' +
-	            `(fikk: ${leagueParamRaw})`,
+			          details:
+			            'leagueKey må være en av: NOR_ELITESERIEN, EPL, SERIE_A, UCL, UEL ' +
+			            `(fikk: ${leagueParamRaw})`,
         },
         { status: 400 },
       );
