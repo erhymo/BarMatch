@@ -12,6 +12,12 @@ const navItems = [
 export default function Navigation() {
 	  const pathname = usePathname();
 
+	  // Hide the public navigation inside admin/onboarding areas
+	  // (admin has its own layout/header)
+	  if (pathname?.startsWith('/admin') || pathname?.startsWith('/onboard')) {
+	    return null;
+	  }
+
 	  const handleHomeClick = (event: MouseEvent<HTMLAnchorElement>) => {
 	    if (pathname === '/') {
 	      event.preventDefault();
