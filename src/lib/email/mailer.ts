@@ -25,13 +25,18 @@ function getTransporter() {
   return transporter;
 }
 
+function getMailFrom() {
+  const from = process.env.MAIL_FROM ?? process.env.EMAIL_FROM;
+  if (!from) throw new Error('Missing MAIL_FROM (or EMAIL_FROM) env var');
+  return from;
+}
+
 export async function sendStartSubscriptionEmail(params: {
   to: string;
   barName: string;
   checkoutUrl: string;
 }) {
-  const from = process.env.EMAIL_FROM;
-  if (!from) throw new Error('Missing EMAIL_FROM env var');
+  const from = getMailFrom();
 
   const { to, barName, checkoutUrl } = params;
 
@@ -48,4 +53,58 @@ export async function sendStartSubscriptionEmail(params: {
   `;
 
   await getTransporter().sendMail({ from, to, subject, text, html });
+}
+
+export async function sendInviteEmail(params: {
+  to: string;
+  inviteLink: string;
+  trialDays: number;
+  firstChargeDateText: string;
+  expiresHours: number;
+}) {
+  const from = getMailFrom();
+  const { to, inviteLink, trialDays, firstChargeDateText, expiresHours } = params;
+
+  const subject = 'where2watch – Invitasjon til å registrere bar';
+  const text = `Hei!\n\nDu er invitert til å registrere baren din i where2watch.\n\nLenke (gyldig i ${expiresHours} timer, kun én gang):\n${inviteLink}\n\nDu legger inn kort nå, men første belastning skjer ved slutten av prøvetiden (${trialDays} dager): ${firstChargeDateText}.\n\nHilsen where2watch`;
+  const html = `
+    <div style="font-family: ui-sans-serif, system-ui; line-height: 1.5">
+      <h2 style="margin: 0 0 12px">where2watch</h2>
+      <p>Du er invitert til å registrere baren din i where2watch.</p>
+      <p><strong>Lenken er gyldig i ${expiresHours} timer</strong> og kan kun brukes én gang.</p>
+      <p><a href="${inviteLink}">${inviteLink}</a></p>
+      <hr style="border: 0; border-top: 1px solid #e4e4e7; margin: 16px 0" />
+      <p>
+        Du legger inn kort nå, men <strong>første belastning skjer ved slutten av prøvetiden</strong>
+        (${trialDays} dager): <strong>${firstChargeDateText}</strong>.
+      </p>
+      <p style="margin-top: 20px; color: #52525b">Hilsen where2watch</p>
+    </div>
+  `;
+
+  await getTransporter().sendMail({ from, to, subject, text, html });
+}
+
+export async function sendPaymentFailedDay0(params: { to: string; barName?: string }) {
+  const from = getMailFrom();
+  const { to, barName } = params;
+  const subject = 'where2watch – Betaling feilet';
+  const text = `Hei${barName ? ` ${barName}` : ''}.\n\nVi klarte ikke å gjennomføre betalingen for abonnementet ditt.\n\nBaren din blir ikke skjult med en gang. Du har en grace-periode på 14 dager til å oppdatere betalingskort.\n\nLogg inn på /admin og velg “Oppdater betalingskort”.\n\nHilsen where2watch`;
+  await getTransporter().sendMail({ from, to, subject, text });
+}
+
+export async function sendPaymentReminderDay7(params: { to: string; barName?: string }) {
+  const from = getMailFrom();
+  const { to, barName } = params;
+  const subject = 'where2watch – Påminnelse: oppdater betalingskort';
+  const text = `Hei${barName ? ` ${barName}` : ''}.\n\nPåminnelse: betalingen for abonnementet ditt feilet for 7 dager siden.\n\nLogg inn på /admin og velg “Oppdater betalingskort” for å unngå at baren blir skjult etter 14 dager.\n\nHilsen where2watch`;
+  await getTransporter().sendMail({ from, to, subject, text });
+}
+
+export async function sendHiddenDay14(params: { to: string; barName?: string }) {
+  const from = getMailFrom();
+  const { to, barName } = params;
+  const subject = 'where2watch – Baren er skjult pga manglende betaling';
+  const text = `Hei${barName ? ` ${barName}` : ''}.\n\nGrace-perioden er utløpt og baren er nå skjult i where2watch pga manglende betaling.\n\nDu har fortsatt full tilgang til /admin/bar. Oppdater betalingskort der for å aktivere abonnementet igjen.\n\nHilsen where2watch`;
+  await getTransporter().sendMail({ from, to, subject, text });
 }

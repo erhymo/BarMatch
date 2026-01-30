@@ -83,6 +83,38 @@ export default function BarOwnerDashboard() {
     }
   };
 
+  const updatePaymentCard = async () => {
+    if (!user) return;
+    setBusy(true);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+      const raw: unknown = await res.json().catch(() => ({}));
+      const data =
+        raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null;
+      const errMsg = typeof data?.error === 'string' ? data.error : '';
+      if (!res.ok) throw new Error(errMsg || `Kunne ikke åpne portal (${res.status})`);
+
+      const url = typeof data?.url === 'string' ? data.url : '';
+      if (!url) throw new Error('Mangler portal-url');
+      window.location.assign(url);
+    } catch (e) {
+      showToast({
+        title: 'Feil',
+        description: e instanceof Error ? e.message : 'Ukjent feil',
+        variant: 'error',
+      });
+      setBusy(false);
+    }
+  };
+
   return (
     <div>
       <div className="mb-6">
@@ -117,8 +149,17 @@ export default function BarOwnerDashboard() {
             </span>
           </div>
           <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-	            Hvis billing er OFF, be superadmin om å aktivere abonnement.
+	            Hvis status er <span className="font-medium">payment_failed</span>, kan du oppdatere betalingskort og vente på nytt forsøk.
           </p>
+
+          <button
+            type="button"
+            disabled={busy || !bar}
+            onClick={updatePaymentCard}
+            className="mt-4 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+          >
+	            Oppdater betalingskort
+          </button>
         </div>
       </div>
     </div>
