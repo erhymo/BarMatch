@@ -100,6 +100,12 @@ export default function AdminLoginPage() {
           >
             {busy ? 'Logger inn…' : 'Logg inn'}
           </button>
+
+	          <div className="pt-2 text-center text-sm">
+	            <a href="/forgot-password" className="text-zinc-700 underline dark:text-zinc-300">
+	              Glemt passord?
+	            </a>
+	          </div>
         </div>
       </div>
     </div>

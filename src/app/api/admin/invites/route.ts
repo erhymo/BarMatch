@@ -7,6 +7,33 @@ import { sendInviteEmail } from '@/lib/email/mailer';
 
 const ALLOWED_TRIAL_DAYS = new Set([0, 7, 14, 30]);
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function toMillisMaybe(value: unknown): number | null {
+  if (!value) return null;
+  if (value instanceof Timestamp) return value.toMillis();
+  const rec = asRecord(value);
+  const fn = rec?.toMillis;
+  if (typeof fn === 'function') {
+    try {
+      const ms = (fn as (this: unknown) => number).call(value);
+      return typeof ms === 'number' && Number.isFinite(ms) ? ms : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function isExpired(expiresAt: unknown) {
+  const ms = toMillisMaybe(expiresAt);
+  return typeof ms === 'number' ? ms <= Date.now() : false;
+}
+
 function formatDateForEmail(d: Date) {
   try {
     return d.toLocaleDateString('nb-NO', { year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -21,7 +48,26 @@ export async function GET(request: Request) {
 
     const db = getFirebaseAdminDb();
     const snap = await db.collection('invites').orderBy('createdAt', 'desc').limit(200).get();
-    const invites = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }));
+
+    // Auto-expire any pending invites past expiresAt.
+    const expiredRefs: FirebaseFirestore.DocumentReference[] = [];
+    const invites = snap.docs.map((d) => {
+      const data = d.data() as Record<string, unknown>;
+      const status = typeof data.status === 'string' ? data.status : null;
+      if (status === 'pending' && isExpired(data.expiresAt)) {
+        expiredRefs.push(d.ref);
+        return { id: d.id, ...data, status: 'expired' };
+      }
+      return { id: d.id, ...data };
+    });
+
+    if (expiredRefs.length) {
+      const batch = db.batch();
+      for (const ref of expiredRefs) {
+        batch.set(ref, { status: 'expired', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+      }
+      await batch.commit();
+    }
 
     return NextResponse.json({ invites });
   } catch (e) {

@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createUserWithEmailAndPassword, onAuthStateChanged, type User } from 'firebase/auth';
+import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification, type User } from 'firebase/auth';
 import { getFirebaseAuthClient } from '@/lib/firebase/client';
 import DraggablePinMap from '@/components/onboard/DraggablePinMap';
 
@@ -134,6 +134,12 @@ function OnboardInner() {
         if (!validPassword(pw)) throw new Error('Passord må være 8+ tegn, 1 stor bokstav og 1 tall');
         if (pw !== pw2) throw new Error('Passordene matcher ikke');
         const cred = await createUserWithEmailAndPassword(getFirebaseAuthClient(), inviteEmail, pw);
+	        // Send verification email right away (visibility is blocked until verified).
+	        try {
+	          await sendEmailVerification(cred.user);
+	        } catch {
+	          // best effort
+	        }
         setUser(cred.user);
       }
 

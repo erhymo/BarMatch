@@ -47,18 +47,71 @@ async function resolveBarId(params: {
   const { subscriptionId, customerId } = params;
 
   if (subscriptionId) {
-    const sub = await stripe.subscriptions.retrieve(subscriptionId);
-    const barId = sub.metadata?.barId ?? null;
-    if (barId) return { barId, subscription: sub };
+    try {
+      const sub = await stripe.subscriptions.retrieve(subscriptionId);
+      const barId = sub.metadata?.barId ?? null;
+      if (barId) return { barId, subscription: sub };
+    } catch (err) {
+      console.error('Failed retrieving subscription for barId mapping:', subscriptionId, err);
+    }
   }
 
   if (customerId) {
-    const customer = (await stripe.customers.retrieve(customerId)) as Stripe.Customer;
-    const barId = (customer.metadata?.barId as string | undefined) ?? null;
-    if (barId) return { barId, subscription: null };
+    try {
+      const customer = await stripe.customers.retrieve(customerId);
+      if ('deleted' in customer && customer.deleted) {
+        return { barId: null, subscription: null };
+      }
+      const barId = customer.metadata?.barId ?? null;
+      if (barId) return { barId, subscription: null };
+    } catch (err) {
+      console.error('Failed retrieving customer for barId mapping:', customerId, err);
+    }
   }
 
   return { barId: null, subscription: null };
+}
+
+async function claimStripeEvent(params: {
+  event: Stripe.Event;
+}): Promise<{ shouldProcess: boolean }> {
+  const { event } = params;
+  const db = getFirebaseAdminDb();
+  const ref = db.collection('stripeEvents').doc(event.id);
+
+  const res = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (snap.exists) {
+      const data = snap.data() as Record<string, unknown>;
+      const status = typeof data.status === 'string' ? data.status : null;
+      if (status === 'processed' || status === 'processing') {
+        return { shouldProcess: false as const };
+      }
+
+      tx.set(
+        ref,
+        {
+          type: event.type,
+          status: 'processing',
+          updatedAt: FieldValue.serverTimestamp(),
+          attempts: FieldValue.increment(1),
+        },
+        { merge: true },
+      );
+      return { shouldProcess: true as const };
+    }
+
+    tx.create(ref, {
+      type: event.type,
+      status: 'processing',
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      attempts: 1,
+    });
+    return { shouldProcess: true as const };
+  });
+
+  return res;
 }
 
 export async function POST(request: Request) {
@@ -85,15 +138,35 @@ export async function POST(request: Request) {
     );
   }
 
+  // Idempotency guard: prevent duplicate side effects for the same Stripe event.
+  try {
+    const claim = await claimStripeEvent({ event });
+    if (!claim.shouldProcess) {
+      return NextResponse.json({ received: true, deduped: true });
+    }
+  } catch (err) {
+    console.error('Failed claiming Stripe event for idempotency:', err);
+    return NextResponse.json({ error: 'Idempotency check failed' }, { status: 500 });
+  }
+
+  const db = getFirebaseAdminDb();
+  const eventRef = db.collection('stripeEvents').doc(event.id);
+  let resolvedBarId: string | null = null;
+
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        const barId = session.metadata?.barId;
+        const barId =
+          session.metadata?.barId ??
+          (typeof session.client_reference_id === 'string' && session.client_reference_id
+            ? session.client_reference_id
+            : null);
         const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
         const subscriptionId = typeof session.subscription === 'string' ? session.subscription : null;
 
         if (!barId) break;
+        resolvedBarId = barId;
 
         let billingStatus: 'active' | 'payment_failed' | 'canceled' = 'active';
         if (subscriptionId) {
@@ -113,6 +186,7 @@ export async function POST(request: Request) {
 
         const resolved = await resolveBarId({ subscriptionId: subscriptionId ?? null, customerId: customerId ?? null });
         if (!resolved.barId) break;
+	      resolvedBarId = resolved.barId;
 
         const now = Date.now();
         const failedAt = Timestamp.fromMillis(now);
@@ -152,6 +226,7 @@ export async function POST(request: Request) {
 
         const resolved = await resolveBarId({ subscriptionId: subscriptionId ?? null, customerId: customerId ?? null });
         if (!resolved.barId) break;
+	      resolvedBarId = resolved.barId;
 
         await updateBarBilling({
           barId: resolved.barId,
@@ -172,6 +247,7 @@ export async function POST(request: Request) {
         const sub = event.data.object as Stripe.Subscription;
         const barId = sub.metadata?.barId;
         if (!barId) break;
+	      resolvedBarId = barId;
 
         const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer?.id;
         const billingStatus = mapSubscriptionStatus(sub.status);
@@ -199,8 +275,30 @@ export async function POST(request: Request) {
         // ignore
         break;
     }
+
+	  await eventRef.set(
+	    {
+	      status: 'processed',
+	      processedAt: FieldValue.serverTimestamp(),
+	      updatedAt: FieldValue.serverTimestamp(),
+	      ...(resolvedBarId ? { barId: resolvedBarId } : {}),
+	    },
+	    { merge: true },
+	  );
   } catch (err) {
     console.error('Stripe webhook handler failed:', err);
+	  try {
+	    await eventRef.set(
+	      {
+	        status: 'error',
+	        updatedAt: FieldValue.serverTimestamp(),
+	        error: err instanceof Error ? err.message.slice(0, 500) : 'Unknown error',
+	      },
+	      { merge: true },
+	    );
+	  } catch (e2) {
+	    console.error('Failed writing stripeEvents error status:', e2);
+	  }
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
   }
 

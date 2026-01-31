@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed:superadmin": "node scripts/seed-superadmin.mjs"
+    "seed:superadmin": "node scripts/seed-superadmin.mjs",
+    "seed:bar-owner": "node scripts/seed-bar-owner.mjs"
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",

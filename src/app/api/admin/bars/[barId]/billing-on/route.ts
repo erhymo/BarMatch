@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { getFirebaseAdminDb } from '@/lib/firebase/admin';
 import { requireRole } from '@/lib/admin/serverAuth';
+import { logAdminAction } from '@/lib/admin/audit';
 import { getStripeServer } from '@/lib/stripe/server';
 import { sendStartSubscriptionEmail } from '@/lib/email/mailer';
 
@@ -10,7 +11,7 @@ export async function POST(
   { params }: { params: Promise<{ barId: string }> },
 ) {
   try {
-    await requireRole(request, ['superadmin']);
+    const { uid } = await requireRole(request, ['superadmin']);
     const { barId } = await params;
 
     const priceId = process.env.STRIPE_DEFAULT_PRICE_ID;
@@ -59,6 +60,7 @@ export async function POST(
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
+		client_reference_id: barId,
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${appBaseUrl}/admin?checkout=success`,
@@ -86,6 +88,22 @@ export async function POST(
       },
       { merge: true },
     );
+
+    // Minimal audit log (best effort): superadmin initiated billing enable flow.
+    try {
+      await logAdminAction({
+        adminUid: uid,
+        barId,
+        action: 'billing.enable',
+        details: {
+          checkoutSessionId: session.id,
+          customerId,
+          priceId,
+        },
+      });
+    } catch (err) {
+      console.error('Failed writing adminActions for billing.enable:', err);
+    }
 
     return NextResponse.json({ ok: true, checkoutUrl: session.url });
   } catch (e) {

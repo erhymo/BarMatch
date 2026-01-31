@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { getFirebaseAdminDb } from '@/lib/firebase/admin';
 import { requireRole } from '@/lib/admin/serverAuth';
+import { logAdminAction } from '@/lib/admin/audit';
 import { getStripeServer } from '@/lib/stripe/server';
 
 export async function POST(
@@ -9,7 +10,7 @@ export async function POST(
   { params }: { params: Promise<{ barId: string }> },
 ) {
   try {
-    await requireRole(request, ['superadmin']);
+		const { uid } = await requireRole(request, ['superadmin']);
     const { barId } = await params;
 
     const db = getFirebaseAdminDb();
@@ -26,14 +27,29 @@ export async function POST(
       await getStripeServer().subscriptions.cancel(subscriptionId);
     }
 
-    await barRef.set(
+		await barRef.set(
       {
         billingEnabled: false,
         billingStatus: 'canceled',
+				isVisible: false,
         updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true },
     );
+
+		// Minimal audit log (best effort): superadmin disabled billing.
+		try {
+			await logAdminAction({
+				adminUid: uid,
+				barId,
+				action: 'billing.disable',
+				details: {
+					subscriptionId: subscriptionId ?? null,
+				},
+			});
+		} catch (err) {
+			console.error('Failed writing adminActions for billing.disable:', err);
+		}
 
     return NextResponse.json({ ok: true });
   } catch (e) {

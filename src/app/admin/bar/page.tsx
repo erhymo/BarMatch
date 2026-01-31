@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/contexts/ToastContext';
 import { useAdminMe } from '@/lib/admin/useAdminMe';
+import { sendEmailVerification } from 'firebase/auth';
 
 type BarDoc = {
   id: string;
@@ -12,7 +13,32 @@ type BarDoc = {
   isVisible?: boolean;
   billingEnabled?: boolean;
   billingStatus?: string;
+  emailVerified?: boolean;
+  stripe?: {
+    gracePeriodEndsAt?: unknown;
+  };
 };
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function toMillisMaybe(value: unknown): number | null {
+  if (!value) return null;
+  const rec = asRecord(value);
+  const fn = rec?.toMillis;
+  if (typeof fn === 'function') {
+    try {
+      const ms = (fn as (this: unknown) => number).call(value);
+      return typeof ms === 'number' && Number.isFinite(ms) ? ms : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
 
 export default function BarOwnerDashboard() {
   const router = useRouter();
@@ -20,6 +46,21 @@ export default function BarOwnerDashboard() {
   const { user, me, loading, roleOk } = useAdminMe(['bar_owner']);
   const [bar, setBar] = useState<BarDoc | null>(null);
   const [busy, setBusy] = useState(false);
+
+	const emailVerified = Boolean(user?.emailVerified);
+	const graceEndsMs = toMillisMaybe(bar?.stripe?.gracePeriodEndsAt);
+	const paymentFailed = bar?.billingStatus === 'payment_failed';
+	const graceActive = paymentFailed && typeof graceEndsMs === 'number' && graceEndsMs > Date.now();
+	const graceExpired = paymentFailed && (!graceEndsMs || graceEndsMs <= Date.now());
+	const canceled = bar?.billingStatus === 'canceled';
+	const visibilityBlockedReason =
+		!emailVerified
+			? 'Du må verifisere e-post før baren kan settes synlig.'
+			: canceled
+				? 'Abonnementet er kansellert. Baren kan ikke settes synlig.'
+				: graceExpired
+					? 'Betaling har feilet og grace period er utløpt. Oppdater betalingskort før baren kan bli synlig.'
+					: null;
 
   useEffect(() => {
     if (!loading && (!user || !roleOk)) {
@@ -54,6 +95,10 @@ export default function BarOwnerDashboard() {
   const toggleVisible = async () => {
     if (!user || !me?.barId || !bar) return;
     const next = !bar.isVisible;
+		if (next && visibilityBlockedReason) {
+			showToast({ title: 'Kan ikke settes synlig', description: visibilityBlockedReason, variant: 'error' });
+			return;
+		}
     setBusy(true);
     try {
       const token = await user.getIdToken();
@@ -65,11 +110,16 @@ export default function BarOwnerDashboard() {
         },
         body: JSON.stringify({ isVisible: next }),
       });
-      if (!res.ok) throw new Error(`Failed to update (${res.status})`);
+			const raw: unknown = await res.json().catch(() => ({}));
+			const data = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null;
+			if (!res.ok) {
+				const msg = typeof data?.error === 'string' ? data.error : '';
+				throw new Error(msg || `Failed to update (${res.status})`);
+			}
       setBar({ ...bar, isVisible: next });
       showToast({
         title: 'Oppdatert',
-	        description: `Synlighet er nå ${next ? 'PÅ' : 'AV'}.`,
+				description: `Synlighet er nå ${next ? 'PÅ' : 'AV'}.`,
         variant: 'success',
       });
     } catch (e) {
@@ -82,6 +132,27 @@ export default function BarOwnerDashboard() {
       setBusy(false);
     }
   };
+
+	const resendVerification = async () => {
+		if (!user) return;
+		setBusy(true);
+		try {
+			await sendEmailVerification(user);
+			showToast({
+				title: 'Sendt',
+				description: 'Vi har sendt en ny e-post for verifisering. Sjekk innboksen.',
+				variant: 'success',
+			});
+		} catch (e) {
+			showToast({
+				title: 'Feil',
+				description: e instanceof Error ? e.message : 'Ukjent feil',
+				variant: 'error',
+			});
+		} finally {
+			setBusy(false);
+		}
+	};
 
   const updatePaymentCard = async () => {
     if (!user) return;
@@ -124,13 +195,48 @@ export default function BarOwnerDashboard() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+	      {!emailVerified && (
+	        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+	          <div className="font-medium">E-post ikke verifisert</div>
+	          <div className="mt-1">
+	            Du kan ikke sette baren synlig før e-posten er verifisert.
+	          </div>
+	          <button
+	            type="button"
+	            disabled={busy}
+	            onClick={resendVerification}
+	            className="mt-3 inline-flex items-center justify-center rounded-lg border border-amber-300 bg-amber-100 px-3 py-2 text-sm font-medium text-amber-900 disabled:opacity-50 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100"
+	          >
+	            Send verifisering på nytt
+	          </button>
+	        </div>
+	      )}
+
+	      {paymentFailed && graceActive && (
+	        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+	          <div className="font-medium">Betaling feilet</div>
+	          <div className="mt-1">
+	            Baren kan fortsatt være synlig i grace period. Oppdater betalingskort så snart som mulig.
+	          </div>
+	        </div>
+	      )}
+
+	      {paymentFailed && graceExpired && (
+	        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
+	          <div className="font-medium">Grace period utløpt</div>
+	          <div className="mt-1">
+	            Baren kan ikke settes synlig før betaling er fikset.
+	          </div>
+	        </div>
+	      )}
+
+	      <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{bar?.name ?? '—'}</h2>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{bar?.email ?? '—'}</p>
           <button
             type="button"
-            disabled={busy || !bar}
+	            disabled={busy || !bar || (Boolean(!bar?.isVisible) && Boolean(visibilityBlockedReason))}
             onClick={toggleVisible}
             className="mt-4 inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900"
           >
