@@ -28,6 +28,45 @@ function toMillisMaybe(value: unknown): number | null {
   return null;
 }
 
+const MAX_FIXTURE_IDS = 500;
+
+function parseStringArrayField(params: {
+  value: unknown;
+  fieldName: string;
+}): { ok: true; value: string[] } | { ok: false; error: string } {
+  const { value, fieldName } = params;
+  if (!Array.isArray(value)) {
+    return { ok: false, error: `${fieldName} must be an array` };
+  }
+
+  const out: string[] = [];
+  for (const v of value) {
+    if (typeof v !== 'string') {
+      return { ok: false, error: `${fieldName} must be an array of strings` };
+    }
+    const trimmed = v.trim();
+    if (!trimmed) {
+      return { ok: false, error: `${fieldName} contains an empty string` };
+    }
+    out.push(trimmed);
+  }
+
+  const deduped = Array.from(new Set(out));
+  if (deduped.length > MAX_FIXTURE_IDS) {
+    return {
+      ok: false,
+      error: `${fieldName} is too large (max ${MAX_FIXTURE_IDS})`,
+    };
+  }
+
+  return { ok: true, value: deduped };
+}
+
+function readStringArrayFromDoc(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((v): v is string => typeof v === 'string' && v.trim().length > 0).map((v) => v.trim());
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ barId: string }> },
@@ -180,6 +219,52 @@ export async function PATCH(
       }
       update.location = { lat, lng };
     }
+
+	    // Persisted fixture selection for public bar pages.
+	    // Stored on the bar document as arrays of fixture IDs.
+	    const hasSelected = 'selectedFixtureIds' in body;
+	    const hasCancelled = 'cancelledFixtureIds' in body;
+	    if (hasSelected || hasCancelled) {
+	      const existingSelected = readStringArrayFromDoc(barData.selectedFixtureIds);
+	      const existingCancelled = readStringArrayFromDoc(barData.cancelledFixtureIds);
+
+	      let nextSelected = existingSelected;
+	      let nextCancelled = existingCancelled;
+
+	      if (hasSelected) {
+	        const parsed = parseStringArrayField({
+	          value: body.selectedFixtureIds,
+	          fieldName: 'selectedFixtureIds',
+	        });
+	        if (!parsed.ok) {
+	          return NextResponse.json({ error: parsed.error }, { status: 400 });
+	        }
+	        nextSelected = parsed.value;
+	      }
+
+	      if (hasCancelled) {
+	        const parsed = parseStringArrayField({
+	          value: body.cancelledFixtureIds,
+	          fieldName: 'cancelledFixtureIds',
+	        });
+	        if (!parsed.ok) {
+	          return NextResponse.json({ error: parsed.error }, { status: 400 });
+	        }
+	        nextCancelled = parsed.value;
+	      }
+
+	      // Ensure cancelled is always a subset of selected.
+	      const selectedSet = new Set(nextSelected);
+	      nextCancelled = nextCancelled.filter((id) => selectedSet.has(id));
+
+	      // If selection changed, also keep cancelled list consistent.
+	      if (hasSelected) {
+	        update.selectedFixtureIds = nextSelected;
+	        update.cancelledFixtureIds = nextCancelled;
+	      } else if (hasCancelled) {
+	        update.cancelledFixtureIds = nextCancelled;
+	      }
+	    }
 
     const hasFields = Object.keys(update).some((k) => k !== 'updatedAt');
     if (!hasFields) {

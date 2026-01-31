@@ -4,7 +4,21 @@ export class CampaignService {
   static loadCampaigns(storage: Storage): BarCampaign[] {
     try {
       const raw = storage.getItem(CAMPAIGN_STORAGE_KEYS.CAMPAIGNS);
-      if (!raw) return [];
+      if (!raw) {
+        // Backward-compatible migration from legacy key used in BarMatch.
+        const legacyKey = 'barmatch_bar_campaigns';
+        const legacyRaw = storage.getItem(legacyKey);
+        if (!legacyRaw) return [];
+
+        const legacyParsed = JSON.parse(legacyRaw) as BarCampaign[];
+        const legacyCampaigns = Array.isArray(legacyParsed) ? legacyParsed : [];
+
+        // Only migrate if the data looks sane; avoid deleting data on parse issues.
+        storage.setItem(CAMPAIGN_STORAGE_KEYS.CAMPAIGNS, JSON.stringify(legacyCampaigns));
+        storage.removeItem(legacyKey);
+        return legacyCampaigns;
+      }
+
       const parsed = JSON.parse(raw) as BarCampaign[];
       return Array.isArray(parsed) ? parsed : [];
     } catch {

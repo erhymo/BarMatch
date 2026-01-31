@@ -39,6 +39,16 @@ interface GoogleMapProps {
 	    lat: number;
 	    lng: number;
 	  };
+		  /**
+		   * If set, the map will pan to this position (and optionally zoom).
+		   * Useful for "Finn nærmeste bar" without fighting with geolocation auto-pan.
+		   */
+		  focusPosition?: { lat: number; lng: number } | null;
+		  focusZoom?: number;
+		  /**
+		   * Callback to expose the user's current position to parent.
+		   */
+		  onUserPositionChange?: (pos: { lat: number; lng: number } | null) => void;
 	  zoom?: number;
 	  height?: string;
 	  useGeolocation?: boolean;
@@ -60,6 +70,9 @@ interface GoogleMapProps {
 	export default function GoogleMap({
 	  apiKey,
 	  center = defaultCenter,
+		  focusPosition = null,
+		  focusZoom,
+		  onUserPositionChange,
 	  zoom = 12,
 	  height = '100%',
 	  useGeolocation = false,
@@ -149,6 +162,7 @@ interface GoogleMapProps {
 	        lng: position.coords.longitude,
 	      };
 	      setCurrentPosition(pos);
+		      onUserPositionChange?.(pos);
 	      setIsLoadingPosition(false);
 	      setLocationError(null);
 
@@ -161,6 +175,7 @@ interface GoogleMapProps {
 	    (error) => {
 	      setIsLoadingPosition(false);
 			  setShowLocationHelp(false);
+		      onUserPositionChange?.(null);
 	      switch (error.code) {
 	        case error.PERMISSION_DENIED:
 	          setLocationError('Du må gi tillatelse til posisjonsdeling');
@@ -182,7 +197,17 @@ interface GoogleMapProps {
 	      maximumAge: 0,
 	    }
 	  );
-	}, [useGeolocation, disableAutoPanToUser, map]);
+		}, [useGeolocation, disableAutoPanToUser, map, onUserPositionChange]);
+
+		// Allow parent to programmatically focus the map (e.g. nearest bar)
+		useEffect(() => {
+		  if (!map) return;
+		  if (!focusPosition) return;
+		  map.panTo(focusPosition);
+		  if (typeof focusZoom === 'number') {
+		    map.setZoom(focusZoom);
+		  }
+		}, [map, focusPosition, focusZoom]);
 
 	  const onLoad = useCallback((map: google.maps.Map) => {
 	    setMap(map);

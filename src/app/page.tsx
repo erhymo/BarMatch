@@ -1,24 +1,43 @@
-			'use client';
+		'use client';
 
-				import { Suspense, useEffect, useMemo, useState } from 'react';
-				import { useSearchParams } from 'next/navigation';
-			import GoogleMap from '@/components/map/GoogleMap';
-			import SportFilterPanel from '@/components/filter/SportFilterPanel';
-			import CityFilterPanel from '@/components/filter/CityFilterPanel';
-			import BarDetailsPanel from '@/components/bar/BarDetailsPanel';
-			import { dummyBars } from '@/lib/data/bars';
-			import { CITY_COORDINATES, type CityId } from '@/lib/data/cities';
-			import { Bar } from '@/lib/models';
-			import { useBarFilter } from '@/lib/hooks';
-				import { BarFixtureSelectionService } from '@/lib/services';
+			import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+		import { useSearchParams } from 'next/navigation';
+		import GoogleMap from '@/components/map/GoogleMap';
+		import SportFilterPanel from '@/components/filter/SportFilterPanel';
+		import CityFilterPanel from '@/components/filter/CityFilterPanel';
+		import BarDetailsPanel from '@/components/bar/BarDetailsPanel';
+		import { dummyBars } from '@/lib/data/bars';
+		import { CITY_COORDINATES, type CityId } from '@/lib/data/cities';
+		import { Bar } from '@/lib/models';
+			import type { Fixture, LeagueKey } from '@/lib/types/fixtures';
+			import { getFixtureProvider } from '@/lib/providers/fixtures';
+			import { getCompetitionByKey } from '@/lib/config/competitions';
+			import { BarFixtureSelectionService, BarService } from '@/lib/services';
 
-	function HomeContent() {
+			const DEFAULT_RANGE_DAYS = 14;
+			const LEAGUES: LeagueKey[] = ['EPL', 'NOR_ELITESERIEN', 'SERIE_A', 'UCL', 'UEL'];
+
+			function createDefaultRange(days: number = DEFAULT_RANGE_DAYS): { from: string; to: string } {
+			  const from = new Date();
+			  const to = new Date(from.getTime() + days * 24 * 60 * 60 * 1000);
+			  return { from: from.toISOString(), to: to.toISOString() };
+			}
+
+		function HomeContent() {
 		  const searchParams = useSearchParams();
 		  const matchId = searchParams.get('matchId');
 
-	  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+		  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+			  const [selectedLeague, setSelectedLeague] = useState<LeagueKey>('EPL');
 			  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
 		  const [selectedBar, setSelectedBar] = useState<Bar | null>(null);
+		  const [publicBars, setPublicBars] = useState<Bar[] | null>(null);
+		  const [publicBarsError, setPublicBarsError] = useState<string | null>(null);
+			  const [fixtures, setFixtures] = useState<Fixture[]>([]);
+			  const [isLoadingFixtures, setIsLoadingFixtures] = useState(false);
+			  const [fixturesError, setFixturesError] = useState<string | null>(null);
+			  const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
+			  const [mapFocusPosition, setMapFocusPosition] = useState<{ lat: number; lng: number } | null>(null);
 		  const [favoriteCity, setFavoriteCity] = useState<CityId | null>(() => {
 		    if (typeof window === 'undefined') return null;
 		    try {
@@ -38,6 +57,105 @@
 		  });
 		  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 		  const [isCityPanelOpen, setIsCityPanelOpen] = useState(false);
+
+			  const range = useMemo(() => createDefaultRange(DEFAULT_RANGE_DAYS), []);
+			  const fixtureProvider = useMemo(() => getFixtureProvider(), []);
+
+			  const loadFixtures = useCallback(async () => {
+			    setIsLoadingFixtures(true);
+			    setFixturesError(null);
+			    try {
+			      const results = await Promise.allSettled(
+			        LEAGUES.map((league) => fixtureProvider.getUpcomingFixtures(league, range.from, range.to)),
+			      );
+
+			      const all: Fixture[] = [];
+			      let anyRejected = false;
+			      results.forEach((r) => {
+			        if (r.status === 'fulfilled') {
+			          all.push(...r.value);
+			        } else {
+			          anyRejected = true;
+			          console.error('[Home] Fixture fetch failed:', r.reason);
+			        }
+			      });
+
+			      const deduped = new Map<string, Fixture>();
+			      all.forEach((f) => deduped.set(f.id, f));
+
+			      const list = Array.from(deduped.values()).sort(
+			        (a, b) => new Date(a.kickoffUtc).getTime() - new Date(b.kickoffUtc).getTime(),
+			      );
+			      setFixtures(list);
+
+			      if (list.length === 0 && anyRejected) {
+			        setFixturesError('Kunne ikke laste kamper akkurat nå.');
+			      }
+			    } catch (e) {
+			      setFixturesError(e instanceof Error ? e.message : 'Kunne ikke laste kamper');
+			    } finally {
+			      setIsLoadingFixtures(false);
+			    }
+			  }, [fixtureProvider, range.from, range.to]);
+
+			  // Load fixtures on-demand when user opens filter panel
+			  useEffect(() => {
+			    if (!isFilterPanelOpen) return;
+			    if (fixtures.length > 0) return;
+			    if (isLoadingFixtures) return;
+			    void loadFixtures();
+			  }, [isFilterPanelOpen, fixtures.length, isLoadingFixtures, loadFixtures]);
+
+			  // Migrate legacy key (matchbar.favoriteCity) -> where2watch.favoriteCity
+			  useEffect(() => {
+			    if (typeof window === 'undefined') return;
+			    try {
+			      const legacy = window.localStorage.getItem('matchbar.favoriteCity');
+			      if (!legacy) return;
+
+			      const isValidLegacyCity =
+			        legacy === 'oslo' ||
+			        legacy === 'bergen' ||
+			        legacy === 'forde' ||
+			        legacy === 'trondheim';
+
+			      if (isValidLegacyCity) {
+			        // Only set state if we don't already have a valid value from the new key.
+			        setFavoriteCity((current) => (current ? current : (legacy as CityId)));
+			      }
+
+			      // Clean up legacy key either way (we never read it elsewhere anymore).
+			      window.localStorage.removeItem('matchbar.favoriteCity');
+			    } catch {
+			      // ignore
+			    }
+			  }, []);
+
+		  // Load visible bars from Firestore via public API.
+		  // If it fails, we fall back to dummy bars (non-blocking warning).
+		  useEffect(() => {
+		    let cancelled = false;
+		    const run = async () => {
+		      try {
+		        setPublicBarsError(null);
+		        const res = await fetch('/api/bars');
+		        if (!res.ok) throw new Error(`Failed to load bars (${res.status})`);
+		        const data = (await res.json()) as { bars?: Bar[] };
+		        if (!cancelled) {
+		          setPublicBars(Array.isArray(data.bars) ? data.bars : []);
+		        }
+		      } catch (e) {
+		        if (!cancelled) {
+		          setPublicBars(null);
+		          setPublicBarsError(e instanceof Error ? e.message : 'Failed to load bars');
+		        }
+		      }
+		    };
+		    void run();
+		    return () => {
+		      cancelled = true;
+		    };
+		  }, []);
 
 	  // Lagre endringer i favoritt-by til localStorage
 	  useEffect(() => {
@@ -59,8 +177,10 @@
 		    if (typeof window === 'undefined') return;
 
 			  const handleResetFilters = () => {
+			      setSelectedLeague('EPL');
 		      setSelectedTeam(null);
 		      setSelectedBar(null);
+			      setMapFocusPosition(null);
 		      setIsFilterPanelOpen(false);
 		      setIsCityPanelOpen(false);
 		    };
@@ -72,26 +192,84 @@
 		    };
 		  }, []);
 
-			  // Filter bars based on selected team using hook
-			  const barsFilteredByTeam = useBarFilter(dummyBars, selectedTeam);
+		  const isLoadingPublicBars = publicBars === null && !publicBarsError;
+		  const baseBars = useMemo(() => {
+		    if (publicBarsError) return dummyBars;
+		    if (publicBars === null) return [];
+		    return publicBars;
+		  }, [publicBars, publicBarsError]);
 
-			  // If navigated from /kamper (/?matchId=...), filter to bars that have selected that fixture in demo storage
+			  // Enrich bars with localStorage selection when Firestore selection is missing.
+			  const barsWithSelection = useMemo(() => {
+			    if (typeof window === 'undefined') return baseBars;
+			    return baseBars.map((bar) => {
+			      const hasSelected = Array.isArray(bar.selectedFixtureIds);
+			      const hasCancelled = Array.isArray(bar.cancelledFixtureIds);
+			      if (hasSelected || hasCancelled) return bar;
+
+			      try {
+			        const selectedFixtureIds = BarFixtureSelectionService.loadSelectedFixtureIds(bar.id, window.localStorage);
+			        const cancelledFixtureIds = BarFixtureSelectionService.loadCancelledFixtureIds(bar.id, window.localStorage);
+			        if (selectedFixtureIds.length === 0 && cancelledFixtureIds.length === 0) return bar;
+			        return { ...bar, selectedFixtureIds, cancelledFixtureIds };
+			      } catch {
+			        return bar;
+			      }
+			    });
+			  }, [baseBars]);
+
+			  const availableTeams = useMemo(() => {
+			    const teamSet = new Set<string>();
+			    fixtures
+			      .filter((f) => f.league === selectedLeague)
+			      .forEach((f) => {
+			        teamSet.add(f.homeTeam);
+			        teamSet.add(f.awayTeam);
+			      });
+			    return Array.from(teamSet).sort((a, b) => a.localeCompare(b, 'nb'));
+			  }, [fixtures, selectedLeague]);
+
+			  const selectedTeamFixtureIds = useMemo(() => {
+			    if (!selectedTeam) return null;
+			    const set = new Set<string>();
+			    fixtures
+			      .filter((f) => f.league === selectedLeague)
+			      .forEach((f) => {
+			        if (f.homeTeam === selectedTeam || f.awayTeam === selectedTeam) {
+			          set.add(f.id);
+			        }
+			      });
+			    return set;
+			  }, [fixtures, selectedLeague, selectedTeam]);
+
+			  const barsFilteredByTeam = useMemo(() => {
+			    if (!selectedTeam) return barsWithSelection;
+			    if (!selectedTeamFixtureIds) return barsWithSelection;
+			    if (selectedTeamFixtureIds.size === 0) return [];
+			    return BarService.filterBarsByFixtureIds(barsWithSelection, selectedTeamFixtureIds);
+			  }, [barsWithSelection, selectedTeam, selectedTeamFixtureIds]);
+
+			  // If navigated from /kamper (/?matchId=...), filter to bars that have selected that fixture.
 			  const filteredBars = useMemo(() => {
 			    if (!matchId) return barsFilteredByTeam;
-			    if (typeof window === 'undefined') return barsFilteredByTeam;
-
-			    return barsFilteredByTeam.filter((bar) => {
-			      const selectedFixtureIds = BarFixtureSelectionService.loadSelectedFixtureIds(
-			        bar.id,
-			        window.localStorage,
-			      );
-			      return selectedFixtureIds.includes(matchId);
-			    });
+			    const matchIdSet = new Set([matchId]);
+			    return barsFilteredByTeam.filter((bar) =>
+			      BarService.matchesFixtureFilterFromArrays({
+			        fixtureFilterIds: matchIdSet,
+			        selectedFixtureIds: bar.selectedFixtureIds,
+			        cancelledFixtureIds: bar.cancelledFixtureIds,
+			      }),
+			    );
 			  }, [barsFilteredByTeam, matchId]);
 
-	  const handleTeamSelect = (teamId: string | null) => {
-	    setSelectedTeam(teamId);
-	  };
+		const handleTeamSelect = (teamName: string | null) => {
+		  setSelectedTeam(teamName);
+		};
+
+		const handleLeagueChange = (league: LeagueKey) => {
+		  setSelectedLeague(league);
+		  setSelectedTeam(null);
+		};
 
 	  const handleBarClick = (bar: Bar) => {
 	    setSelectedBar(bar);
@@ -103,7 +281,12 @@
 
 		  const handleFavoriteCityChange = (city: CityId | null) => {
 		    setFavoriteCity(city);
+			    setMapFocusPosition(null);
 		  };
+
+			  const leagueOptions = useMemo(() => {
+			    return LEAGUES.map((key) => ({ key, label: getCompetitionByKey(key).label }));
+			  }, []);
 
 		  const toggleFilterPanel = () => {
 		    setIsFilterPanelOpen((prev) => {
@@ -121,10 +304,24 @@
 		    });
 		  };
 
-		  const closePanels = () => {
-		    setIsFilterPanelOpen(false);
-		    setIsCityPanelOpen(false);
-		  };
+			  const closePanels = useCallback(() => {
+			    setIsFilterPanelOpen(false);
+			    setIsCityPanelOpen(false);
+			  }, []);
+
+			  const handleFindNearestBar = useCallback(() => {
+			    if (typeof window === 'undefined') return;
+			    if (!userPosition) {
+			      window.alert('Aktiver posisjonsdeling for å finne nærmeste bar.');
+			      return;
+			    }
+			    if (filteredBars.length === 0) return;
+			    const nearest = BarService.sortBarsByDistance(filteredBars, userPosition)[0];
+			    if (!nearest) return;
+			    setSelectedBar(nearest);
+			    setMapFocusPosition(nearest.position);
+			    closePanels();
+			  }, [closePanels, filteredBars, userPosition]);
 
 		  const mapCenter = favoriteCity ? CITY_COORDINATES[favoriteCity] : undefined;
 		
@@ -181,7 +378,17 @@
 			        <div className="flex-shrink-0 pt-1 pb-2">
 			          <div className="container mx-auto px-4">
 			            {isFilterPanelOpen && (
-			              <SportFilterPanel onTeamSelect={handleTeamSelect} />
+			              <SportFilterPanel
+			                leagues={leagueOptions}
+			                selectedLeague={selectedLeague}
+			                onLeagueChange={handleLeagueChange}
+			                teams={availableTeams}
+			                selectedTeam={selectedTeam}
+			                onTeamSelect={handleTeamSelect}
+			                isLoading={isLoadingFixtures}
+			                error={fixturesError}
+			                onRetryLoad={loadFixtures}
+			              />
 			            )}
 			            {isCityPanelOpen && (
 			              <CityFilterPanel
@@ -201,7 +408,10 @@
 			            center={mapCenter}
 			            zoom={13}
 			            useGeolocation={true}
-			            disableAutoPanToUser={Boolean(favoriteCity)}
+			            disableAutoPanToUser={Boolean(favoriteCity || mapFocusPosition)}
+			            focusPosition={mapFocusPosition}
+			            focusZoom={15}
+			            onUserPositionChange={setUserPosition}
 			            bars={filteredBars}
 			            onBarClick={handleBarClick}
 			            onMapClick={() => {
@@ -212,8 +422,39 @@
 			          />
 			        </div>
 
-		        {/* Empty state when no bars match the current team filter */}
-	        {selectedTeam && filteredBars.length === 0 && (
+			        {/* Find nearest bar */}
+			        <div className="pointer-events-none absolute bottom-4 right-4 flex flex-col items-end gap-2 px-4">
+			          <button
+			            type="button"
+			            onClick={handleFindNearestBar}
+			            className="pointer-events-auto rounded-full bg-zinc-900/90 hover:bg-zinc-900 text-white text-sm font-medium px-4 py-2 shadow-lg border border-white/10 disabled:opacity-50"
+			            disabled={filteredBars.length === 0}
+			          >
+			            Finn nærmeste bar
+			          </button>
+			        </div>
+
+					{/* Loading state while fetching bars */}
+					{isLoadingPublicBars && (
+					  <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
+					    <div className="pointer-events-auto max-w-md rounded-xl bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 px-4 py-3 shadow-md text-sm text-zinc-800 dark:text-zinc-100">
+					      Laster barer…
+					    </div>
+					  </div>
+					)}
+
+					{/* Non-blocking warning if Firestore bars failed to load (we fall back to dummy bars) */}
+					{publicBarsError && (
+					  <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
+					    <div className="pointer-events-auto max-w-md rounded-xl bg-amber-50/95 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-4 py-3 shadow-md text-sm text-amber-900 dark:text-amber-200">
+					      <p className="font-medium mb-1">Kunne ikke hente barer fra databasen.</p>
+					      <p className="text-xs opacity-90">Viser demo-barer midlertidig. ({publicBarsError})</p>
+					    </div>
+					  </div>
+					)}
+
+						{/* Empty state when no bars match the current team filter */}
+					{!isLoadingPublicBars && selectedTeam && filteredBars.length === 0 && (
 	          <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
 	            <div className="pointer-events-auto max-w-md rounded-xl bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 px-4 py-3 shadow-md text-sm text-zinc-800 dark:text-zinc-100">
 	              <p className="font-medium mb-1">
@@ -226,8 +467,8 @@
 	          </div>
 	        )}
 
-		        {/* Empty state when navigated via matchId */}
-		        {matchId && !selectedTeam && filteredBars.length === 0 && (
+					{/* Empty state when navigated via matchId */}
+					{!isLoadingPublicBars && matchId && !selectedTeam && filteredBars.length === 0 && (
 		          <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
 		            <div className="pointer-events-auto max-w-md rounded-xl bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 px-4 py-3 shadow-md text-sm text-zinc-800 dark:text-zinc-100">
 		              <p className="font-medium mb-1">Ingen barer viser denne kampen akkurat nå.</p>

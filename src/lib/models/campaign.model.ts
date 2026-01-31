@@ -9,5 +9,5 @@ export interface BarCampaign {
 }
 
 export const CAMPAIGN_STORAGE_KEYS = {
-  CAMPAIGNS: 'barmatch_bar_campaigns',
+  CAMPAIGNS: 'where2watch_bar_campaigns',
 } as const;

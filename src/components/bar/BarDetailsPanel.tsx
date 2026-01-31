@@ -15,7 +15,7 @@ import { getCompetitionByKey } from '@/lib/config/competitions';
 import { BarFixtureSelectionService } from '@/lib/services';
 
 const DEFAULT_RANGE_DAYS = 14;
-const LEAGUES: LeagueKey[] = ['EPL', 'NOR_ELITESERIEN', 'SERIE_A'];
+const LEAGUES: LeagueKey[] = ['EPL', 'NOR_ELITESERIEN', 'SERIE_A', 'UCL', 'UEL'];
 
 function createDefaultRange(): { from: string; to: string } {
   const now = new Date();
@@ -72,16 +72,33 @@ export default function BarDetailsPanel({ bar, onClose }: BarDetailsPanelProps) 
 
   // Load selected/cancelled fixture ids for this bar
   useEffect(() => {
-    if (typeof window === 'undefined') return;
     if (!barId) {
       setSelectedFixtureIds([]);
       setCancelledFixtureIds([]);
       return;
     }
 
+    // Prefer persisted fixture selection (from Firestore via /api/bars) when available.
+    // This makes the public experience consistent across devices.
+    const persistedSelected = Array.isArray(bar?.selectedFixtureIds)
+      ? bar.selectedFixtureIds.filter((v): v is string => typeof v === 'string')
+      : null;
+    const persistedCancelled = Array.isArray(bar?.cancelledFixtureIds)
+      ? bar.cancelledFixtureIds.filter((v): v is string => typeof v === 'string')
+      : null;
+
+    if (persistedSelected) {
+      setSelectedFixtureIds(persistedSelected);
+      setCancelledFixtureIds(persistedCancelled ?? []);
+      return;
+    }
+
+    // Fallback for demo/dev data (localStorage-based selection)
+    if (typeof window === 'undefined') return;
+
     setSelectedFixtureIds(BarFixtureSelectionService.loadSelectedFixtureIds(barId, window.localStorage));
     setCancelledFixtureIds(BarFixtureSelectionService.loadCancelledFixtureIds(barId, window.localStorage));
-  }, [barId]);
+  }, [barId, bar?.cancelledFixtureIds, bar?.selectedFixtureIds]);
 
   // Load fixtures (shared for this panel)
   useEffect(() => {

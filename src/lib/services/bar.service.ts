@@ -18,6 +18,60 @@ export class BarService {
     return bars;
   }
 
+  /**
+   * Returns the active selected fixture ids (selected minus cancelled).
+   * Safe helper for both Firestore-backed bars and local/demo selections.
+   */
+  static getActiveSelectedFixtureIds(params: {
+    selectedFixtureIds: string[] | null | undefined;
+    cancelledFixtureIds: string[] | null | undefined;
+  }): string[] {
+    const selected = Array.isArray(params.selectedFixtureIds) ? params.selectedFixtureIds : [];
+    const cancelled = Array.isArray(params.cancelledFixtureIds) ? params.cancelledFixtureIds : [];
+    if (selected.length === 0) return [];
+    if (cancelled.length === 0) return selected;
+
+    const cancelledSet = new Set(cancelled);
+    return selected.filter((id) => id && !cancelledSet.has(id));
+  }
+
+  /**
+   * Checks whether a (selected,cancelled) set overlaps a fixture filter.
+   */
+  static matchesFixtureFilterFromArrays(params: {
+    fixtureFilterIds: Set<string>;
+    selectedFixtureIds: string[] | null | undefined;
+    cancelledFixtureIds: string[] | null | undefined;
+  }): boolean {
+    if (!params.fixtureFilterIds || params.fixtureFilterIds.size === 0) return true;
+
+    const active = this.getActiveSelectedFixtureIds({
+      selectedFixtureIds: params.selectedFixtureIds,
+      cancelledFixtureIds: params.cancelledFixtureIds,
+    });
+
+    if (active.length === 0) return false;
+
+    for (const id of active) {
+      if (params.fixtureFilterIds.has(id)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Filter bars by fixture ids (uses bar.selectedFixtureIds/cancelledFixtureIds).
+   */
+  static filterBarsByFixtureIds(bars: Bar[], fixtureIds: Set<string> | null): Bar[] {
+    if (!fixtureIds || fixtureIds.size === 0) return bars;
+    return bars.filter((bar) =>
+      this.matchesFixtureFilterFromArrays({
+        fixtureFilterIds: fixtureIds,
+        selectedFixtureIds: bar.selectedFixtureIds,
+        cancelledFixtureIds: bar.cancelledFixtureIds,
+      }),
+    );
+  }
+
 	  /**
 	   * Filter bars by match
 	   * Returns bars that show the specified match
@@ -94,7 +148,7 @@ export class BarService {
    * Sort bars by distance from a position
    */
   static sortBarsByDistance(bars: Bar[], userPosition: { lat: number; lng: number }): Bar[] {
-    return bars.sort((a, b) => {
+    return [...bars].sort((a, b) => {
       const distA = this.calculateDistance(userPosition, a.position);
       const distB = this.calculateDistance(userPosition, b.position);
       return distA - distB;

@@ -48,6 +48,12 @@ export interface Bar {
   rating?: number;
   imageUrl?: string;
   matches?: Match[];
+  /**
+   * Optional persisted fixture selection (used to decide which real fixtures a bar shows).
+   * Stored in Firestore on the bar document.
+   */
+  selectedFixtureIds?: string[];
+  cancelledFixtureIds?: string[];
   facilities?: BarFacilities;
   openingHours?: BarOpeningHours;
   phone?: string;
