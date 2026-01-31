@@ -1,29 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { Bar } from '@/lib/models';
+import { useMemo, useState } from 'react';
+import type { Bar, Position } from '@/lib/models';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useRatings } from '@/contexts/RatingsContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useCampaigns } from '@/lib/hooks';
 import StarRating from '@/components/rating/StarRating';
 import ChatPanel from '@/components/chat/ChatPanel';
-import type { Fixture, LeagueKey } from '@/lib/types/fixtures';
-import { getFixtureProvider } from '@/lib/providers/fixtures';
+import type { Fixture } from '@/lib/types/fixtures';
 import { getCompetitionByKey } from '@/lib/config/competitions';
-import { BarFixtureSelectionService } from '@/lib/services';
-
-const DEFAULT_RANGE_DAYS = 14;
-const LEAGUES: LeagueKey[] = ['EPL', 'NOR_ELITESERIEN', 'SERIE_A', 'UCL', 'UEL'];
-
-function createDefaultRange(): { from: string; to: string } {
-  const now = new Date();
-  const from = now.toISOString();
-  const toDate = new Date(now.getTime() + DEFAULT_RANGE_DAYS * 24 * 60 * 60 * 1000);
-  const to = toDate.toISOString();
-  return { from, to };
-}
+import { BarFixtureSelectionService, BarService } from '@/lib/services';
 
 function formatFixtureDateTime(kickoffUtc: string): string {
   const d = new Date(kickoffUtc);
@@ -39,26 +27,30 @@ function isPastCutoff(kickoffUtc: string, cutoffMinutes: number = 90): boolean {
 }
 
 interface BarDetailsPanelProps {
-  bar: Bar | null;
+  bar: Bar;
+  userPosition: Position | null;
+  fixtures: Fixture[];
+  isLoadingFixtures: boolean;
+  fixturesError: string | null;
+  onRetryLoadFixtures: () => void;
   onClose: () => void;
 }
 
-export default function BarDetailsPanel({ bar, onClose }: BarDetailsPanelProps) {
+export default function BarDetailsPanel({
+  bar,
+  userPosition,
+  fixtures,
+  isLoadingFixtures,
+  fixturesError,
+  onRetryLoadFixtures,
+  onClose,
+}: BarDetailsPanelProps) {
   const { isFavoriteBar, toggleFavoriteBar } = useFavorites();
   const { getBarRating, getUserRatingForBar, rateBar, clearRatingForBar } = useRatings();
   const { showToast } = useToast();
   const { getCampaignsForBar } = useCampaigns();
 
   const [showChat, setShowChat] = useState(false);
-
-  const [fixtures, setFixtures] = useState<Fixture[]>([]);
-  const [isLoadingFixtures, setIsLoadingFixtures] = useState(false);
-  const [fixturesError, setFixturesError] = useState<string | null>(null);
-  const [selectedFixtureIds, setSelectedFixtureIds] = useState<string[]>([]);
-  const [cancelledFixtureIds, setCancelledFixtureIds] = useState<string[]>([]);
-
-  const range = useMemo(() => createDefaultRange(), []);
-  const fixtureProvider = useMemo(() => getFixtureProvider(), []);
 
   const todayKey = useMemo(() => {
     // Date.getDay(): 0=sunday .. 6=saturday
@@ -68,93 +60,65 @@ export default function BarDetailsPanel({ bar, onClose }: BarDetailsPanelProps) 
     return dayKeys[new Date().getDay()];
   }, []);
 
-  const barId = bar?.id ?? null;
-
-  // Load selected/cancelled fixture ids for this bar
-  useEffect(() => {
-    if (!barId) {
-      setSelectedFixtureIds([]);
-      setCancelledFixtureIds([]);
-      return;
-    }
-
-    // Prefer persisted fixture selection (from Firestore via /api/bars) when available.
-    // This makes the public experience consistent across devices.
-    const persistedSelected = Array.isArray(bar?.selectedFixtureIds)
+  // Prefer persisted fixture selection (from Firestore via /api/bars) when available.
+  // Fallback is localStorage for demo/dev data.
+  const selectedFixtureIds = useMemo(() => {
+    const persistedSelected = Array.isArray(bar.selectedFixtureIds)
       ? bar.selectedFixtureIds.filter((v): v is string => typeof v === 'string')
       : null;
-    const persistedCancelled = Array.isArray(bar?.cancelledFixtureIds)
+    if (persistedSelected) return persistedSelected;
+    if (typeof window === 'undefined') return [];
+    return BarFixtureSelectionService.loadSelectedFixtureIds(bar.id, window.localStorage);
+  }, [bar.id, bar.selectedFixtureIds]);
+
+  const cancelledFixtureIds = useMemo(() => {
+    const persistedCancelled = Array.isArray(bar.cancelledFixtureIds)
       ? bar.cancelledFixtureIds.filter((v): v is string => typeof v === 'string')
       : null;
+    if (persistedCancelled) return persistedCancelled;
+    if (typeof window === 'undefined') return [];
+    return BarFixtureSelectionService.loadCancelledFixtureIds(bar.id, window.localStorage);
+  }, [bar.id, bar.cancelledFixtureIds]);
 
-    if (persistedSelected) {
-      setSelectedFixtureIds(persistedSelected);
-      setCancelledFixtureIds(persistedCancelled ?? []);
-      return;
-    }
-
-    // Fallback for demo/dev data (localStorage-based selection)
-    if (typeof window === 'undefined') return;
-
-    setSelectedFixtureIds(BarFixtureSelectionService.loadSelectedFixtureIds(barId, window.localStorage));
-    setCancelledFixtureIds(BarFixtureSelectionService.loadCancelledFixtureIds(barId, window.localStorage));
-  }, [barId, bar?.cancelledFixtureIds, bar?.selectedFixtureIds]);
-
-  // Load fixtures (shared for this panel)
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadFixtures() {
-      setIsLoadingFixtures(true);
-      setFixturesError(null);
-      try {
-        const results = await Promise.allSettled(
-          LEAGUES.map((league) => fixtureProvider.getUpcomingFixtures(league, range.from, range.to)),
-        );
-        if (cancelled) return;
-
-        const all: Fixture[] = [];
-        results.forEach((r) => {
-          if (r.status === 'fulfilled') all.push(...r.value);
-          else console.error('[BarDetailsPanel] Fixture fetch failed:', r.reason);
-        });
-
-        const deduped = new Map<string, Fixture>();
-        all.forEach((f) => deduped.set(f.id, f));
-
-        const list = Array.from(deduped.values()).sort(
-          (a, b) => new Date(a.kickoffUtc).getTime() - new Date(b.kickoffUtc).getTime(),
-        );
-        setFixtures(list);
-      } catch (e) {
-        if (cancelled) return;
-        setFixturesError('Kunne ikke laste kamper fra API.');
-        console.error(e);
-      } finally {
-        if (!cancelled) setIsLoadingFixtures(false);
-      }
-    }
-
-    void loadFixtures();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [fixtureProvider, range.from, range.to]);
-
-  type SelectedFixture = Fixture & { isCancelled: boolean };
-
-  const selectedFixtures: SelectedFixture[] = useMemo(() => {
+  const activeSelectedFixtureIds = useMemo(() => {
     const selectedSet = new Set(selectedFixtureIds);
-    const cancelledSet = new Set(cancelledFixtureIds);
+    cancelledFixtureIds.forEach((id) => selectedSet.delete(id));
+    return Array.from(selectedSet);
+  }, [cancelledFixtureIds, selectedFixtureIds]);
+
+  const selectedFixtures: Fixture[] = useMemo(() => {
+    const selectedSet = new Set(activeSelectedFixtureIds);
     return fixtures
       .filter((f) => selectedSet.has(f.id))
       .filter((f) => !isPastCutoff(f.kickoffUtc, 90))
-      .sort((a, b) => new Date(a.kickoffUtc).getTime() - new Date(b.kickoffUtc).getTime())
-      .map((f) => ({ ...f, isCancelled: cancelledSet.has(f.id) }));
-  }, [cancelledFixtureIds, fixtures, selectedFixtureIds]);
+      .sort((a, b) => new Date(a.kickoffUtc).getTime() - new Date(b.kickoffUtc).getTime());
+  }, [activeSelectedFixtureIds, fixtures]);
 
-  if (!bar) return null;
+  const { todayFixtures, upcomingFixtures } = useMemo(() => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+    const todayMs = todayStart.getTime();
+    const tomorrowMs = tomorrowStart.getTime();
+
+    const todayFixtures = selectedFixtures.filter((f) => {
+      const kickoff = new Date(f.kickoffUtc).getTime();
+      return kickoff >= todayMs && kickoff < tomorrowMs;
+    });
+
+    const upcomingFixtures = selectedFixtures.filter((f) => {
+      const kickoff = new Date(f.kickoffUtc).getTime();
+      return kickoff >= tomorrowMs;
+    });
+
+    return { todayFixtures, upcomingFixtures };
+  }, [selectedFixtures]);
+
+  const distanceLabel = useMemo(() => {
+    if (!userPosition) return null;
+    const km = BarService.calculateDistance(userPosition, bar.position);
+    return BarService.formatDistance(km);
+  }, [bar.position, userPosition]);
 
   const storedBarRating = getBarRating(bar.id);
   const userRating = getUserRatingForBar(bar.id);
@@ -195,6 +159,11 @@ export default function BarDetailsPanel({ bar, onClose }: BarDetailsPanelProps) 
               <p className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
                 📍 {bar.address ?? 'Adresse ikke tilgjengelig'}
               </p>
+              {distanceLabel && (
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1 mt-1">
+                  🧭 {distanceLabel} unna
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -358,13 +327,13 @@ export default function BarDetailsPanel({ bar, onClose }: BarDetailsPanelProps) 
             )}
           </div>
 
-          {/* Upcoming Matches (API fixtures) */}
+          {/* Matches this bar shows (based on bar's fixture selections) */}
           <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
             <div className="flex items-start justify-between gap-4 mb-2">
               <div>
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Kommende kamper</h3>
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Kamper</h3>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
-	                  Kamper hentes fra API og vises basert på hva baren har registrert at de viser.
+	                  Vises basert på hva baren har registrert at de viser.
                 </p>
               </div>
               <Link
@@ -380,10 +349,19 @@ export default function BarDetailsPanel({ bar, onClose }: BarDetailsPanelProps) 
             )}
 
             {fixturesError && (
-              <p className="text-sm text-red-600 dark:text-red-400">{fixturesError}</p>
+              <div className="rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/20 p-4">
+                <p className="text-sm text-red-700 dark:text-red-300">{fixturesError}</p>
+                <button
+                  type="button"
+                  onClick={onRetryLoadFixtures}
+                  className="mt-3 inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white dark:bg-zinc-50 dark:text-zinc-900"
+                >
+                  Prøv igjen
+                </button>
+              </div>
             )}
 
-            {!isLoadingFixtures && !fixturesError && selectedFixtureIds.length === 0 && (
+            {!isLoadingFixtures && !fixturesError && activeSelectedFixtureIds.length === 0 && (
               <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-4">
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   Denne baren har ikke satt opp kamper enda.
@@ -391,50 +369,83 @@ export default function BarDetailsPanel({ bar, onClose }: BarDetailsPanelProps) 
               </div>
             )}
 
-            {!isLoadingFixtures && !fixturesError && selectedFixtureIds.length > 0 && selectedFixtures.length === 0 && (
+            {!isLoadingFixtures && !fixturesError && activeSelectedFixtureIds.length > 0 && selectedFixtures.length === 0 && (
               <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-4">
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Ingen kommende kamper (eller de er passert 90-minutters cutoff).
+                  Ingen kamper akkurat nå (eller de er passert 90-minutters cutoff).
                 </p>
               </div>
             )}
 
             {!isLoadingFixtures && !fixturesError && selectedFixtures.length > 0 && (
-              <div className="space-y-2">
-                {selectedFixtures.slice(0, 8).map((f) => {
-                  const competition = getCompetitionByKey(f.league);
-                  const cancelled = f.isCancelled;
-                  return (
-                    <div
-                      key={f.id}
-                      className={`rounded-xl border p-3 ${
-                        cancelled
-                          ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 opacity-80'
-                          : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                          {formatFixtureDateTime(f.kickoffUtc)}
-                        </span>
-                        <span className="text-xs rounded bg-zinc-200/60 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-200">
-                          {competition.label}
-                        </span>
-                        {cancelled && (
-                          <span className="text-xs font-bold rounded bg-red-100 dark:bg-red-900/50 px-2 py-0.5 text-red-700 dark:text-red-300">
-                            AVLYST
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                        {f.homeTeam} – {f.awayTeam}
-                      </div>
-                      {f.venue && (
-                        <div className="text-xs text-zinc-500 dark:text-zinc-400">{f.venue}</div>
-                      )}
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-2">I dag</h4>
+                  {todayFixtures.length === 0 ? (
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Ingen kamper i dag.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {todayFixtures.slice(0, 6).map((f) => {
+                        const competition = getCompetitionByKey(f.league);
+                        return (
+                          <div
+                            key={f.id}
+                            className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-3"
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                {formatFixtureDateTime(f.kickoffUtc)}
+                              </span>
+                              <span className="text-xs rounded bg-zinc-200/60 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-200">
+                                {competition.label}
+                              </span>
+                            </div>
+                            <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                              {f.homeTeam} – {f.awayTeam}
+                            </div>
+                            {f.venue && (
+                              <div className="text-xs text-zinc-500 dark:text-zinc-400">{f.venue}</div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  )}
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-2">Kommende</h4>
+                  {upcomingFixtures.length === 0 ? (
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Ingen kommende kamper.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {upcomingFixtures.slice(0, 8).map((f) => {
+                        const competition = getCompetitionByKey(f.league);
+                        return (
+                          <div
+                            key={f.id}
+                            className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-3"
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                {formatFixtureDateTime(f.kickoffUtc)}
+                              </span>
+                              <span className="text-xs rounded bg-zinc-200/60 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-200">
+                                {competition.label}
+                              </span>
+                            </div>
+                            <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                              {f.homeTeam} – {f.awayTeam}
+                            </div>
+                            {f.venue && (
+                              <div className="text-xs text-zinc-500 dark:text-zinc-400">{f.venue}</div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

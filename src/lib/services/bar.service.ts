@@ -140,6 +140,20 @@ export class BarService {
     return R * c;
   }
 
+  /**
+   * Format a distance (in km) for end-user display.
+   * - < 1km: meters
+   * - 1-10km: one decimal
+   * - >= 10km: rounded km
+   */
+  static formatDistance(km: number): string {
+    if (!Number.isFinite(km) || km < 0) return '—';
+    if (km < 1) return `${Math.max(0, Math.round(km * 1000))} m`;
+    const txt = km < 10 ? km.toFixed(1) : Math.round(km).toString();
+    // Norwegian decimal comma.
+    return `${txt.replace('.', ',')} km`;
+  }
+
   private static toRad(degrees: number): number {
     return (degrees * Math.PI) / 180;
   }

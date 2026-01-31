@@ -6,6 +6,7 @@
 		import SportFilterPanel from '@/components/filter/SportFilterPanel';
 		import CityFilterPanel from '@/components/filter/CityFilterPanel';
 		import BarDetailsPanel from '@/components/bar/BarDetailsPanel';
+			import NearestBarListPanel from '@/components/bar/NearestBarListPanel';
 		import { dummyBars } from '@/lib/data/bars';
 		import { CITY_COORDINATES, type CityId } from '@/lib/data/cities';
 		import { Bar } from '@/lib/models';
@@ -57,6 +58,7 @@
 		  });
 		  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 		  const [isCityPanelOpen, setIsCityPanelOpen] = useState(false);
+			  const [isNearestListOpen, setIsNearestListOpen] = useState(false);
 
 			  const range = useMemo(() => createDefaultRange(DEFAULT_RANGE_DAYS), []);
 			  const fixtureProvider = useMemo(() => getFixtureProvider(), []);
@@ -271,9 +273,17 @@
 		  setSelectedTeam(null);
 		};
 
-	  const handleBarClick = (bar: Bar) => {
-	    setSelectedBar(bar);
-	  };
+		  const ensureFixturesLoaded = useCallback(() => {
+		    if (fixtures.length > 0) return;
+		    if (isLoadingFixtures) return;
+		    void loadFixtures();
+		  }, [fixtures.length, isLoadingFixtures, loadFixtures]);
+
+		  const handleBarClick = (bar: Bar) => {
+		    ensureFixturesLoaded();
+		    setSelectedBar(bar);
+		    setIsNearestListOpen(false);
+		  };
 
 	  const handleClosePanel = () => {
 	    setSelectedBar(null);
@@ -291,7 +301,10 @@
 		  const toggleFilterPanel = () => {
 		    setIsFilterPanelOpen((prev) => {
 		      const next = !prev;
-		      if (next) setIsCityPanelOpen(false);
+			      if (next) {
+			        setIsCityPanelOpen(false);
+			        setIsNearestListOpen(false);
+			      }
 		      return next;
 		    });
 		  };
@@ -299,36 +312,38 @@
 		  const toggleCityPanel = () => {
 		    setIsCityPanelOpen((prev) => {
 		      const next = !prev;
-		      if (next) setIsFilterPanelOpen(false);
+			      if (next) {
+			        setIsFilterPanelOpen(false);
+			        setIsNearestListOpen(false);
+			      }
 		      return next;
 		    });
 		  };
 
-			  const closePanels = useCallback(() => {
-			    setIsFilterPanelOpen(false);
-			    setIsCityPanelOpen(false);
-			  }, []);
+				  const closePanels = useCallback(() => {
+				    setIsFilterPanelOpen(false);
+				    setIsCityPanelOpen(false);
+				  }, []);
 
-			  const handleFindNearestBar = useCallback(() => {
-			    if (typeof window === 'undefined') return;
-			    if (!userPosition) {
-			      window.alert('Aktiver posisjonsdeling for å finne nærmeste bar.');
-			      return;
-			    }
-			    if (filteredBars.length === 0) return;
-			    const nearest = BarService.sortBarsByDistance(filteredBars, userPosition)[0];
-			    if (!nearest) return;
-			    setSelectedBar(nearest);
-			    setMapFocusPosition(nearest.position);
-			    closePanels();
-			  }, [closePanels, filteredBars, userPosition]);
+				  const closeOverlays = useCallback(() => {
+				    closePanels();
+				    setIsNearestListOpen(false);
+				  }, [closePanels]);
+
+				  const handleFindNearestBar = useCallback(() => {
+				    // UX: Button opens a distance-sorted list. Selection is the 2nd click.
+				    closePanels();
+				    setSelectedBar(null);
+				    setMapFocusPosition(null);
+				    setIsNearestListOpen(true);
+				  }, [closePanels]);
 
 		  const mapCenter = favoriteCity ? CITY_COORDINATES[favoriteCity] : undefined;
 		
 		  return (
 			    <div className="flex flex-col h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black">
 			      {/* Header Section */}
-			      <div className="flex-shrink-0 bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+				      <div className="flex-shrink-0 bg-white/90 dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-800">
 				        <div className="container mx-auto px-4 py-4">
 				          <div className="flex items-center justify-between gap-3">
 				            <button
@@ -339,22 +354,20 @@
 				                  ? 'bg-green-500/20 border-green-400/70 text-green-300'
 				                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-700/60'
 				              }`}
-				              aria-label="Apne filter for liga og lag"
+				              aria-label="Åpne filter for liga og lag"
 				            >
 				              <span aria-hidden="true" className="text-xl">
 				                ⚽
 				              </span>
 				            </button>
-	            <h1 className="flex-1 text-3xl font-bold tracking-tight text-center text-zinc-900 dark:text-zinc-50">
-	              where2watch
-	            </h1>
-				            <button
-				              type="button"
-				              aria-label="Velg sprak"
-				              className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-lg shadow-sm hover:bg-zinc-100 hover:border-zinc-300 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
-				            >
-				              <span aria-hidden="true">🇬🇧</span>
-				            </button>
+		            <div className="flex-1 text-center">
+		              <div className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+		                Finn kamp → bar
+		              </div>
+		              <div className="text-xs text-zinc-600 dark:text-zinc-400">
+		                {selectedTeam ? `Filter: ${selectedTeam}` : 'Velg liga/lag eller se alle barer'}
+		              </div>
+		            </div>
 				            <button
 				              type="button"
 				              onClick={toggleCityPanel}
@@ -363,7 +376,7 @@
 				                  ? 'bg-blue-500/20 border-blue-400/70 text-blue-300'
 				                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-700/60'
 				              }`}
-				              aria-label="Apne valg for by"
+				              aria-label="Åpne valg for by"
 				            >
 				              <span aria-hidden="true" className="text-xl">
 				                🏙️
@@ -408,22 +421,37 @@
 			            center={mapCenter}
 			            zoom={13}
 			            useGeolocation={true}
-			            disableAutoPanToUser={Boolean(favoriteCity || mapFocusPosition)}
+				            disableAutoPanToUser={Boolean(mapFocusPosition)}
 			            focusPosition={mapFocusPosition}
 			            focusZoom={15}
 			            onUserPositionChange={setUserPosition}
 			            bars={filteredBars}
 			            onBarClick={handleBarClick}
 			            onMapClick={() => {
-			              if (isFilterPanelOpen || isCityPanelOpen) {
-			                closePanels();
-			              }
+				              if (isFilterPanelOpen || isCityPanelOpen || isNearestListOpen) {
+				                closeOverlays();
+				              }
 			            }}
 			          />
 			        </div>
 
+				        {/* Nearest list (bottom sheet) */}
+				        {isNearestListOpen && (
+				          <NearestBarListPanel
+				            bars={filteredBars}
+				            userPosition={userPosition}
+				            onClose={() => setIsNearestListOpen(false)}
+				            onSelectBar={(bar) => {
+				              ensureFixturesLoaded();
+				              setSelectedBar(bar);
+				              setMapFocusPosition(bar.position);
+				              setIsNearestListOpen(false);
+				            }}
+				          />
+				        )}
+
 			        {/* Find nearest bar */}
-			        <div className="pointer-events-none absolute bottom-4 right-4 flex flex-col items-end gap-2 px-4">
+					<div className="pointer-events-none absolute bottom-20 md:bottom-4 right-4 flex flex-col items-end gap-2 px-4">
 			          <button
 			            type="button"
 			            onClick={handleFindNearestBar}
@@ -454,26 +482,26 @@
 					)}
 
 						{/* Empty state when no bars match the current team filter */}
-					{!isLoadingPublicBars && selectedTeam && filteredBars.length === 0 && (
+						{!isLoadingPublicBars && selectedTeam && filteredBars.length === 0 && (
 	          <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
 	            <div className="pointer-events-auto max-w-md rounded-xl bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 px-4 py-3 shadow-md text-sm text-zinc-800 dark:text-zinc-100">
 	              <p className="font-medium mb-1">
-	                Ingen barer viser dette laget i naerheten akkurat naa.
+			              Ingen barer viser dette laget i nærheten akkurat nå.
 	              </p>
 	              <p className="text-xs text-zinc-600 dark:text-zinc-400">
-	                Prov et annet lag, en annen liga eller fjern filtrene for a se flere barer.
+			              Prøv et annet lag, en annen liga eller fjern filtrene for å se flere barer.
 	              </p>
 	            </div>
 	          </div>
 	        )}
 
 					{/* Empty state when navigated via matchId */}
-					{!isLoadingPublicBars && matchId && !selectedTeam && filteredBars.length === 0 && (
+						{!isLoadingPublicBars && matchId && !selectedTeam && filteredBars.length === 0 && (
 		          <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
 		            <div className="pointer-events-auto max-w-md rounded-xl bg-white/95 dark:bg-zinc-900/95 border border-zinc-200 dark:border-zinc-700 px-4 py-3 shadow-md text-sm text-zinc-800 dark:text-zinc-100">
 		              <p className="font-medium mb-1">Ingen barer viser denne kampen akkurat nå.</p>
 		              <p className="text-xs text-zinc-600 dark:text-zinc-400">
-		                Tips: Logg inn som en bar og velg kamper i <span className="font-medium">Admin</span>.
+			                Prøv et annet lag, en annen liga eller fjern filtrene for å se flere barer.
 		              </p>
 		            </div>
 		          </div>
@@ -481,8 +509,18 @@
 
 		      </div>
 		
-		      {/* Bar Details Panel - Bottom sheet */}
-		      <BarDetailsPanel bar={selectedBar} onClose={handleClosePanel} />
+				      {/* Bar Details Panel - Bottom sheet */}
+				      {selectedBar && (
+				        <BarDetailsPanel
+				          bar={selectedBar}
+				          userPosition={userPosition}
+				          fixtures={fixtures}
+				          isLoadingFixtures={isLoadingFixtures}
+				          fixturesError={fixturesError}
+				          onRetryLoadFixtures={loadFixtures}
+				          onClose={handleClosePanel}
+				        />
+				      )}
 		    </div>
 	  );
 	}
