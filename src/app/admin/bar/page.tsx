@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useToast } from '@/contexts/ToastContext';
-import { useAdminMe } from '@/lib/admin/useAdminMe';
+import { useRequireAdminRole } from '@/lib/admin/useRequireAdminRole';
 import { sendEmailVerification } from 'firebase/auth';
+import { StatusPill } from '@/components/admin/StatusPill';
+import { getBillingText } from '@/lib/admin/statusText';
+import { daysRemaining, tsToMs } from '@/lib/utils/time';
 
 type BarDoc = {
   id: string;
@@ -14,62 +16,40 @@ type BarDoc = {
   isVisible?: boolean;
   billingEnabled?: boolean;
   billingStatus?: string;
-  emailVerified?: boolean;
   stripe?: {
     gracePeriodEndsAt?: unknown;
   };
-	  selectedFixtureIds?: unknown;
-	  cancelledFixtureIds?: unknown;
 };
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function toMillisMaybe(value: unknown): number | null {
-  if (!value) return null;
-  const rec = asRecord(value);
-  const fn = rec?.toMillis;
-  if (typeof fn === 'function') {
-    try {
-      const ms = (fn as (this: unknown) => number).call(value);
-      return typeof ms === 'number' && Number.isFinite(ms) ? ms : null;
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
-
 export default function BarOwnerDashboard() {
-  const router = useRouter();
   const { showToast } = useToast();
-  const { user, me, loading, roleOk } = useAdminMe(['bar_owner']);
+  const { user, me } = useRequireAdminRole(['bar_owner']);
   const [bar, setBar] = useState<BarDoc | null>(null);
   const [busy, setBusy] = useState(false);
 
-	const emailVerified = Boolean(user?.emailVerified);
-	const graceEndsMs = toMillisMaybe(bar?.stripe?.gracePeriodEndsAt);
-	const paymentFailed = bar?.billingStatus === 'payment_failed';
-	const graceActive = paymentFailed && typeof graceEndsMs === 'number' && graceEndsMs > Date.now();
-	const graceExpired = paymentFailed && (!graceEndsMs || graceEndsMs <= Date.now());
-	const canceled = bar?.billingStatus === 'canceled';
-	const visibilityBlockedReason =
-		!emailVerified
-			? 'Du må verifisere e-post før baren kan settes synlig.'
-			: canceled
-				? 'Abonnementet er kansellert. Baren kan ikke settes synlig.'
-				: graceExpired
-					? 'Betaling har feilet og grace period er utløpt. Oppdater betalingskort før baren kan bli synlig.'
-					: null;
 
-  useEffect(() => {
-    if (!loading && (!user || !roleOk)) {
-      router.replace('/admin');
-    }
-  }, [loading, user, roleOk, router]);
+  const emailVerified = Boolean(user?.emailVerified);
+  const graceEndsMs = tsToMs(bar?.stripe?.gracePeriodEndsAt);
+  const paymentFailed = bar?.billingStatus === 'payment_failed';
+
+  const graceDaysRemaining = useMemo(() => {
+    if (!paymentFailed || typeof graceEndsMs !== 'number') return null;
+    const d = daysRemaining(graceEndsMs);
+    return d > 0 ? d : null;
+  }, [paymentFailed, graceEndsMs]);
+
+  const graceActive = paymentFailed && typeof graceDaysRemaining === 'number';
+  const graceExpired = paymentFailed && !graceActive;
+  const canceled = bar?.billingStatus === 'canceled';
+
+  const visibilityBlockedReason =
+    !emailVerified
+      ? 'Du må verifisere e-post før baren kan settes synlig.'
+      : canceled
+        ? 'Abonnementet er kansellert. Baren kan ikke settes synlig.'
+        : graceExpired
+          ? 'Betalingen har feilet og fristen er utløpt. Oppdater betalingskort før baren kan bli synlig.'
+          : null;
 
   useEffect(() => {
     const run = async () => {
@@ -99,7 +79,11 @@ export default function BarOwnerDashboard() {
     if (!user || !me?.barId || !bar) return;
     const next = !bar.isVisible;
 		if (next && visibilityBlockedReason) {
-			showToast({ title: 'Kan ikke settes synlig', description: visibilityBlockedReason, variant: 'error' });
+			showToast({
+				title: 'Kan ikke settes synlig',
+				description: visibilityBlockedReason,
+				variant: 'error',
+			});
 			return;
 		}
     setBusy(true);
@@ -114,7 +98,8 @@ export default function BarOwnerDashboard() {
         body: JSON.stringify({ isVisible: next }),
       });
 			const raw: unknown = await res.json().catch(() => ({}));
-			const data = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null;
+			const data =
+				raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null;
 			if (!res.ok) {
 				const msg = typeof data?.error === 'string' ? data.error : '';
 				throw new Error(msg || `Failed to update (${res.status})`);
@@ -122,7 +107,7 @@ export default function BarOwnerDashboard() {
       setBar({ ...bar, isVisible: next });
       showToast({
         title: 'Oppdatert',
-				description: `Synlighet er nå ${next ? 'PÅ' : 'AV'}.`,
+			description: next ? 'Baren er nå synlig i appen.' : 'Baren er nå skjult.',
         variant: 'success',
       });
     } catch (e) {
@@ -194,7 +179,7 @@ export default function BarOwnerDashboard() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Bar-panel</h1>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Synlighet og billing-status.
+				  Synlighet og betalingsstatus.
         </p>
       </div>
 
@@ -219,47 +204,61 @@ export default function BarOwnerDashboard() {
 	        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
 	          <div className="font-medium">Betaling feilet</div>
 	          <div className="mt-1">
-	            Baren kan fortsatt være synlig i grace period. Oppdater betalingskort så snart som mulig.
+		            Baren kan fortsatt være synlig i en kort periode.
+		            {typeof graceDaysRemaining === 'number'
+		              ? ` Vises i ${graceDaysRemaining} ${graceDaysRemaining === 1 ? 'dag' : 'dager'}.`
+		              : ''}{' '}
+		            Oppdater betalingskort så snart som mulig.
 	          </div>
 	        </div>
 	      )}
 
 	      {paymentFailed && graceExpired && (
 	        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
-	          <div className="font-medium">Grace period utløpt</div>
+		          <div className="font-medium">Frist utløpt</div>
 	          <div className="mt-1">
 	            Baren kan ikke settes synlig før betaling er fikset.
 	          </div>
 	        </div>
 	      )}
 
-	      <div className="grid gap-4 md:grid-cols-2">
+		      <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{bar?.name ?? '—'}</h2>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{bar?.email ?? '—'}</p>
+				<div className="mt-3">
+				  <StatusPill kind="visibility" isVisible={bar?.isVisible} />
+				</div>
           <button
             type="button"
-	            disabled={busy || !bar || (Boolean(!bar?.isVisible) && Boolean(visibilityBlockedReason))}
+			    disabled={busy || !bar || (!bar?.isVisible && Boolean(visibilityBlockedReason))}
             onClick={toggleVisible}
             className="mt-4 inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900"
           >
-	            Sett {bar?.isVisible ? 'AV' : 'PÅ'}
+				    {bar?.isVisible ? 'Skjul' : 'Gjør synlig'}
           </button>
+				{!bar?.isVisible && visibilityBlockedReason && (
+				  <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{visibilityBlockedReason}</p>
+				)}
         </div>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Billing</h2>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-            <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-              billing: {bar?.billingEnabled ? 'ON' : 'OFF'}
-            </span>
-            <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-              status: {bar?.billingStatus ?? 'unknown'}
-            </span>
-          </div>
-          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-	            Hvis status er <span className="font-medium">payment_failed</span>, kan du oppdatere betalingskort og vente på nytt forsøk.
-          </p>
+				  <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Betaling</h2>
+				  <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+				    <StatusPill
+				      kind="billing"
+				      billingEnabled={bar?.billingEnabled}
+				      billingStatus={bar?.billingStatus}
+				      gracePeriodEndsAt={bar?.stripe?.gracePeriodEndsAt}
+				    />
+				  </div>
+				  <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+				    Status: <span className="font-medium">{getBillingText({
+				      billingEnabled: bar?.billingEnabled,
+				      billingStatus: bar?.billingStatus,
+				      gracePeriodEndsAt: bar?.stripe?.gracePeriodEndsAt,
+				    })}</span>
+				  </p>
 
           <button
             type="button"

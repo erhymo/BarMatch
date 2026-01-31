@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { getFirebaseAuthClient } from '@/lib/firebase/client';
+import { useAdminMe } from '@/lib/admin/useAdminMe';
 
 type AdminMeResponse =
   | { role: 'superadmin' | 'bar_owner'; barId?: string }
@@ -13,15 +14,32 @@ async function fetchMe(idToken: string): Promise<AdminMeResponse> {
   const res = await fetch('/api/admin/me', {
     headers: { Authorization: `Bearer ${idToken}` },
   });
-  return (await res.json()) as AdminMeResponse;
+
+  const raw: unknown = await res.json().catch(() => ({}));
+  const data = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null;
+
+  if (!res.ok) {
+    const msg = typeof data?.error === 'string' ? data.error : `Ugyldig innlogging (${res.status})`;
+    return { error: msg };
+  }
+
+  return data as AdminMeResponse;
 }
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const { user, me, loading } = useAdminMe();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (loading) return;
+    if (user && me) {
+      router.replace(me.role === 'superadmin' ? '/admin/super' : '/admin/bar');
+    }
+  }, [loading, user, me, router]);
 
   const normalizeLogin = (input: string) => {
     const trimmed = input.trim();
@@ -60,6 +78,12 @@ export default function AdminLoginPage() {
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
           Innlogging for bar-eiere og superadmin.
         </p>
+
+	        {loading && (
+	          <div className="mt-4 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
+	            Sjekker innlogging...
+	          </div>
+	        )}
 
         <div className="mt-6 space-y-3">
           <label className="block">

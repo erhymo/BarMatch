@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAdminMe } from '@/lib/admin/useAdminMe';
+import { useEffect, useMemo, useState } from 'react';
+import { useRequireAdminRole } from '@/lib/admin/useRequireAdminRole';
+import { StatusPill } from '@/components/admin/StatusPill';
+import { asRecord } from '@/lib/utils/unknown';
+import { tsToMs } from '@/lib/utils/time';
 
 type BarRow = {
   id: string;
@@ -12,6 +14,7 @@ type BarRow = {
   isVisible?: boolean;
   billingEnabled?: boolean;
   billingStatus?: string;
+  stripe?: { gracePeriodEndsAt?: unknown };
 };
 
 type InviteRow = {
@@ -25,33 +28,6 @@ type InviteRow = {
   resendCount?: number;
 };
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function tsToMs(v: unknown): number | null {
-  if (!v) return null;
-  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
-  if (typeof v === 'string') {
-    const ms = Date.parse(v);
-    return Number.isFinite(ms) ? ms : null;
-  }
-  // Firestore Timestamp from server often serializes like { _seconds, _nanoseconds }
-  const rec = asRecord(v);
-  const sec =
-    typeof rec?._seconds === 'number' ? rec._seconds : typeof rec?.seconds === 'number' ? rec.seconds : null;
-  const nanos =
-    typeof rec?._nanoseconds === 'number'
-      ? rec._nanoseconds
-      : typeof rec?.nanoseconds === 'number'
-        ? rec.nanoseconds
-        : 0;
-  if (typeof sec === 'number') return sec * 1000 + Math.floor(nanos / 1_000_000);
-  return null;
-}
-
 function fmtDateTime(v: unknown) {
   const ms = tsToMs(v);
   if (!ms) return '—';
@@ -62,9 +38,17 @@ function fmtDateTime(v: unknown) {
   }
 }
 
+function fmtInviteStatus(status: unknown): string {
+  const s = typeof status === 'string' ? status : 'unknown';
+  if (s === 'pending') return 'Venter';
+  if (s === 'expired') return 'Utløpt';
+  if (s === 'cancelled') return 'Avbrutt';
+  if (s === 'completed') return 'Brukt';
+  return s;
+}
+
 export default function SuperAdminDashboard() {
-  const router = useRouter();
-  const { user, me, loading, roleOk } = useAdminMe(['superadmin']);
+  const { user, me } = useRequireAdminRole(['superadmin']);
   const [bars, setBars] = useState<BarRow[]>([]);
   const [invites, setInvites] = useState<InviteRow[]>([]);
 
@@ -78,11 +62,12 @@ export default function SuperAdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!loading && (!user || !roleOk)) {
-      router.replace('/admin');
-    }
-  }, [loading, user, roleOk, router]);
+  const inviteCountLabel = useMemo(
+    () => (busyInvites ? 'Laster invitasjoner…' : `${invites.length} invitasjoner`),
+    [busyInvites, invites.length],
+  );
+
+  const barCountLabel = useMemo(() => (busyBars ? 'Laster barer…' : `${bars.length} barer`), [busyBars, bars.length]);
 
   useEffect(() => {
     const run = async () => {
@@ -265,10 +250,10 @@ export default function SuperAdminDashboard() {
             onChange={(e) => setInviteTrialDays(Number(e.target.value))}
             className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900"
           >
-            <option value={0}>Trial: 0</option>
-            <option value={7}>Trial: 7</option>
-            <option value={14}>Trial: 14</option>
-            <option value={30}>Trial: 30</option>
+	            <option value={0}>Prøveperiode: 0 dager</option>
+	            <option value={7}>Prøveperiode: 7 dager</option>
+	            <option value={14}>Prøveperiode: 14 dager</option>
+	            <option value={30}>Prøveperiode: 30 dager</option>
           </select>
 
           <button
@@ -288,15 +273,71 @@ export default function SuperAdminDashboard() {
 
       <div className="mb-6 rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <div className="border-b border-zinc-200 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-          {busyInvites ? 'Laster invitasjoner…' : `${invites.length} invitasjoner`}
+          {inviteCountLabel}
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile-first: cards on small screens, table on md+ */}
+        <div className="md:hidden">
+          <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
+            {invites.map((inv) => (
+              <div key={inv.id} className="px-4 py-4">
+                <div className="font-medium text-zinc-900 dark:text-zinc-50">{inv.email ?? '—'}</div>
+                <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{inv.id}</div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                    {fmtInviteStatus(inv.status)}
+                  </span>
+                  <span className="text-xs text-zinc-600 dark:text-zinc-400">
+	                    Prøveperiode: {typeof inv.trialDays === 'number' ? `${inv.trialDays} dager` : '—'}
+                  </span>
+                </div>
+                <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
+                  Utløper: {fmtDateTime(inv.expiresAt)}
+                </div>
+                <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                  Sist sendt: {fmtDateTime(inv.lastSentAt)}
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void copyInviteLink(inv.id)}
+                    className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                  >
+                    Kopier lenke
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busyInviteActionId === inv.id || inv.status !== 'pending'}
+                    onClick={() => void resendInvite(inv.id)}
+                    className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                  >
+                    Send på nytt
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busyInviteActionId === inv.id || inv.status !== 'pending'}
+                    onClick={() => void cancelInvite(inv.id)}
+                    className="col-span-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+                  >
+                    Avbryt
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {invites.length === 0 && !busyInvites && (
+              <div className="px-4 py-4 text-sm text-zinc-600 dark:text-zinc-400">Ingen invitasjoner enda.</div>
+            )}
+          </div>
+        </div>
+
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-zinc-500 dark:text-zinc-400">
               <tr className="border-b border-zinc-200 dark:border-zinc-800">
                 <th className="px-4 py-3 font-medium">E-post</th>
-                <th className="px-4 py-3 font-medium">Trial</th>
+	                <th className="px-4 py-3 font-medium">Prøveperiode (dager)</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Utløper</th>
                 <th className="px-4 py-3 font-medium">Sist sendt</th>
@@ -313,7 +354,7 @@ export default function SuperAdminDashboard() {
                   <td className="px-4 py-3">{typeof inv.trialDays === 'number' ? inv.trialDays : '—'}</td>
                   <td className="px-4 py-3">
                     <span className="inline-flex rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-                      {inv.status ?? 'unknown'}
+                      {fmtInviteStatus(inv.status)}
                     </span>
                   </td>
                   <td className="px-4 py-3">{fmtDateTime(inv.expiresAt)}</td>
@@ -364,21 +405,46 @@ export default function SuperAdminDashboard() {
 
       <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <div className="border-b border-zinc-200 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-		      {busyBars ? 'Laster...' : `${bars.length} barer`}
+	          {barCountLabel}
         </div>
 
         {error && (
           <div className="px-4 py-3 text-sm text-red-700 dark:text-red-300">{error}</div>
         )}
 
-        <div className="overflow-x-auto">
+        <div className="md:hidden">
+          <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
+            {bars.map((b) => (
+              <div key={b.id} className="px-4 py-4">
+                <Link
+                  href={`/admin/super/bars/${b.id}`}
+                  className="font-medium text-zinc-900 hover:underline dark:text-zinc-50"
+                >
+                  {b.name ?? b.id}
+                </Link>
+                {b.email && <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{b.email}</div>}
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <StatusPill kind="visibility" isVisible={b.isVisible} />
+                  <StatusPill
+                    kind="billing"
+                    billingEnabled={b.billingEnabled}
+                    billingStatus={b.billingStatus}
+                    gracePeriodEndsAt={b.stripe?.gracePeriodEndsAt}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-left text-zinc-500 dark:text-zinc-400">
               <tr className="border-b border-zinc-200 dark:border-zinc-800">
                 <th className="px-4 py-3 font-medium">Bar</th>
-                <th className="px-4 py-3 font-medium">Visible</th>
-                <th className="px-4 py-3 font-medium">Billing</th>
-                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Synlighet</th>
+                <th className="px-4 py-3 font-medium">Betaling</th>
               </tr>
             </thead>
             <tbody>
@@ -391,24 +457,18 @@ export default function SuperAdminDashboard() {
                     >
                       {b.name ?? b.id}
                     </Link>
-                    {b.email && (
-                      <div className="text-xs text-zinc-500 dark:text-zinc-400">{b.email}</div>
-                    )}
+                    {b.email && <div className="text-xs text-zinc-500 dark:text-zinc-400">{b.email}</div>}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2 py-1 text-xs ${b.isVisible ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200' : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300'}`}>
-                      {b.isVisible ? 'ON' : 'OFF'}
-                    </span>
+                    <StatusPill kind="visibility" isVisible={b.isVisible} />
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex rounded-full px-2 py-1 text-xs ${b.billingEnabled ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200' : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300'}`}>
-                      {b.billingEnabled ? 'ON' : 'OFF'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-                      {b.billingStatus ?? 'unknown'}
-                    </span>
+                    <StatusPill
+                      kind="billing"
+                      billingEnabled={b.billingEnabled}
+                      billingStatus={b.billingStatus}
+                      gracePeriodEndsAt={b.stripe?.gracePeriodEndsAt}
+                    />
                   </td>
                 </tr>
               ))}

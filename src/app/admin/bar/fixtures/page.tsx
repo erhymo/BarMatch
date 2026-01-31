@@ -1,9 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { useAdminMe } from '@/lib/admin/useAdminMe';
+import { useRequireAdminRole } from '@/lib/admin/useRequireAdminRole';
 import { useToast } from '@/contexts/ToastContext';
 import type { Fixture, LeagueKey } from '@/lib/types/fixtures';
 import { getFixtureProvider } from '@/lib/providers/fixtures';
@@ -53,9 +52,8 @@ function formatKickoff(iso: string): string {
 }
 
 export default function BarFixturesPage() {
-  const router = useRouter();
   const { showToast } = useToast();
-  const { user, me, loading, roleOk } = useAdminMe(['bar_owner']);
+  const { user, me } = useRequireAdminRole(['bar_owner']);
 
   const [bar, setBar] = useState<BarDoc | null>(null);
   const [busy, setBusy] = useState(false);
@@ -70,12 +68,6 @@ export default function BarFixturesPage() {
 
   const range = useMemo(() => createDefaultRange(), []);
   const fixtureProvider = useMemo(() => getFixtureProvider(), []);
-
-  useEffect(() => {
-    if (!loading && (!user || !roleOk)) {
-      router.replace('/admin');
-    }
-  }, [loading, user, roleOk, router]);
 
   // Load bar doc (incl. current selection)
   useEffect(() => {

@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useAdminMe } from '@/lib/admin/useAdminMe';
 import { useToast } from '@/contexts/ToastContext';
+import { useRequireAdminRole } from '@/lib/admin/useRequireAdminRole';
+import { StatusPill } from '@/components/admin/StatusPill';
+import { getBillingText } from '@/lib/admin/statusText';
 
 type BarDoc = {
   id: string;
@@ -12,7 +14,7 @@ type BarDoc = {
   isVisible?: boolean;
   billingEnabled?: boolean;
   billingStatus?: string;
-  stripe?: { customerId?: string; subscriptionId?: string };
+  stripe?: { customerId?: string; subscriptionId?: string; gracePeriodEndsAt?: unknown };
 };
 
 export default function SuperAdminBarDetail() {
@@ -20,17 +22,11 @@ export default function SuperAdminBarDetail() {
   const router = useRouter();
   const params = useParams<{ barId: string }>();
   const barId = params?.barId;
-  const { user, me, loading, roleOk } = useAdminMe(['superadmin']);
+  const { user, me } = useRequireAdminRole(['superadmin']);
   const [bar, setBar] = useState<BarDoc | null>(null);
   const [busy, setBusy] = useState(false);
 
   const title = useMemo(() => bar?.name ?? barId ?? 'Bar', [bar?.name, barId]);
-
-  useEffect(() => {
-    if (!loading && (!user || !roleOk)) {
-      router.replace('/admin');
-    }
-  }, [loading, user, roleOk, router]);
 
   useEffect(() => {
     const run = async () => {
@@ -70,11 +66,16 @@ export default function SuperAdminBarDetail() {
         },
         body: JSON.stringify({ isVisible: next }),
       });
-      if (!res.ok) throw new Error(`Failed to update (${res.status})`);
+      const raw: unknown = await res.json().catch(() => ({}));
+      const data = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null;
+      if (!res.ok) {
+        const msg = typeof data?.error === 'string' ? data.error : '';
+        throw new Error(msg || `Failed to update (${res.status})`);
+      }
       setBar({ ...bar, isVisible: next });
       showToast({
         title: 'Oppdatert',
-        description: `Synlighet er nå ${next ? 'PÅ' : 'AV'}.`,
+        description: next ? 'Baren er nå synlig i appen.' : 'Baren er nå skjult.',
         variant: 'success',
       });
     } catch (e) {
@@ -97,10 +98,15 @@ export default function SuperAdminBarDetail() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error(`Failed (${res.status})`);
+      const raw: unknown = await res.json().catch(() => ({}));
+      const data = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null;
+      if (!res.ok) {
+        const msg = typeof data?.error === 'string' ? data.error : '';
+        throw new Error(msg || `Failed (${res.status})`);
+      }
       setBar((prev) => (prev ? { ...prev, billingEnabled: false, billingStatus: 'canceled' } : prev));
       showToast({
-        title: 'Billing OFF',
+        title: 'Betaling deaktivert',
         description: 'Abonnement er kansellert (hvis det fantes).',
         variant: 'success',
       });
@@ -129,8 +135,8 @@ export default function SuperAdminBarDetail() {
 
       setBar((prev) => (prev ? { ...prev, billingEnabled: true } : prev));
       showToast({
-        title: 'Billing ON',
-	        description: 'Checkout-lenke er sendt på e-post til baren.',
+        title: 'Betaling aktivert',
+        description: 'Checkout-lenke er sendt på e-post til baren.',
         variant: 'success',
       });
 
@@ -174,47 +180,60 @@ export default function SuperAdminBarDetail() {
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             Styr om baren vises i kartet.
           </p>
+	          <div className="mt-3">
+	            <StatusPill kind="visibility" isVisible={bar?.isVisible} />
+	          </div>
           <button
             type="button"
             disabled={busy || !bar}
             onClick={toggleVisible}
-            className="mt-4 inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900"
+	            className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900"
           >
-	            Sett {bar?.isVisible ? 'AV' : 'PÅ'}
+	            {bar?.isVisible ? 'Skjul' : 'Gjør synlig'}
           </button>
         </div>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Billing</h2>
+	          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Betaling</h2>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Billing ON/OFF + Stripe-status.
+	            Betaling og Stripe-status.
           </p>
 
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-            <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-              billing: {bar?.billingEnabled ? 'ON' : 'OFF'}
-            </span>
-            <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-              status: {bar?.billingStatus ?? 'unknown'}
-            </span>
-          </div>
+	          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+	            <StatusPill
+	              kind="billing"
+	              billingEnabled={bar?.billingEnabled}
+	              billingStatus={bar?.billingStatus}
+	              gracePeriodEndsAt={bar?.stripe?.gracePeriodEndsAt}
+	            />
+	          </div>
+	          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+	            Status:{' '}
+	            <span className="font-medium">
+	              {getBillingText({
+	                billingEnabled: bar?.billingEnabled,
+	                billingStatus: bar?.billingStatus,
+	                gracePeriodEndsAt: bar?.stripe?.gracePeriodEndsAt,
+	              })}
+	            </span>
+	          </p>
 
-          <div className="mt-4 flex gap-2">
+	          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
             <button
               type="button"
               disabled={busy}
               onClick={billingOn}
-              className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900"
+	              className="w-full rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900"
             >
-              Billing ON
+	              Aktiver betaling
             </button>
             <button
               type="button"
               disabled={busy}
               onClick={billingOff}
-              className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-900"
+	              className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-900"
             >
-              Billing OFF
+	              Deaktiver betaling
             </button>
           </div>
         </div>
