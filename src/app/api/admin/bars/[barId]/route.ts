@@ -210,6 +210,13 @@ export async function PATCH(
       update.country = body.country.trim();
     }
 
+	    if ('phone' in body) {
+	      if (typeof body.phone !== 'string') {
+	        return NextResponse.json({ error: 'Invalid phone' }, { status: 400 });
+	      }
+	      update.phone = body.phone.trim();
+	    }
+
     if ('location' in body) {
       const loc = body.location as { lat?: unknown; lng?: unknown } | null;
       const lat = typeof loc?.lat === 'number' ? loc.lat : Number(loc?.lat);
@@ -331,27 +338,41 @@ export async function PATCH(
 	      }
 	    }
 
-    const hasFields = Object.keys(update).some((k) => k !== 'updatedAt');
-    if (!hasFields) {
-      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
-    }
+	    const hasFields = Object.keys(update).some((k) => k !== 'updatedAt');
+	    if (!hasFields) {
+	      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+	    }
 
-    await barRef.set(update, { merge: true });
+	    await barRef.set(update, { merge: true });
 
-    // Minimal audit log for superadmin visibility toggles.
-    if (me.role === 'superadmin' && 'isVisible' in body && typeof body.isVisible === 'boolean') {
-      void logAdminAction({
-        adminUid: uid,
-        barId,
-        action: 'bars.setVisible',
-        details: {
-          from: typeof barData.isVisible === 'boolean' ? barData.isVisible : null,
-          to: body.isVisible,
-        },
-      });
-    }
+	    const changedFieldNames = Object.keys(update).filter((k) => k !== 'updatedAt');
 
-    return NextResponse.json({ ok: true });
+	    // Audit log: visibility toggles (both bar-eier og superadmin).
+	    if ('isVisible' in body && typeof body.isVisible === 'boolean') {
+	      void logAdminAction({
+	        adminUid: uid,
+	        barId,
+	        action: body.isVisible ? 'bar.visibility.on' : 'bar.visibility.off',
+	        details: {
+	          from: typeof barData.isVisible === 'boolean' ? barData.isVisible : null,
+	          to: body.isVisible,
+	        },
+	      });
+	    }
+
+	    // Audit log: bar-eier oppdaterte barprofilen.
+	    if (me.role === 'bar_owner' && changedFieldNames.length > 0) {
+	      void logAdminAction({
+	        adminUid: uid,
+	        barId,
+	        action: 'bar.profile.update',
+	        details: {
+	          fields: changedFieldNames,
+	        },
+	      });
+	    }
+
+	    return NextResponse.json({ ok: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unauthorized';
     const status = msg === 'Forbidden' ? 403 : 401;

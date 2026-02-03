@@ -47,6 +47,20 @@ function fmtInviteStatus(status: unknown): string {
   return s;
 }
 
+function isBillingOk(bar: BarRow): boolean {
+  return Boolean(bar.billingEnabled) && bar.billingStatus === 'active';
+}
+
+function isBillingFailed(bar: BarRow): boolean {
+  return bar.billingStatus === 'payment_failed';
+}
+
+function isInGrace(bar: BarRow): boolean {
+  const ms = tsToMs(bar.stripe?.gracePeriodEndsAt);
+  if (!ms) return false;
+  return ms > Date.now();
+}
+
 export default function SuperAdminDashboard() {
   const { user, me } = useRequireAdminRole(['superadmin']);
   const [bars, setBars] = useState<BarRow[]>([]);
@@ -62,12 +76,92 @@ export default function SuperAdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+	  const [visibilityFilter, setVisibilityFilter] = useState<'all' | 'visible' | 'hidden'>('all');
+	  const [billingFilter, setBillingFilter] = useState<'all' | 'ok' | 'failed' | 'grace'>('all');
+	  const [searchTerm, setSearchTerm] = useState('');
+	  const [sortMode, setSortMode] = useState<'name' | 'billing'>('name');
+	  const [busyBarActionId, setBusyBarActionId] = useState<string | null>(null);
+
+	  const filteredBars = useMemo(() => {
+	    let result = bars.filter((b) => {
+	      if (visibilityFilter === 'visible' && !b.isVisible) return false;
+	      if (visibilityFilter === 'hidden' && b.isVisible) return false;
+
+	      if (billingFilter === 'ok' && !isBillingOk(b)) return false;
+	      if (billingFilter === 'failed' && !isBillingFailed(b)) return false;
+	      if (billingFilter === 'grace' && !isInGrace(b)) return false;
+
+	      return true;
+	    });
+
+	    const q = searchTerm.trim().toLowerCase();
+	    if (q) {
+	      result = result.filter((b) => {
+	        const name = (b.name ?? '').toLowerCase();
+	        const email = (b.email ?? '').toLowerCase();
+	        const id = b.id.toLowerCase();
+	        return name.includes(q) || email.includes(q) || id.includes(q);
+	      });
+	    }
+
+	    const sorted = [...result];
+	    if (sortMode === 'name') {
+	      sorted.sort((a, b) => {
+	        const an = (a.name ?? a.email ?? a.id).toLowerCase();
+	        const bn = (b.name ?? b.email ?? b.id).toLowerCase();
+	        if (an < bn) return -1;
+	        if (an > bn) return 1;
+	        return 0;
+	      });
+	    } else if (sortMode === 'billing') {
+	      const score = (bar: BarRow): number => {
+	        if (isBillingFailed(bar)) return 0; // problemer først
+	        if (isInGrace(bar)) return 1; // deretter grace
+	        if (isBillingOk(bar)) return 2; // så OK
+	        return 3; // resten
+	      };
+	      sorted.sort((a, b) => {
+	        const sa = score(a);
+	        const sb = score(b);
+	        if (sa !== sb) return sa - sb;
+	        const an = (a.name ?? a.email ?? a.id).toLowerCase();
+	        const bn = (b.name ?? b.email ?? b.id).toLowerCase();
+	        if (an < bn) return -1;
+	        if (an > bn) return 1;
+	        return 0;
+	      });
+	    }
+
+	    return sorted;
+	  }, [bars, visibilityFilter, billingFilter, searchTerm, sortMode]);
+
   const inviteCountLabel = useMemo(
     () => (busyInvites ? 'Laster invitasjoner…' : `${invites.length} invitasjoner`),
     [busyInvites, invites.length],
   );
 
-  const barCountLabel = useMemo(() => (busyBars ? 'Laster barer…' : `${bars.length} barer`), [busyBars, bars.length]);
+	  const barCountLabel = useMemo(() => {
+	    if (busyBars) return 'Laster barer…';
+	    if (bars.length === 0) return 'Ingen barer';
+	    if (filteredBars.length === bars.length) return `${bars.length} barer`;
+	    return `${filteredBars.length} av ${bars.length} barer`;
+	  }, [busyBars, bars.length, filteredBars.length]);
+
+	  const kpi = useMemo(
+	    () => {
+	      let active = 0;
+	      let failed = 0;
+	      let grace = 0;
+	      for (const bar of bars) {
+	        if (isBillingOk(bar)) active += 1;
+	        if (isBillingFailed(bar)) failed += 1;
+	        if (isInGrace(bar)) grace += 1;
+	      }
+	      const pendingInvites = invites.filter((inv) => inv.status === 'pending').length;
+	      return { active, failed, grace, pendingInvites };
+	    },
+	    [bars, invites],
+	  );
 
   useEffect(() => {
     const run = async () => {
@@ -225,14 +319,130 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Superadmin</h1>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Oversikt over barer (alfabetisk).
-        </p>
-      </div>
+	  const toggleBarVisibility = async (bar: BarRow) => {
+	    if (!user) return;
+	    const next = !bar.isVisible;
+	    setNotice(null);
+	    setError(null);
+	    setBusyBarActionId(bar.id);
+	    try {
+	      const token = await user.getIdToken();
+	      const res = await fetch(`/api/admin/bars/${bar.id}`, {
+	        method: 'PATCH',
+	        headers: {
+	          Authorization: `Bearer ${token}`,
+	          'Content-Type': 'application/json',
+	        },
+	        body: JSON.stringify({ isVisible: next }),
+	      });
+	      const raw: unknown = await res.json().catch(() => ({}));
+	      const data = asRecord(raw);
+	      if (!res.ok) {
+	        const msg = typeof data?.error === 'string' ? data.error : '';
+	        throw new Error(msg || `Feil (${res.status})`);
+	      }
+	      setBars((prev) => prev.map((b) => (b.id === bar.id ? { ...b, isVisible: next } : b)));
+	    } catch (e) {
+	      setError(e instanceof Error ? e.message : 'Ukjent feil');
+	    } finally {
+	      setBusyBarActionId(null);
+	    }
+	  };
+
+	  const billingOnForBar = async (bar: BarRow) => {
+	    if (!user) return;
+	    setNotice(null);
+	    setError(null);
+	    setBusyBarActionId(bar.id);
+	    try {
+	      const token = await user.getIdToken();
+	      const res = await fetch(`/api/admin/bars/${bar.id}/billing-on`, {
+	        method: 'POST',
+	        headers: { Authorization: `Bearer ${token}` },
+	      });
+	      const raw: unknown = await res.json().catch(() => ({}));
+	      const data = asRecord(raw);
+	      if (!res.ok) {
+	        const msg = typeof data?.error === 'string' ? data.error : '';
+	        throw new Error(msg || `Feil (${res.status})`);
+	      }
+	      setBars((prev) => prev.map((b) => (b.id === bar.id ? { ...b, billingEnabled: true } : b)));
+	      const checkoutUrl = typeof data?.checkoutUrl === 'string' ? (data.checkoutUrl as string) : '';
+	      if (checkoutUrl && typeof window !== 'undefined') {
+	        window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+	      }
+	    } catch (e) {
+	      setError(e instanceof Error ? e.message : 'Ukjent feil');
+	    } finally {
+	      setBusyBarActionId(null);
+	    }
+	  };
+
+	  const billingOffForBar = async (bar: BarRow) => {
+	    if (!user) return;
+	    if (!confirm('Deaktivere betaling for denne baren?')) return;
+	    setNotice(null);
+	    setError(null);
+	    setBusyBarActionId(bar.id);
+	    try {
+	      const token = await user.getIdToken();
+	      const res = await fetch(`/api/admin/bars/${bar.id}/billing-off`, {
+	        method: 'POST',
+	        headers: { Authorization: `Bearer ${token}` },
+	      });
+	      const raw: unknown = await res.json().catch(() => ({}));
+	      const data = asRecord(raw);
+	      if (!res.ok) {
+	        const msg = typeof data?.error === 'string' ? data.error : '';
+	        throw new Error(msg || `Feil (${res.status})`);
+	      }
+	      setBars((prev) =>
+	        prev.map((b) =>
+	          b.id === bar.id
+	            ? { ...b, billingEnabled: false, billingStatus: 'canceled', isVisible: false }
+	            : b,
+	        ),
+	      );
+	    } catch (e) {
+	      setError(e instanceof Error ? e.message : 'Ukjent feil');
+	    } finally {
+	      setBusyBarActionId(null);
+	    }
+	  };
+
+	  return (
+	    <div>
+	      <div className="mb-6">
+	        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Superadmin</h1>
+	        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Oversikt over barer og invitasjoner.</p>
+	      </div>
+
+	      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+	        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+	          <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+	            Aktive barer
+	          </div>
+	          <div className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{kpi.active}</div>
+	        </div>
+	        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+	          <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+	            Betalingsproblem
+	          </div>
+	          <div className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{kpi.failed}</div>
+	        </div>
+	        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+	          <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+	            I grace-periode
+	          </div>
+	          <div className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{kpi.grace}</div>
+	        </div>
+	        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+	          <div className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+	            Ventende invitasjoner
+	          </div>
+	          <div className="mt-2 text-2xl font-semibold text-zinc-900 dark:text-zinc-50">{kpi.pendingInvites}</div>
+	        </div>
+	      </div>
 
       <div className="mb-6 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Inviter ny bar</h2>
@@ -403,78 +613,271 @@ export default function SuperAdminDashboard() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="border-b border-zinc-200 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+	      <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+	        <div className="border-b border-zinc-200 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
 	          {barCountLabel}
-        </div>
+	        </div>
+
+	        <div className="border-b border-zinc-200 px-4 py-3 text-xs text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+	          <div className="flex flex-wrap gap-3">
+	            <div className="flex flex-wrap items-center gap-2">
+	              <span className="font-medium">Synlighet:</span>
+	              <div className="inline-flex rounded-full bg-zinc-100 p-1 dark:bg-zinc-900">
+	                <button
+	                  type="button"
+	                  onClick={() => setVisibilityFilter('all')}
+	                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+	                    visibilityFilter === 'all'
+	                      ? 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900'
+	                      : 'text-zinc-700 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800'
+	                  }`}
+	                >
+	                  Alle
+	                </button>
+	                <button
+	                  type="button"
+	                  onClick={() => setVisibilityFilter('visible')}
+	                  className={`ml-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+	                    visibilityFilter === 'visible'
+	                      ? 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900'
+	                      : 'text-zinc-700 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800'
+	                  }`}
+	                >
+	                  Synlige
+	                </button>
+	                <button
+	                  type="button"
+	                  onClick={() => setVisibilityFilter('hidden')}
+	                  className={`ml-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+	                    visibilityFilter === 'hidden'
+	                      ? 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900'
+	                      : 'text-zinc-700 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800'
+	                  }`}
+	                >
+	                  Skjulte
+	                </button>
+	              </div>
+	            </div>
+
+		            <div className="flex flex-wrap items-center gap-2">
+		              <span className="font-medium">Betaling:</span>
+	              <div className="inline-flex rounded-full bg-zinc-100 p-1 dark:bg-zinc-900">
+	                <button
+	                  type="button"
+	                  onClick={() => setBillingFilter('all')}
+	                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+	                    billingFilter === 'all'
+	                      ? 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900'
+	                      : 'text-zinc-700 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800'
+	                  }`}
+	                >
+	                  Alle
+	                </button>
+	                <button
+	                  type="button"
+	                  onClick={() => setBillingFilter('ok')}
+	                  className={`ml-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+	                    billingFilter === 'ok'
+	                      ? 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900'
+	                      : 'text-zinc-700 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800'
+	                  }`}
+	                >
+	                  OK
+	                </button>
+	                <button
+	                  type="button"
+	                  onClick={() => setBillingFilter('failed')}
+	                  className={`ml-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+	                    billingFilter === 'failed'
+	                      ? 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900'
+	                      : 'text-zinc-700 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800'
+	                  }`}
+	                >
+	                  Feilet
+	                </button>
+	                <button
+	                  type="button"
+	                  onClick={() => setBillingFilter('grace')}
+	                  className={`ml-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+	                    billingFilter === 'grace'
+	                      ? 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900'
+	                      : 'text-zinc-700 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800'
+	                  }`}
+	                >
+	                  I grace-periode
+	                </button>
+		              </div>
+		            </div>
+
+		            <div className="flex flex-wrap items-center gap-2">
+		              <span className="font-medium">Søk:</span>
+		              <input
+		                value={searchTerm}
+		                onChange={(e) => setSearchTerm(e.target.value)}
+		                placeholder="Navn, e-post eller ID"
+		                className="w-40 rounded-lg border border-zinc-200 px-2 py-1 text-xs dark:border-zinc-800 dark:bg-zinc-900"
+		              />
+		            </div>
+
+		            <div className="flex flex-wrap items-center gap-2">
+		              <span className="font-medium">Sorter:</span>
+		              <div className="inline-flex rounded-full bg-zinc-100 p-1 dark:bg-zinc-900">
+		                <button
+		                  type="button"
+		                  onClick={() => setSortMode('name')}
+		                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+		                    sortMode === 'name'
+		                      ? 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900'
+		                      : 'text-zinc-700 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800'
+		                  }`}
+		                >
+		                  Navn
+		                </button>
+		                <button
+		                  type="button"
+		                  onClick={() => setSortMode('billing')}
+		                  className={`ml-1 rounded-full px-2.5 py-1 text-xs font-medium ${
+		                    sortMode === 'billing'
+		                      ? 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900'
+		                      : 'text-zinc-700 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-800'
+		                  }`}
+		                >
+		                  Betaling
+		                </button>
+		              </div>
+		            </div>
+	          </div>
+	        </div>
 
         {error && (
           <div className="px-4 py-3 text-sm text-red-700 dark:text-red-300">{error}</div>
         )}
 
-        <div className="md:hidden">
-          <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
-            {bars.map((b) => (
-              <div key={b.id} className="px-4 py-4">
-                <Link
-                  href={`/admin/super/bars/${b.id}`}
-                  className="font-medium text-zinc-900 hover:underline dark:text-zinc-50"
-                >
-                  {b.name ?? b.id}
-                </Link>
-                {b.email && <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{b.email}</div>}
+	        <div className="md:hidden">
+	          <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
+	            {filteredBars.map((b) => {
+	              const isBusy = busyBarActionId === b.id || busyBars;
+	              const isVisible = Boolean(b.isVisible);
+	              const billingEnabled = Boolean(b.billingEnabled);
+	              const visibilityLabel = isVisible ? 'Skjul' : 'Gjør synlig';
+	              const billingLabel = billingEnabled ? 'Deaktiver betaling' : 'Aktiver betaling';
+	              return (
+	                <div key={b.id} className="px-4 py-4">
+	                  <Link
+	                    href={`/admin/super/bars/${b.id}`}
+	                    className="font-medium text-zinc-900 hover:underline dark:text-zinc-50"
+	                  >
+	                    {b.name ?? b.id}
+	                  </Link>
+	                  {b.email && (
+	                    <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{b.email}</div>
+	                  )}
 
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <StatusPill kind="visibility" isVisible={b.isVisible} />
-                  <StatusPill
-                    kind="billing"
-                    billingEnabled={b.billingEnabled}
-                    billingStatus={b.billingStatus}
-                    gracePeriodEndsAt={b.stripe?.gracePeriodEndsAt}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+	                  <div className="mt-3 flex flex-wrap items-center gap-2">
+	                    <StatusPill kind="visibility" isVisible={b.isVisible} />
+	                    <StatusPill
+	                      kind="billing"
+	                      billingEnabled={b.billingEnabled}
+	                      billingStatus={b.billingStatus}
+	                      gracePeriodEndsAt={b.stripe?.gracePeriodEndsAt}
+	                    />
+	                  </div>
 
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-left text-zinc-500 dark:text-zinc-400">
-              <tr className="border-b border-zinc-200 dark:border-zinc-800">
-                <th className="px-4 py-3 font-medium">Bar</th>
-                <th className="px-4 py-3 font-medium">Synlighet</th>
-                <th className="px-4 py-3 font-medium">Betaling</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bars.map((b) => (
-                <tr key={b.id} className="border-b border-zinc-100 dark:border-zinc-900">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/super/bars/${b.id}`}
-                      className="font-medium text-zinc-900 hover:underline dark:text-zinc-50"
-                    >
-                      {b.name ?? b.id}
-                    </Link>
-                    {b.email && <div className="text-xs text-zinc-500 dark:text-zinc-400">{b.email}</div>}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusPill kind="visibility" isVisible={b.isVisible} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusPill
-                      kind="billing"
-                      billingEnabled={b.billingEnabled}
-                      billingStatus={b.billingStatus}
-                      gracePeriodEndsAt={b.stripe?.gracePeriodEndsAt}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+	                  <div className="mt-4 grid grid-cols-2 gap-2">
+	                    <button
+	                      type="button"
+	                      disabled={isBusy}
+	                      onClick={() => void toggleBarVisibility(b)}
+	                      className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+	                    >
+	                      {visibilityLabel}
+	                    </button>
+	                    <button
+	                      type="button"
+	                      disabled={isBusy}
+	                      onClick={() =>
+	                        void (billingEnabled ? billingOffForBar(b) : billingOnForBar(b))
+	                      }
+	                      className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+	                    >
+	                      {billingLabel}
+	                    </button>
+	                  </div>
+	                </div>
+	              );
+	            })}
+	          </div>
+	        </div>
+
+	        <div className="hidden md:block overflow-x-auto">
+	          <table className="w-full text-sm">
+	            <thead className="text-left text-zinc-500 dark:text-zinc-400">
+	              <tr className="border-b border-zinc-200 dark:border-zinc-800">
+	                <th className="px-4 py-3 font-medium">Bar</th>
+	                <th className="px-4 py-3 font-medium">Synlighet</th>
+	                <th className="px-4 py-3 font-medium">Betaling</th>
+	                <th className="px-4 py-3 font-medium">Handling</th>
+	              </tr>
+	            </thead>
+	            <tbody>
+	              {filteredBars.map((b) => {
+	                const isBusy = busyBarActionId === b.id || busyBars;
+	                const isVisible = Boolean(b.isVisible);
+	                const billingEnabled = Boolean(b.billingEnabled);
+	                const visibilityLabel = isVisible ? 'Skjul' : 'Gjør synlig';
+	                const billingLabel = billingEnabled ? 'Deaktiver betaling' : 'Aktiver betaling';
+	                return (
+	                  <tr key={b.id} className="border-b border-zinc-100 dark:border-zinc-900">
+	                    <td className="px-4 py-3">
+	                      <Link
+	                        href={`/admin/super/bars/${b.id}`}
+	                        className="font-medium text-zinc-900 hover:underline dark:text-zinc-50"
+	                      >
+	                        {b.name ?? b.id}
+	                      </Link>
+	                      {b.email && (
+	                        <div className="text-xs text-zinc-500 dark:text-zinc-400">{b.email}</div>
+	                      )}
+	                    </td>
+	                    <td className="px-4 py-3">
+	                      <StatusPill kind="visibility" isVisible={b.isVisible} />
+	                    </td>
+	                    <td className="px-4 py-3">
+	                      <StatusPill
+	                        kind="billing"
+	                        billingEnabled={b.billingEnabled}
+	                        billingStatus={b.billingStatus}
+	                        gracePeriodEndsAt={b.stripe?.gracePeriodEndsAt}
+	                      />
+	                    </td>
+	                    <td className="px-4 py-3">
+	                      <div className="flex flex-wrap gap-2">
+	                        <button
+	                          type="button"
+	                          disabled={isBusy}
+	                          onClick={() => void toggleBarVisibility(b)}
+	                          className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+	                        >
+	                          {visibilityLabel}
+	                        </button>
+	                        <button
+	                          type="button"
+	                          disabled={isBusy}
+	                          onClick={() =>
+	                            void (billingEnabled ? billingOffForBar(b) : billingOnForBar(b))
+	                          }
+	                          className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+	                        >
+	                          {billingLabel}
+	                        </button>
+	                      </div>
+	                    </td>
+	                  </tr>
+	                );
+	              })}
+	            </tbody>
+	          </table>
+	        </div>
       </div>
     </div>
   );
