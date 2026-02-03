@@ -8,7 +8,7 @@ import type { Fixture, LeagueKey } from '@/lib/types/fixtures';
 import { getFixtureProvider } from '@/lib/providers/fixtures';
 import { getCompetitionByKey } from '@/lib/config/competitions';
 
-const DEFAULT_RANGE_DAYS = 14;
+const DEFAULT_RANGE_DAYS = 30;
 const LEAGUES: LeagueKey[] = ['EPL', 'NOR_ELITESERIEN', 'SERIE_A', 'UCL', 'UEL'];
 
 type BarDoc = {
@@ -35,7 +35,10 @@ function parseStringArray(value: unknown): string[] {
 function dateKeyFromUtcIso(iso: string): string {
   const dt = new Date(iso);
   if (Number.isNaN(dt.getTime())) return 'Ukjent dato';
-  return dt.toISOString().slice(0, 10); // YYYY-MM-DD
+  const year = dt.getFullYear();
+  const month = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`; // YYYY-MM-DD in local time
 }
 
 function formatKickoff(iso: string): string {
@@ -65,6 +68,7 @@ export default function BarFixturesPage() {
     selected: [],
     cancelled: [],
   });
+	  const [activeLeagues, setActiveLeagues] = useState<LeagueKey[]>(LEAGUES);
 
   const range = useMemo(() => createDefaultRange(), []);
   const fixtureProvider = useMemo(() => getFixtureProvider(), []);
@@ -152,21 +156,76 @@ export default function BarFixturesPage() {
   const selectedSet = useMemo(() => new Set(selection.selected), [selection.selected]);
   const cancelledSet = useMemo(() => new Set(selection.cancelled), [selection.cancelled]);
 
-  const fixturesByDay = useMemo(() => {
-    const groups = new Map<string, Fixture[]>();
-    for (const f of fixtures) {
-      const k = dateKeyFromUtcIso(f.kickoffUtc);
-      const list = groups.get(k) ?? [];
-      list.push(f);
-      groups.set(k, list);
-    }
-    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [fixtures]);
+	  const fixturesByDay = useMemo(() => {
+	    const groups = new Map<string, Fixture[]>();
+	    for (const f of fixtures) {
+	      if (!activeLeagues.includes(f.league)) continue;
+	      const k = dateKeyFromUtcIso(f.kickoffUtc);
+	      const list = groups.get(k) ?? [];
+	      list.push(f);
+	      groups.set(k, list);
+	    }
+	    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
+	  }, [fixtures, activeLeagues]);
 
   const missingSelectedCount = useMemo(() => {
     const fixtureIdSet = new Set(fixtures.map((f) => f.id));
     return selection.selected.filter((id) => !fixtureIdSet.has(id)).length;
   }, [fixtures, selection.selected]);
+
+	  const selectedFixturesByDateKey = useMemo(() => {
+	    const map = new Map<string, Fixture[]>();
+	    for (const f of fixtures) {
+	      if (!selectedSet.has(f.id) || cancelledSet.has(f.id)) continue;
+	      const key = dateKeyFromUtcIso(f.kickoffUtc);
+	      const list = map.get(key) ?? [];
+	      list.push(f);
+	      map.set(key, list);
+	    }
+	    map.forEach((list) => {
+	      list.sort((a, b) => new Date(a.kickoffUtc).getTime() - new Date(b.kickoffUtc).getTime());
+	    });
+	    return map;
+	  }, [fixtures, selectedSet, cancelledSet]);
+
+	  const calendarDays = useMemo(() => {
+	    const fromDate = new Date(range.from);
+	    const toDate = new Date(range.to);
+	    if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) return [];
+	    const days: { key: string; date: Date }[] = [];
+	    const current = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+	    // Safety guard on number of days
+	    while (current <= toDate && days.length < 62) {
+	      const date = new Date(current);
+	      const year = date.getFullYear();
+	      const month = String(date.getMonth() + 1).padStart(2, '0');
+	      const day = String(date.getDate()).padStart(2, '0');
+	      const key = `${year}-${month}-${day}`;
+	      days.push({ key, date });
+	      current.setDate(current.getDate() + 1);
+	    }
+	    return days;
+	  }, [range.from, range.to]);
+
+	  const todayKey = useMemo(() => {
+	    const now = new Date();
+	    const year = now.getFullYear();
+	    const month = String(now.getMonth() + 1).padStart(2, '0');
+	    const day = String(now.getDate()).padStart(2, '0');
+	    return `${year}-${month}-${day}`;
+	  }, []);
+
+	  const allLeaguesSelected = activeLeagues.length === LEAGUES.length;
+
+	  const toggleLeague = (league: LeagueKey) => {
+	    setActiveLeagues((prev) =>
+	      prev.includes(league) ? prev.filter((l) => l !== league) : [...prev, league],
+	    );
+	  };
+
+	  const toggleAllLeagues = () => {
+	    setActiveLeagues((prev) => (prev.length === LEAGUES.length ? [] : LEAGUES));
+	  };
 
   const toggleSelected = (fixtureId: string) => {
     setSelection((prev) => {
@@ -230,9 +289,12 @@ export default function BarFixturesPage() {
     } finally {
       setBusy(false);
     }
-  };
+	  };
 
-  return (
+	  const hasAnyFixtures = fixtures.length > 0;
+	  const hasVisibleFixtures = fixturesByDay.length > 0;
+
+	  return (
     <div>
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
@@ -263,7 +325,7 @@ export default function BarFixturesPage() {
         </div>
       </div>
 
-      <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
+	      <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
         <span className="rounded-full bg-zinc-100 px-2 py-1 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
           valgte: {selection.selected.length}
         </span>
@@ -277,20 +339,61 @@ export default function BarFixturesPage() {
         )}
       </div>
 
-      {fixturesError && (
+	      <div className="mb-4">
+	        <p className="mb-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+	          Filtrer på ligaer
+	        </p>
+	        <div className="flex flex-wrap gap-2">
+	          <button
+	            type="button"
+	            onClick={toggleAllLeagues}
+	            className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+	              allLeaguesSelected
+	                ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900'
+	                : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900'
+	            }`}
+	          >
+	            {allLeaguesSelected ? 'Alle ligaer' : 'Velg alle'}
+	          </button>
+	          {LEAGUES.map((league) => {
+	            const comp = getCompetitionByKey(league);
+	            const isActive = activeLeagues.includes(league);
+	            return (
+	              <button
+	                key={league}
+	                type="button"
+	                onClick={() => toggleLeague(league)}
+	                className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+	                  isActive
+	                    ? 'border-blue-600 bg-blue-600 text-white dark:border-blue-500 dark:bg-blue-500'
+	                    : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900'
+	                }`}
+	              >
+	                {comp.label}
+	              </button>
+	            );
+	          })}
+	        </div>
+	      </div>
+
+	      {fixturesError && (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
           {fixturesError}
         </div>
       )}
 
-      {isLoadingFixtures && fixtures.length === 0 ? (
+	      {isLoadingFixtures && !hasAnyFixtures ? (
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
           Laster kamper…
         </div>
-      ) : fixtures.length === 0 ? (
+	      ) : !isLoadingFixtures && !hasAnyFixtures ? (
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
           Ingen kommende kamper i perioden.
         </div>
+	      ) : !hasVisibleFixtures ? (
+	        <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
+	          Ingen kamper for de valgte ligaene. Juster filteret over.
+	        </div>
       ) : (
         <div className="space-y-5">
           {fixturesByDay.map(([day, items]) => (
@@ -357,6 +460,78 @@ export default function BarFixturesPage() {
           ))}
         </div>
       )}
+
+	      {hasAnyFixtures && (
+	        <section className="mt-8 rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+	          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Kalender: valgte kamper</h2>
+	          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+	            Gir deg en enkel oversikt over kampene du har valgt per dag.
+	          </p>
+	          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-7">
+	            {calendarDays.map(({ key, date }) => {
+	              const dayFixtures = selectedFixturesByDateKey.get(key) ?? [];
+	              const isToday = key === todayKey;
+	              const dateLabel = date.toLocaleDateString(undefined, {
+	                weekday: 'short',
+	                day: '2-digit',
+	                month: 'short',
+	              });
+
+	              return (
+	                <div
+	                  key={key}
+	                  className={`flex flex-col rounded-xl border p-2 ${
+	                    isToday
+	                      ? 'border-blue-500 bg-blue-50/70 dark:border-blue-400 dark:bg-blue-950/40'
+	                      : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950'
+	                  }`}
+	                >
+	                  <div className="flex items-baseline justify-between gap-1">
+	                    <span className="text-[11px] font-medium text-zinc-700 dark:text-zinc-200">
+	                      {dateLabel}
+	                    </span>
+	                    {isToday && (
+	                      <span className="text-[10px] font-semibold uppercase text-blue-600 dark:text-blue-300">
+	                        I dag
+	                      </span>
+	                    )}
+	                  </div>
+
+	                  {dayFixtures.length > 0 && (
+	                    <div className="mt-1 space-y-0.5">
+	                      {dayFixtures.slice(0, 3).map((f) => {
+	                        const timeLabel = new Date(f.kickoffUtc).toLocaleTimeString(undefined, {
+	                          hour: '2-digit',
+	                          minute: '2-digit',
+	                        });
+	                        return (
+	                          <div
+	                            key={f.id}
+	                            className="truncate text-[11px] text-zinc-800 dark:text-zinc-100"
+	                          >
+	                            <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
+	                              {timeLabel}
+	                            </span>
+	                            <span className="mx-1">·</span>
+	                            <span className="font-medium">
+	                              {f.homeTeam} – {f.awayTeam}
+	                            </span>
+	                          </div>
+	                        );
+	                      })}
+	                      {dayFixtures.length > 3 && (
+	                        <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
+	                          +{dayFixtures.length - 3} flere kamper
+	                        </div>
+	                      )}
+	                    </div>
+	                  )}
+	                </div>
+	              );
+	            })}
+	          </div>
+	        </section>
+	      )}
     </div>
   );
 }
