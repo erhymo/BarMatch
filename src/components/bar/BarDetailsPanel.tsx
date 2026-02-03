@@ -51,6 +51,8 @@ export default function BarDetailsPanel({
   const { getCampaignsForBar } = useCampaigns();
 
   const [showChat, setShowChat] = useState(false);
+  const [isFacilitiesOpen, setIsFacilitiesOpen] = useState(true);
+  const [isOpeningHoursOpen, setIsOpeningHoursOpen] = useState(true);
 
   const todayKey = useMemo(() => {
     // Date.getDay(): 0=sunday .. 6=saturday
@@ -323,6 +325,177 @@ export default function BarDetailsPanel({
             </div>
           </div>
 
+          {/* Compact match summary near top */}
+          {!fixturesError && (
+            <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                  Kamper hos denne baren
+                </h3>
+                {!isLoadingFixtures && selectedFixtures.length > 0 && (
+                  <span className="text-xs text-zinc-600 dark:text-zinc-400">
+                    I dag: {todayFixtures.length} · Kommende: {upcomingFixtures.length}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                {isLoadingFixtures
+                  ? 'Laster kamper...'
+                  : activeSelectedFixtureIds.length === 0
+                    ? 'Denne baren har ikke satt opp kamper enda.'
+                    : selectedFixtures.length === 0
+                      ? 'Ingen kamper akkurat nå (eller de er passert 90-minutters cutoff).'
+                      : 'Se kamper lenger ned på siden.'}
+              </p>
+            </div>
+          )}
+
+          {/* Description */}
+          <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
+              Om baren
+            </h3>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              {bar.description ?? 'Ingen beskrivelse lagt til enda.'}
+            </p>
+          </div>
+
+          {/* Facilities (collapsible) */}
+          {bar.facilities && (
+            <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                  Fasiliteter
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsFacilitiesOpen((prev) => !prev)}
+                  className="text-xs font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                >
+                  {isFacilitiesOpen ? 'Skjul' : 'Vis'}
+                </button>
+              </div>
+
+              {isFacilitiesOpen && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">📺 Skjermer</p>
+                      <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                        {screensLabel}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">🍔 Mat</p>
+                      <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                        {foodLabel}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">🌤️ Uteservering</p>
+                      <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                        {bar.facilities.hasOutdoorSeating ? 'Ja' : 'Nei'}
+                      </p>
+                    </div>
+                    <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">📶 WiFi</p>
+                      <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                        {bar.facilities.hasWifi ? 'Ja' : 'Nei'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {typeof bar.facilities.capacity === 'number' && (
+                    <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+                      👥 Kapasitet: {bar.facilities.capacity}
+                    </p>
+                  )}
+
+                  {facilityBadges.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {facilityBadges.map((label) => (
+                        <span
+                          key={label}
+                          className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:text-zinc-100"
+                        >
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Opening hours (collapsible) */}
+          {bar.openingHours && (
+            <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                  Åpningstider
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsOpeningHoursOpen((prev) => !prev)}
+                  className="text-xs font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                >
+                  {isOpeningHoursOpen ? 'Skjul' : 'Vis'}
+                </button>
+              </div>
+
+              {isOpeningHoursOpen && (
+                <div className="space-y-2">
+                  {(
+                    [
+                      { key: 'monday', label: 'Mandag' },
+                      { key: 'tuesday', label: 'Tirsdag' },
+                      { key: 'wednesday', label: 'Onsdag' },
+                      { key: 'thursday', label: 'Torsdag' },
+                      { key: 'friday', label: 'Fredag' },
+                      { key: 'saturday', label: 'Lørdag' },
+                      { key: 'sunday', label: 'Søndag' },
+                    ] as const
+                  ).map(({ key, label }) => {
+                    const value = bar.openingHours?.[key] ?? '—';
+                    const isToday = key === todayKey;
+                    return (
+                      <div
+                        key={key}
+                        className={`flex items-center justify-between rounded-lg px-3 py-2 border ${
+                          isToday
+                            ? 'border-blue-300 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/30'
+                            : 'border-zinc-200 dark:border-zinc-800'
+                        }`}
+                      >
+                        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                          {label}
+                        </span>
+                        <span className="text-sm text-zinc-600 dark:text-zinc-400">{value}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+	          {/* Contact */}
+	          <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+	            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
+	              Kontakt
+	            </h3>
+	            {bar.phone ? (
+	              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+	                Telefon: <span className="font-medium">{bar.phone}</span>
+	              </p>
+	            ) : (
+	              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+	                Ingen telefonnummer registrert.
+	              </p>
+	            )}
+	          </div>
+
 	          {/* Campaigns & bar offers */}
 	          <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
 	            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
@@ -370,249 +543,128 @@ export default function BarDetailsPanel({
 	            ) : null}
 	          </div>
 
-          {/* Matches this bar shows (based on bar's fixture selections) */}
-          <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
-            <div className="flex items-start justify-between gap-4 mb-2">
-              <div>
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Kamper</h3>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-	                  Vises basert på hva baren har registrert at de viser.
-                </p>
-              </div>
-              <Link
-                href="/kamper"
-                className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                Se alle
-              </Link>
-            </div>
+	          {/* Matches this bar shows (based on bar's fixture selections) */}
+	          <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+	            <div className="flex items-start justify-between gap-4 mb-2">
+	              <div>
+	                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Kamper</h3>
+	                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+		                  Vises basert på hva baren har registrert at de viser.
+	                </p>
+	              </div>
+	              <Link
+	                href="/kamper"
+	                className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+	              >
+	                Se alle
+	              </Link>
+	            </div>
 
-            {isLoadingFixtures && (
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">Laster kamper…</p>
-            )}
+	            {isLoadingFixtures && (
+	              <p className="text-sm text-zinc-600 dark:text-zinc-400">Laster kamper…</p>
+	            )}
 
-            {fixturesError && (
-              <div className="rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/20 p-4">
-                <p className="text-sm text-red-700 dark:text-red-300">{fixturesError}</p>
-                <button
-                  type="button"
-                  onClick={onRetryLoadFixtures}
-                  className="mt-3 inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white dark:bg-zinc-50 dark:text-zinc-900"
-                >
-                  Prøv igjen
-                </button>
-              </div>
-            )}
+	            {fixturesError && (
+	              <div className="rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/20 p-4">
+	                <p className="text-sm text-red-700 dark:text-red-300">{fixturesError}</p>
+	                <button
+	                  type="button"
+	                  onClick={onRetryLoadFixtures}
+	                  className="mt-3 inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white dark:bg-zinc-50 dark:text-zinc-900"
+	                >
+	                  Prøv igjen
+	                </button>
+	              </div>
+	            )}
 
-            {!isLoadingFixtures && !fixturesError && activeSelectedFixtureIds.length === 0 && (
-              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-4">
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Denne baren har ikke satt opp kamper enda.
-                </p>
-              </div>
-            )}
+	            {!isLoadingFixtures && !fixturesError && activeSelectedFixtureIds.length === 0 && (
+	              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-4">
+	                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+	                  Denne baren har ikke satt opp kamper enda.
+	                </p>
+	              </div>
+	            )}
 
-            {!isLoadingFixtures && !fixturesError && activeSelectedFixtureIds.length > 0 && selectedFixtures.length === 0 && (
-              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-4">
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Ingen kamper akkurat nå (eller de er passert 90-minutters cutoff).
-                </p>
-              </div>
-            )}
+	            {!isLoadingFixtures && !fixturesError && activeSelectedFixtureIds.length > 0 && selectedFixtures.length === 0 && (
+	              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-4">
+	                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+	                  Ingen kamper akkurat nå (eller de er passert 90-minutters cutoff).
+	                </p>
+	              </div>
+	            )}
 
-            {!isLoadingFixtures && !fixturesError && selectedFixtures.length > 0 && (
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-2">I dag</h4>
-                  {todayFixtures.length === 0 ? (
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Ingen kamper i dag.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {todayFixtures.slice(0, 6).map((f) => {
-                        const competition = getCompetitionByKey(f.league);
-                        return (
-                          <div
-                            key={f.id}
-                            className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-3"
-                          >
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                                {formatFixtureDateTime(f.kickoffUtc)}
-                              </span>
-                              <span className="text-xs rounded bg-zinc-200/60 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-200">
-                                {competition.label}
-                              </span>
-                            </div>
-                            <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                              {f.homeTeam} – {f.awayTeam}
-                            </div>
-                            {f.venue && (
-                              <div className="text-xs text-zinc-500 dark:text-zinc-400">{f.venue}</div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-2">Kommende</h4>
-                  {upcomingFixtures.length === 0 ? (
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Ingen kommende kamper.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {upcomingFixtures.slice(0, 8).map((f) => {
-                        const competition = getCompetitionByKey(f.league);
-                        return (
-                          <div
-                            key={f.id}
-                            className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-3"
-                          >
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                                {formatFixtureDateTime(f.kickoffUtc)}
-                              </span>
-                              <span className="text-xs rounded bg-zinc-200/60 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-200">
-                                {competition.label}
-                              </span>
-                            </div>
-                            <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                              {f.homeTeam} – {f.awayTeam}
-                            </div>
-                            {f.venue && (
-                              <div className="text-xs text-zinc-500 dark:text-zinc-400">{f.venue}</div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Description */}
-          <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
-              Om baren
-            </h3>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              {bar.description ?? 'Ingen beskrivelse lagt til enda.'}
-            </p>
-          </div>
-
-	          {/* Facilities */}
-	          {bar.facilities && (
-	            <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
-	              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-3">
-	                Fasiliteter
-	              </h3>
-
-	              <div className="grid grid-cols-2 gap-3">
-	                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
-	                  <p className="text-xs text-zinc-500 dark:text-zinc-400">📺 Skjermer</p>
-	                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-	                    {screensLabel}
-	                  </p>
+	            {!isLoadingFixtures && !fixturesError && selectedFixtures.length > 0 && (
+	              <div className="space-y-4">
+	                <div>
+	                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-2">I dag</h4>
+	                  {todayFixtures.length === 0 ? (
+	                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Ingen kamper i dag.</p>
+	                  ) : (
+	                    <div className="space-y-2">
+	                      {todayFixtures.slice(0, 6).map((f) => {
+	                        const competition = getCompetitionByKey(f.league);
+	                        return (
+	                          <div
+	                            key={f.id}
+	                            className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-3"
+	                          >
+	                            <div className="flex items-center gap-2 mb-1">
+	                              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+	                                {formatFixtureDateTime(f.kickoffUtc)}
+	                              </span>
+	                              <span className="text-xs rounded bg-zinc-200/60 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-200">
+	                                {competition.label}
+	                              </span>
+	                            </div>
+	                            <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+	                              {f.homeTeam} – {f.awayTeam}
+	                            </div>
+	                            {f.venue && (
+	                              <div className="text-xs text-zinc-500 dark:text-zinc-400">{f.venue}</div>
+	                            )}
+	                          </div>
+	                        );
+	                      })}
+	                    </div>
+	                  )}
 	                </div>
-	                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
-	                  <p className="text-xs text-zinc-500 dark:text-zinc-400">🍔 Mat</p>
-	                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-	                    {foodLabel}
-	                  </p>
-	                </div>
-	                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
-	                  <p className="text-xs text-zinc-500 dark:text-zinc-400">🌤️ Uteservering</p>
-	                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-	                    {bar.facilities.hasOutdoorSeating ? 'Ja' : 'Nei'}
-	                  </p>
-	                </div>
-	                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
-	                  <p className="text-xs text-zinc-500 dark:text-zinc-400">📶 WiFi</p>
-	                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-	                    {bar.facilities.hasWifi ? 'Ja' : 'Nei'}
-	                  </p>
+
+	                <div>
+	                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-2">Kommende</h4>
+	                  {upcomingFixtures.length === 0 ? (
+	                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Ingen kommende kamper.</p>
+	                  ) : (
+	                    <div className="space-y-2">
+	                      {upcomingFixtures.slice(0, 8).map((f) => {
+	                        const competition = getCompetitionByKey(f.league);
+	                        return (
+	                          <div
+	                            key={f.id}
+	                            className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-3"
+	                          >
+	                            <div className="flex items-center gap-2 mb-1">
+	                              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+	                                {formatFixtureDateTime(f.kickoffUtc)}
+	                              </span>
+	                              <span className="text-xs rounded bg-zinc-200/60 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-200">
+	                                {competition.label}
+	                              </span>
+	                            </div>
+	                            <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+	                              {f.homeTeam} – {f.awayTeam}
+	                            </div>
+	                            {f.venue && (
+	                              <div className="text-xs text-zinc-500 dark:text-zinc-400">{f.venue}</div>
+	                            )}
+	                          </div>
+	                        );
+	                      })}
+	                    </div>
+	                  )}
 	                </div>
 	              </div>
-
-	              {typeof bar.facilities.capacity === 'number' && (
-	                <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-	                  👥 Kapasitet: {bar.facilities.capacity}
-	                </p>
-	              )}
-
-	              {facilityBadges.length > 0 && (
-	                <div className="mt-3 flex flex-wrap gap-2">
-	                  {facilityBadges.map((label) => (
-	                    <span
-	                      key={label}
-	                      className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:text-zinc-100"
-	                    >
-	                      {label}
-	                    </span>
-	                  ))}
-	                </div>
-	              )}
-	            </div>
-	          )}
-
-          {/* Opening hours */}
-          {bar.openingHours && (
-            <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-3">
-                Åpningstider
-              </h3>
-              <div className="space-y-2">
-                {(
-                  [
-                    { key: 'monday', label: 'Mandag' },
-                    { key: 'tuesday', label: 'Tirsdag' },
-                    { key: 'wednesday', label: 'Onsdag' },
-                    { key: 'thursday', label: 'Torsdag' },
-                    { key: 'friday', label: 'Fredag' },
-                    { key: 'saturday', label: 'Lørdag' },
-                    { key: 'sunday', label: 'Søndag' },
-                  ] as const
-                ).map(({ key, label }) => {
-                  const value = bar.openingHours?.[key] ?? '—';
-                  const isToday = key === todayKey;
-                  return (
-                    <div
-                      key={key}
-                      className={`flex items-center justify-between rounded-lg px-3 py-2 border ${
-                        isToday
-                          ? 'border-blue-300 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/30'
-                          : 'border-zinc-200 dark:border-zinc-800'
-                      }`}
-                    >
-                      <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                        {label}
-                      </span>
-                      <span className="text-sm text-zinc-600 dark:text-zinc-400">{value}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Contact */}
-          <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
-              Kontakt
-            </h3>
-            {bar.phone ? (
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Telefon: <span className="font-medium">{bar.phone}</span>
-              </p>
-            ) : (
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Ingen telefonnummer registrert.
-              </p>
-            )}
-          </div>
+	            )}
+	          </div>
         </div>
       </div>
 
