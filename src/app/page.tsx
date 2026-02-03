@@ -291,6 +291,8 @@
 
 		  const handleFavoriteCityChange = (city: CityId | null) => {
 		    setFavoriteCity(city);
+			    // Når bruker velger en eksplisitt by, nullstiller vi fokus på enkeltbar
+			    // slik at kartet følger by-valget i stedet for forrige "finn nærmeste bar".
 			    setMapFocusPosition(null);
 		  };
 
@@ -421,7 +423,10 @@
 			            center={mapCenter}
 			            zoom={13}
 			            useGeolocation={true}
-				            disableAutoPanToUser={Boolean(mapFocusPosition)}
+				            // Hvis bruker har valgt en favorittby, eller vi har eksplisitt fokus
+				            // (f.eks. fra "Finn nærmeste bar"), lar vi ikke geolokasjon
+				            // overstyre kart-senteret.
+				            disableAutoPanToUser={Boolean(favoriteCity) || Boolean(mapFocusPosition)}
 			            focusPosition={mapFocusPosition}
 			            focusZoom={15}
 			            onUserPositionChange={setUserPosition}
