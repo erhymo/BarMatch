@@ -10,6 +10,16 @@ export interface BarFacilities {
   hasOutdoorSeating: boolean;
   hasWifi: boolean;
   capacity?: number;
+  /**
+   * Extra sports + mat/familie-fasiliteter brukt i både admin og sluttbruker-UI.
+   * Alle er valgfrie slik at gamle/barer uten utfylt profil fortsatt fungerer.
+   */
+  hasProjector?: boolean;
+  servesWarmFood?: boolean;
+  servesSnacks?: boolean;
+  hasVegetarianOptions?: boolean;
+  familyFriendly?: boolean;
+  canReserveTable?: boolean;
 }
 
 /**
@@ -57,5 +67,9 @@ export interface Bar {
   facilities?: BarFacilities;
   openingHours?: BarOpeningHours;
   phone?: string;
+  /**
+   * Fritekst om faste tilbud/happy hour som bar-eier styrer i admin.
+   */
+  specialOffers?: string;
 }
 

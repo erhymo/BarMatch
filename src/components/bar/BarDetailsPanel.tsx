@@ -127,6 +127,39 @@ export default function BarDetailsPanel({
 
   const activeCampaigns = getCampaignsForBar(bar.id).filter((c) => c.isActive);
 
+	  const hasSpecialOffers =
+	    typeof bar.specialOffers === 'string' && bar.specialOffers.trim().length > 0;
+
+	  const facilities = bar.facilities;
+	  const screensLabel =
+	    typeof facilities?.screens === 'number' && Number.isFinite(facilities.screens)
+	      ? facilities.screens <= 2
+	        ? '1-2 skjermer'
+	        : facilities.screens <= 5
+	          ? '3-5 skjermer'
+	          : '6+ skjermer'
+	      : 'Ikke oppgitt';
+
+	  const foodDetails: string[] = [];
+	  if (facilities?.servesWarmFood) foodDetails.push('Varm mat');
+	  if (facilities?.servesSnacks) foodDetails.push('Snacks / småretter');
+	  if (facilities?.hasVegetarianOptions) foodDetails.push('Vegetar/vegansk');
+	  const foodLabel =
+	    foodDetails.length > 0
+	      ? foodDetails.join(' • ')
+	      : facilities?.hasFood === true
+	        ? 'Serverer mat'
+	        : facilities?.hasFood === false
+	          ? 'Serverer ikke mat'
+	          : 'Ikke oppgitt';
+
+	  const facilityBadges: string[] = [];
+	  if (facilities?.hasOutdoorSeating) facilityBadges.push('🌤️ Uteservering');
+	  if (facilities?.hasWifi) facilityBadges.push('📶 Gratis WiFi');
+	  if (facilities?.familyFriendly) facilityBadges.push('👨‍👩‍👧 Familievennlig før kl. 21');
+	  if (facilities?.canReserveTable) facilityBadges.push('📅 Reservasjon til kamp');
+	  if (facilities?.hasProjector) facilityBadges.push('📽️ Projektor');
+
   return (
     <>
       {/* Backdrop */}
@@ -290,42 +323,52 @@ export default function BarDetailsPanel({
             </div>
           </div>
 
-          {/* Campaigns */}
-          <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
-              Kampanjer & tilbud
-            </h3>
-            {activeCampaigns.length === 0 ? (
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Ingen aktive kampanjer akkurat nå.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {activeCampaigns.map((campaign) => (
-                  <div
-                    key={campaign.id}
-                    className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-4"
-                  >
-                    <p className="text-sm text-zinc-900 dark:text-zinc-50">
-                      {campaign.text}
-                    </p>
-                    {campaign.tags && campaign.tags.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {campaign.tags.map((tag) => (
-                          <span
-                            key={`${campaign.id}-${tag}`}
-                            className="inline-flex items-center rounded-full bg-blue-600/10 dark:bg-blue-500/20 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-200"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+	          {/* Campaigns & bar offers */}
+	          <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+	            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
+	              Kampanjer & tilbud
+	            </h3>
+	            {hasSpecialOffers && (
+	              <div className="mb-3 rounded-xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 p-4">
+	                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-200 mb-1">
+	                  Fast fra baren
+	                </p>
+	                <p className="text-sm text-emerald-900 dark:text-emerald-50 whitespace-pre-line">
+	                  {bar.specialOffers}
+	                </p>
+	              </div>
+	            )}
+	            {activeCampaigns.length === 0 && !hasSpecialOffers ? (
+	              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+	                Ingen kampanjer eller tilbud er registrert enda.
+	              </p>
+	            ) : activeCampaigns.length > 0 ? (
+	              <div className="space-y-3">
+	                {activeCampaigns.map((campaign) => (
+	                  <div
+	                    key={campaign.id}
+	                    className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-4"
+	                  >
+	                    <p className="text-sm text-zinc-900 dark:text-zinc-50">
+	                      {campaign.text}
+	                    </p>
+	                    {campaign.tags && campaign.tags.length > 0 && (
+	                      <div className="mt-2 flex flex-wrap gap-2">
+	                        {campaign.tags.map((tag) => (
+	                          <span
+	                            key={`${campaign.id}-${tag}`}
+	                            className="inline-flex items-center rounded-full bg-blue-600/10 dark:bg-blue-500/20 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-200"
+	                          >
+	                            {tag}
+	                          </span>
+	                        ))}
+	                      </div>
+	                    )}
+	                  </div>
+	                ))}
+	              </div>
+	            ) : null}
+	          </div>
 
           {/* Matches this bar shows (based on bar's fixture selections) */}
           <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
@@ -460,47 +503,60 @@ export default function BarDetailsPanel({
             </p>
           </div>
 
-          {/* Facilities */}
-          {bar.facilities && (
-            <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-3">
-                Fasiliteter
-              </h3>
+	          {/* Facilities */}
+	          {bar.facilities && (
+	            <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
+	              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-3">
+	                Fasiliteter
+	              </h3>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">📺 Skjermer</p>
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                    {bar.facilities.screens}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">🍔 Mat</p>
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                    {bar.facilities.hasFood ? 'Ja' : 'Nei'}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">🌤️ Uteservering</p>
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                    {bar.facilities.hasOutdoorSeating ? 'Ja' : 'Nei'}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">📶 WiFi</p>
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                    {bar.facilities.hasWifi ? 'Ja' : 'Nei'}
-                  </p>
-                </div>
-              </div>
+	              <div className="grid grid-cols-2 gap-3">
+	                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
+	                  <p className="text-xs text-zinc-500 dark:text-zinc-400">📺 Skjermer</p>
+	                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+	                    {screensLabel}
+	                  </p>
+	                </div>
+	                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
+	                  <p className="text-xs text-zinc-500 dark:text-zinc-400">🍔 Mat</p>
+	                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+	                    {foodLabel}
+	                  </p>
+	                </div>
+	                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
+	                  <p className="text-xs text-zinc-500 dark:text-zinc-400">🌤️ Uteservering</p>
+	                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+	                    {bar.facilities.hasOutdoorSeating ? 'Ja' : 'Nei'}
+	                  </p>
+	                </div>
+	                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
+	                  <p className="text-xs text-zinc-500 dark:text-zinc-400">📶 WiFi</p>
+	                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+	                    {bar.facilities.hasWifi ? 'Ja' : 'Nei'}
+	                  </p>
+	                </div>
+	              </div>
 
-              {typeof bar.facilities.capacity === 'number' && (
-                <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-                  👥 Kapasitet: {bar.facilities.capacity}
-                </p>
-              )}
-            </div>
-          )}
+	              {typeof bar.facilities.capacity === 'number' && (
+	                <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+	                  👥 Kapasitet: {bar.facilities.capacity}
+	                </p>
+	              )}
+
+	              {facilityBadges.length > 0 && (
+	                <div className="mt-3 flex flex-wrap gap-2">
+	                  {facilityBadges.map((label) => (
+	                    <span
+	                      key={label}
+	                      className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:text-zinc-100"
+	                    >
+	                      {label}
+	                    </span>
+	                  ))}
+	                </div>
+	              )}
+	            </div>
+	          )}
 
           {/* Opening hours */}
           {bar.openingHours && (

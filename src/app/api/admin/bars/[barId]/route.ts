@@ -220,6 +220,71 @@ export async function PATCH(
       update.location = { lat, lng };
     }
 
+	    if ('description' in body) {
+	      if (typeof body.description !== 'string') {
+	        return NextResponse.json({ error: 'Invalid description' }, { status: 400 });
+	      }
+	      update.description = body.description.trim();
+	    }
+
+	    if ('specialOffers' in body) {
+	      if (typeof body.specialOffers !== 'string') {
+	        return NextResponse.json({ error: 'Invalid specialOffers' }, { status: 400 });
+	      }
+	      update.specialOffers = body.specialOffers.trim();
+	    }
+
+	    if ('facilities' in body) {
+	      const rec = asRecord(body.facilities);
+	      if (!rec) {
+	        return NextResponse.json({ error: 'Invalid facilities' }, { status: 400 });
+	      }
+
+	      const facilities: Record<string, unknown> = {};
+
+	      if ('screens' in rec) {
+	        const v = rec.screens;
+	        const n = typeof v === 'number' ? v : Number(v);
+	        if (!Number.isFinite(n) || n <= 0) {
+	          return NextResponse.json({ error: 'Invalid facilities.screens' }, { status: 400 });
+	        }
+	        facilities.screens = n;
+	      }
+
+	      const boolKeys = [
+	        'hasFood',
+	        'hasOutdoorSeating',
+	        'hasWifi',
+	        'hasProjector',
+	        'servesWarmFood',
+	        'servesSnacks',
+	        'hasVegetarianOptions',
+	        'familyFriendly',
+	        'canReserveTable',
+	      ] as const;
+
+	      for (const key of boolKeys) {
+	        if (key in rec) {
+	          const v = rec[key];
+	          if (typeof v !== 'boolean') {
+	            return NextResponse.json({ error: `Invalid facilities.${key}` }, { status: 400 });
+	          }
+	          facilities[key] = v;
+	        }
+	      }
+
+	      if ('capacity' in rec) {
+	        const v = rec.capacity;
+	        const n = typeof v === 'number' ? v : Number(v);
+	        if (!Number.isFinite(n) || n <= 0) {
+	          return NextResponse.json({ error: 'Invalid facilities.capacity' }, { status: 400 });
+	        }
+	        facilities.capacity = n;
+	      }
+
+	      update.facilities = facilities;
+	    }
+
 	    // Persisted fixture selection for public bar pages.
 	    // Stored on the bar document as arrays of fixture IDs.
 	    const hasSelected = 'selectedFixtureIds' in body;
