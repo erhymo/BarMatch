@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { Autocomplete, GoogleMap as GoogleMapComponent, LoadScriptNext, Marker } from '@react-google-maps/api';
 import { useToast } from '@/contexts/ToastContext';
 import { useRequireAdminRole } from '@/lib/admin/useRequireAdminRole';
 import { sendEmailVerification } from 'firebase/auth';
@@ -14,12 +15,18 @@ import { getFixtureProvider } from '@/lib/providers/fixtures';
 const CALENDAR_RANGE_DAYS = 30;
 const LEAGUES: LeagueKey[] = ['EPL', 'NOR_ELITESERIEN', 'SERIE_A', 'UCL', 'UEL'];
 
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
+
 type BarDoc = {
 	id: string;
 	name?: string;
 	email?: string;
 	address?: string;
 	phone?: string;
+	location?: {
+		lat: number;
+		lng: number;
+	};
 	isVisible?: boolean;
 	billingEnabled?: boolean;
 	billingStatus?: string;
@@ -129,8 +136,10 @@ export default function BarOwnerDashboard() {
   const { showToast } = useToast();
   const { user, me } = useRequireAdminRole(['bar_owner']);
   const [bar, setBar] = useState<BarDoc | null>(null);
-  const [busy, setBusy] = useState(false);
-		  const [profile, setProfile] = useState<BarProfileFormState | null>(null);
+	const [busy, setBusy] = useState(false);
+	const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+	const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
+			  const [profile, setProfile] = useState<BarProfileFormState | null>(null);
 	  const [fixtures, setFixtures] = useState<Fixture[]>([]);
 	  const [isLoadingFixtures, setIsLoadingFixtures] = useState(false);
 	  const [fixturesError, setFixturesError] = useState<string | null>(null);
@@ -172,9 +181,14 @@ export default function BarOwnerDashboard() {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error(`Failed to load bar (${res.status})`);
-	        const data = (await res.json()) as BarDoc;
-	        setBar(data);
-	        setProfile(buildProfileFromBar(data));
+		        const data = (await res.json()) as BarDoc;
+		        setBar(data);
+		        setProfile(buildProfileFromBar(data));
+		        if (data.location && typeof data.location.lat === 'number' && typeof data.location.lng === 'number') {
+		        	setLocation({ lat: data.location.lat, lng: data.location.lng });
+		        } else {
+		        	setLocation(null);
+		        }
       } catch (e) {
         showToast({
           title: 'Feil',
@@ -391,6 +405,39 @@ export default function BarOwnerDashboard() {
 	    setProfile((prev) => (prev ? { ...prev, [key]: value } : prev));
 	  };
 
+		const handleAutocompletePlaceChanged = () => {
+			if (!autocomplete) return;
+			const place = autocomplete.getPlace();
+			if (!place) return;
+
+			const formatted =
+				(typeof place.formatted_address === 'string' && place.formatted_address) ||
+				(typeof place.name === 'string' && place.name) ||
+				'';
+
+			if (formatted) {
+				updateProfileField('address', formatted);
+			}
+
+			const geometry = place.geometry;
+			const loc = geometry?.location;
+			if (loc) {
+				const lat = loc.lat();
+				const lng = loc.lng();
+				if (Number.isFinite(lat) && Number.isFinite(lng)) {
+					setLocation({ lat, lng });
+				}
+			}
+		};
+
+		const handleMarkerDragEnd = (event: google.maps.MapMouseEvent) => {
+			const lat = event.latLng?.lat();
+			const lng = event.latLng?.lng();
+			if (typeof lat === 'number' && typeof lng === 'number') {
+				setLocation({ lat, lng });
+			}
+		};
+
 			const saveProfile = async () => {
 				if (!user || !me?.barId || !profile) return;
 				setBusy(true);
@@ -439,11 +486,11 @@ export default function BarOwnerDashboard() {
 					const address = profile.address.trim();
 					const phone = profile.phone.trim();
 
-					const body: Record<string, unknown> = {
-						description: profile.description.trim(),
-						specialOffers: profile.specialOffers.trim(),
-						facilities,
-					};
+						const body: Record<string, unknown> = {
+							description: profile.description.trim(),
+							specialOffers: profile.specialOffers.trim(),
+							facilities,
+						};
 
 					if (name) {
 						body.name = name;
@@ -453,7 +500,11 @@ export default function BarOwnerDashboard() {
 						body.address = address;
 					}
 
-					body.phone = phone;
+						body.phone = phone;
+
+						if (location) {
+							body.location = location;
+						}
 
 					const res = await fetch(`/api/admin/bars/${me.barId}`, {
 						method: 'PATCH',
@@ -473,22 +524,23 @@ export default function BarOwnerDashboard() {
 						throw new Error(msg || `Kunne ikke lagre barprofil (${res.status})`);
 					}
 
-					setBar((prev) =>
-						prev
-							? {
-							    ...prev,
-							    name: name || prev.name,
-							    address: address || prev.address,
-							    phone,
-							    description: body.description as string,
-							    specialOffers: body.specialOffers as string,
-							    facilities: {
-							      ...(prev.facilities ?? {}),
-							      ...(facilities as Record<string, unknown>),
-							    },
-							  }
-							: prev,
-						);
+							setBar((prev) =>
+								prev
+									? {
+									    ...prev,
+									    name: name || prev.name,
+									    address: address || prev.address,
+									    phone,
+									    location: location ?? prev.location,
+									    description: body.description as string,
+									    specialOffers: body.specialOffers as string,
+									    facilities: {
+									      ...(prev.facilities ?? {}),
+									      ...(facilities as Record<string, unknown>),
+									    },
+									  }
+									: prev,
+									);
 
 					showToast({
 						title: 'Lagret',
@@ -783,12 +835,67 @@ export default function BarOwnerDashboard() {
 			                  <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
 			                    Adresse
 			                  </label>
-			                  <input
-			                    type="text"
-			                    className="w-full rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
-			                    value={profile.address}
-			                    onChange={(e) => updateProfileField('address', e.target.value)}
-			                  />
+				                  {GOOGLE_MAPS_API_KEY ? (
+				                    <div className="space-y-3">
+				                      <LoadScriptNext
+				                        id="bar-profile-address-map"
+				                        googleMapsApiKey={GOOGLE_MAPS_API_KEY}
+				                        libraries={['places']}
+				                        preventGoogleFontsLoading
+				                      >
+				                        <div className="space-y-3">
+				                          <Autocomplete
+				                            onLoad={(ac) => setAutocomplete(ac)}
+				                            onPlaceChanged={handleAutocompletePlaceChanged}
+				                          >
+				                            <input
+				                              type="text"
+				                              className="w-full rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+				                              value={profile.address}
+				                              onChange={(e) => updateProfileField('address', e.target.value)}
+				                            />
+				                          </Autocomplete>
+				
+				                          <div className="rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950/40">
+				                            <div className="h-52 w-full">
+				                              {location ? (
+				                                <GoogleMapComponent
+				                                  mapContainerStyle={{ width: '100%', height: '100%' }}
+				                                  center={location}
+				                                  zoom={16}
+				                                  options={{
+				                                    streetViewControl: false,
+				                                    mapTypeControl: false,
+				                                    fullscreenControl: true,
+				                                  }}
+				                                >
+				                                  <Marker position={location} draggable onDragEnd={handleMarkerDragEnd} />
+				                                </GoogleMapComponent>
+				                              ) : (
+				                                <div className="flex h-full items-center justify-center px-3 text-xs text-zinc-500 dark:text-zinc-400">
+				                                  Søk opp adressen over og velg et treff for å se og finjustere plassering
+				                                  på kartet.
+				                                </div>
+				                              )}
+				                            </div>
+				                          </div>
+				                        </div>
+				                      </LoadScriptNext>
+				                    </div>
+				                  ) : (
+				                    <>
+				                      <input
+				                        type="text"
+				                        className="w-full rounded-lg border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+				                        value={profile.address}
+				                        onChange={(e) => updateProfileField('address', e.target.value)}
+				                      />
+				                      <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+				                        Kart og adresseforslag krever en Google Maps API-nøkkel
+				                        (NEXT_PUBLIC_GOOGLE_MAPS_API_KEY).
+				                      </p>
+				                    </>
+				                  )}
 			                </div>
 			
 			                <div>
