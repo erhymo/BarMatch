@@ -108,3 +108,49 @@ export async function sendHiddenDay14(params: { to: string; barName?: string }) 
   const text = `Hei${barName ? ` ${barName}` : ''}.\n\nGrace-perioden er utløpt og baren er nå skjult i where2watch pga manglende betaling.\n\nDu har fortsatt full tilgang til /admin/bar. Oppdater betalingskort der for å aktivere abonnementet igjen.\n\nHilsen where2watch`;
   await getTransporter().sendMail({ from, to, subject, text });
 }
+
+export async function sendBarContactMessageEmail(params: {
+  to: string;
+  barName?: string;
+  customerName?: string;
+  customerEmail: string;
+  customerPhone?: string;
+  message: string;
+}) {
+  const from = getMailFrom();
+  const { to, barName, customerName, customerEmail, customerPhone, message } = params;
+
+  const subject = 'where2watch – Ny melding fra kunde';
+
+  const safeBarName = barName ?? 'baren din';
+  const safeCustomerName = customerName && customerName.trim().length > 0 ? customerName.trim() : 'Ikke oppgitt';
+  const safePhone = customerPhone && customerPhone.trim().length > 0 ? customerPhone.trim() : 'Ikke oppgitt';
+
+  const text = `Hei ${safeBarName}.\n\nDu har fått en ny melding fra en kunde via where2watch:\n\nNavn: ${safeCustomerName}\nE-post: ${customerEmail}\nTelefon: ${safePhone}\n\nMelding:\n${message}\n\nDu kan svare direkte ved å svare på denne e-posten.\n\nHilsen where2watch`;
+
+  const html = `
+    <div style="font-family: ui-sans-serif, system-ui; line-height: 1.5">
+      <h2 style="margin: 0 0 12px">where2watch</h2>
+      <p>Hei ${safeBarName}.</p>
+      <p>Du har fått en ny melding fra en kunde via where2watch:</p>
+      <ul>
+        <li><strong>Navn:</strong> ${safeCustomerName}</li>
+        <li><strong>E-post:</strong> ${customerEmail}</li>
+        <li><strong>Telefon:</strong> ${safePhone}</li>
+      </ul>
+      <p><strong>Melding:</strong></p>
+      <p style="white-space: pre-wrap; border-left: 3px solid #e4e4e7; padding-left: 12px; margin: 8px 0 16px;">${message}</p>
+      <p>Du kan svare kunden ved å svare direkte på denne e-posten.</p>
+      <p style="margin-top: 20px; color: #52525b">Hilsen where2watch</p>
+    </div>
+  `;
+
+  await getTransporter().sendMail({
+    from,
+    to,
+    replyTo: customerEmail,
+    subject,
+    text,
+    html,
+  });
+}

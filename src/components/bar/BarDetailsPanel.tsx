@@ -8,7 +8,7 @@ import { useRatings } from '@/contexts/RatingsContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useCampaigns } from '@/lib/hooks';
 import StarRating from '@/components/rating/StarRating';
-import ChatPanel from '@/components/chat/ChatPanel';
+import ContactFormModal from '@/components/bar/ContactFormModal';
 import type { Fixture } from '@/lib/types/fixtures';
 import { getCompetitionByKey } from '@/lib/config/competitions';
 import { BarFixtureSelectionService, BarService } from '@/lib/services';
@@ -668,13 +668,13 @@ export default function BarDetailsPanel({
         </div>
       </div>
 
-      {showChat && (
-        <ChatPanel
-          barId={bar.id}
-          barName={bar.name}
-          onClose={() => setShowChat(false)}
-        />
-      )}
+	      {showChat && (
+	        <ContactFormModal
+	          barId={bar.id}
+	          barName={bar.name}
+	          onClose={() => setShowChat(false)}
+	        />
+	      )}
     </>
   );
 }

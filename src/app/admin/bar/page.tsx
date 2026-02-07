@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Autocomplete, GoogleMap as GoogleMapComponent, LoadScriptNext, Marker } from '@react-google-maps/api';
 import { useToast } from '@/contexts/ToastContext';
@@ -12,7 +12,7 @@ import { daysRemaining, tsToMs } from '@/lib/utils/time';
 import type { Fixture, LeagueKey } from '@/lib/types/fixtures';
 import { getFixtureProvider } from '@/lib/providers/fixtures';
 
-const CALENDAR_RANGE_DAYS = 30;
+const CALENDAR_RANGE_DAYS = 14;
 const LEAGUES: LeagueKey[] = ['EPL', 'NOR_ELITESERIEN', 'SERIE_A', 'UCL', 'UEL'];
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
@@ -50,6 +50,17 @@ type BarDoc = {
 	};
 	selectedFixtureIds?: unknown;
 	cancelledFixtureIds?: unknown;
+};
+
+type BarMessage = {
+	id: string;
+	barId: string;
+	name: string | null;
+	email: string;
+	phone: string | null;
+	message: string;
+	readByBar: boolean;
+	createdAt?: string | null;
 };
 
 function parseStringArray(value: unknown): string[] {
@@ -140,9 +151,13 @@ export default function BarOwnerDashboard() {
 	const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
 	const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
 			  const [profile, setProfile] = useState<BarProfileFormState | null>(null);
-	  const [fixtures, setFixtures] = useState<Fixture[]>([]);
-	  const [isLoadingFixtures, setIsLoadingFixtures] = useState(false);
-	  const [fixturesError, setFixturesError] = useState<string | null>(null);
+		  const [fixtures, setFixtures] = useState<Fixture[]>([]);
+		  const [isLoadingFixtures, setIsLoadingFixtures] = useState(false);
+		  const [fixturesError, setFixturesError] = useState<string | null>(null);
+		  const [messages, setMessages] = useState<BarMessage[]>([]);
+		  const [messagesLoading, setMessagesLoading] = useState(false);
+		  const [messagesError, setMessagesError] = useState<string | null>(null);
+		  const [messagesOpen, setMessagesOpen] = useState(false);
 
 
 	  const emailVerified = Boolean(user?.emailVerified);
@@ -166,8 +181,8 @@ export default function BarOwnerDashboard() {
 	        ? 'Betalingen har feilet og fristen er utløpt. Oppdater betalingskort før baren kan bli synlig.'
 	        : null;
 
-	  const fixtureProvider = useMemo(() => getFixtureProvider(), []);
-	  const calendarRange = useMemo(() => createCalendarRange(), []);
+			  const fixtureProvider = useMemo(() => getFixtureProvider(), []);
+		  const calendarRange = useMemo(() => createCalendarRange(), []);
 
 	  useEffect(() => {
     const run = async () => {
@@ -287,7 +302,7 @@ export default function BarOwnerDashboard() {
 	    return days;
 	  }, [calendarRange.from, calendarRange.to]);
 
-	  const todayKey = useMemo(() => {
+			  const todayKey = useMemo(() => {
 	    const now = new Date();
 	    const year = now.getFullYear();
 	    const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -295,9 +310,81 @@ export default function BarOwnerDashboard() {
 	    return `${year}-${month}-${day}`;
 	  }, []);
 
-	  const hasAnyFixtures = fixtures.length > 0;
+			  const hasAnyFixtures = fixtures.length > 0;
 
-  const toggleVisible = async () => {
+		  const unreadMessageCount = useMemo(
+		    () => messages.filter((m) => !m.readByBar).length,
+		    [messages],
+		  );
+
+		  const loadMessages = useCallback(async () => {
+		    if (!user || !me || me.role !== 'bar_owner' || !me.barId) return;
+		    setMessagesLoading(true);
+		    setMessagesError(null);
+		    try {
+		      const token = await user.getIdToken();
+		      const res = await fetch(`/api/admin/bars/${me.barId}/messages`, {
+		        headers: { Authorization: `Bearer ${token}` },
+		      });
+		      if (!res.ok) throw new Error(`Kunne ikke hente meldinger (${res.status})`);
+		      const raw: unknown = await res.json().catch(() => ({}));
+		      const data =
+		        raw && typeof raw === 'object' && !Array.isArray(raw)
+		          ? (raw as { messages?: BarMessage[] })
+		          : null;
+		      const list = Array.isArray(data?.messages) ? data!.messages : [];
+		      setMessages(list);
+		    } catch (e) {
+		      setMessagesError(e instanceof Error ? e.message : 'Kunne ikke hente meldinger');
+		    } finally {
+		      setMessagesLoading(false);
+		    }
+		  }, [user, me]);
+
+		  const markMessagesAsRead = useCallback(
+		    async (ids: string[]) => {
+		      if (!user || !me || !me.barId || ids.length === 0) return;
+		      try {
+		        const token = await user.getIdToken();
+		        const res = await fetch(`/api/admin/bars/${me.barId}/messages/mark-read`, {
+		          method: 'POST',
+		          headers: {
+		            Authorization: `Bearer ${token}`,
+		            'Content-Type': 'application/json',
+		          },
+		          body: JSON.stringify({ ids }),
+		        });
+		        if (!res.ok) throw new Error(`Kunne ikke oppdatere meldinger (${res.status})`);
+		        setMessages((prev) =>
+		          prev.map((m) => (ids.includes(m.id) ? { ...m, readByBar: true } : m)),
+		        );
+		      } catch (e) {
+		        showToast({
+		          title: 'Feil',
+		          description:
+		            e instanceof Error ? e.message : 'Kunne ikke markere meldinger som lest.',
+		          variant: 'error',
+		        });
+		      }
+		    },
+		    [user, me, showToast],
+		  );
+
+		  useEffect(() => {
+		    void loadMessages();
+		  }, [loadMessages]);
+
+		  const handleToggleMessagesOpen = () => {
+		    if (!messagesOpen) {
+		      const unreadIds = messages.filter((m) => !m.readByBar).map((m) => m.id);
+		      if (unreadIds.length > 0) {
+		        void markMessagesAsRead(unreadIds);
+		      }
+		    }
+		    setMessagesOpen((prev) => !prev);
+		  };
+
+		  const toggleVisible = async () => {
     if (!user || !me?.barId || !bar) return;
     const next = !bar.isVisible;
 		if (next && visibilityBlockedReason) {
@@ -606,32 +693,136 @@ export default function BarOwnerDashboard() {
 					: 'Ikke oppgitt';
 
 			return (
-	    <div>
-	      <div className="mb-6">
-	        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Bar-panel</h1>
-	        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-	          Synlighet, betaling og barprofil.
-	        </p>
-	      </div>
+		    <div>
+		      <div className="mb-6">
+		        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Bar-panel</h1>
+		        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+		          Synlighet, betaling og barprofil.
+		        </p>
+		      </div>
 
-	      {!emailVerified && (
-	        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
-	          <div className="font-medium">E-post ikke verifisert</div>
-	          <div className="mt-1">
-	            Du kan ikke sette baren synlig før e-posten er verifisert.
-	          </div>
-	          <button
-	            type="button"
-	            disabled={busy}
-	            onClick={resendVerification}
-	            className="mt-3 inline-flex items-center justify-center rounded-lg border border-amber-300 bg-amber-100 px-3 py-2 text-sm font-medium text-amber-900 disabled:opacity-50 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100"
-	          >
-	            Send verifisering på nytt
-	          </button>
-	        </div>
-	      )}
+		      <div className="mb-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+		        <button
+		          type="button"
+		          onClick={handleToggleMessagesOpen}
+		          className="flex w-full items-center justify-between gap-3 text-left"
+		        >
+		          <div>
+		            <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+		              Meldinger fra kunder
+		            </div>
+		            <div className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+		              {messagesLoading
+		                ? 'Laster meldinger...'
+		                : unreadMessageCount > 0
+		                  ? `${unreadMessageCount} ulest${unreadMessageCount === 1 ? '' : 'e'} melding${unreadMessageCount === 1 ? '' : 'er'}`
+		                  : messages.length > 0
+		                    ? 'Ingen uleste meldinger'
+		                    : 'Ingen meldinger ennå'}
+		            </div>
+		            {messagesError && (
+		              <div className="mt-1 text-xs text-red-600 dark:text-red-400">
+		                {messagesError}
+		              </div>
+		            )}
+		          </div>
+		          <div className="flex items-center gap-2">
+		            {unreadMessageCount > 0 && (
+		              <span className="inline-flex items-center justify-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-100">
+		                {unreadMessageCount}
+		              </span>
+		            )}
+		            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+		              {messagesOpen ? 'Skjul' : 'Vis'}
+		            </span>
+		          </div>
+		        </button>
 
-	      {paymentFailed && graceActive && (
+		        {messagesOpen && (
+		          <div className="mt-3 max-h-80 space-y-2 overflow-y-auto text-xs">
+		            {messages.length === 0 ? (
+		              <p className="text-zinc-600 dark:text-zinc-400">Ingen meldinger ennå.</p>
+		            ) : (
+		              messages.map((msg) => {
+		                const createdLabel =
+		                  msg.createdAt && typeof msg.createdAt === 'string'
+		                    ? new Date(msg.createdAt).toLocaleString('nb-NO', {
+		                        dateStyle: 'short',
+		                        timeStyle: 'short',
+		                      })
+		                    : 'Ukjent tidspunkt';
+		                const subjectBase = bar?.name
+		                  ? `Svar: melding til ${bar.name}`
+		                  : 'Svar: melding via where2watch';
+		                const bodyBase =
+		                  `Hei${msg.name ? ' ' + msg.name : ''},\n\n` +
+		                  `Takk for meldingen din til ${bar?.name ?? 'baren vår'} via where2watch.\n\n` +
+		                  '---\nOriginal melding:\n' +
+		                  msg.message;
+		                const replyHref = `mailto:${encodeURIComponent(
+		                  msg.email,
+		                )}?subject=${encodeURIComponent(subjectBase)}&body=${encodeURIComponent(bodyBase)}`;
+
+		                return (
+		                  <div
+		                    key={msg.id}
+		                    className={`rounded-xl border p-3 ${
+		                      msg.readByBar
+		                        ? 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900'
+		                        : 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/20'
+		                    }`}
+		                  >
+		                    <div className="flex items-start justify-between gap-2">
+		                      <div>
+		                        <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-50">
+		                          {msg.name || 'Ukjent navn'}
+		                        </div>
+		                        <div className="mt-0.5 text-[11px] text-zinc-600 dark:text-zinc-400">
+		                          {msg.email}
+		                          {msg.phone ? ` · ${msg.phone}` : ''}
+		                        </div>
+		                      </div>
+		                      <div className="text-[10px] text-zinc-500 dark:text-zinc-400">
+		                        {createdLabel}
+		                      </div>
+		                    </div>
+		                    <p className="mt-2 whitespace-pre-line text-xs text-zinc-700 dark:text-zinc-200">
+		                      {msg.message}
+		                    </p>
+		                    <div className="mt-2 flex justify-end">
+		                      <a
+		                        href={replyHref}
+		                        className="inline-flex items-center rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600"
+		                      >
+		                        Svar
+		                      </a>
+		                    </div>
+		                  </div>
+		                );
+		              })
+		            )}
+		          </div>
+		        )}
+		      </div>
+
+		      {!emailVerified && (
+		        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
+		          <div className="font-medium">E-post ikke verifisert</div>
+		          <div className="mt-1">
+		            Vi anbefaler å verifisere e-postadressen din slik at du er sikker på å motta viktige beskjeder og kvitteringer.
+		          </div>
+		          <button
+		            type="button"
+		            disabled={busy}
+		            onClick={resendVerification}
+		            className="mt-3 inline-flex items-center justify-center rounded-lg border border-amber-300 bg-amber-100 px-3 py-2 text-sm font-medium text-amber-900 disabled:opacity-50 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100"
+		          >
+		            Send verifisering på nytt
+		          </button>
+		        </div>
+		      )}
+
+		      {paymentFailed && graceActive && (
 	        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
 	          <div className="font-medium">Betaling feilet</div>
 	          <div className="mt-1">
@@ -701,20 +892,20 @@ export default function BarOwnerDashboard() {
           </button>
         </div>
 
-		        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+		        <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
 		          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Kamper</h2>
-		          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+		          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
 		            Velg hvilke kamper baren din viser, slik at de vises på kartet for sluttbrukere.
 		          </p>
 		          <Link
 		            href="/admin/bar/fixtures"
-		            className="mt-4 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-900"
+		            className="mt-3 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-900"
 		          >
 		            Velg kamper
 		          </Link>
 		        </div>
-
-			        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+		
+		        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
 			          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Kalender: valgte kamper</h2>
 			          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
 			            Oversikt over kampene du har valgt å vise på baren din (neste {CALENDAR_RANGE_DAYS} dager).
@@ -743,23 +934,23 @@ export default function BarOwnerDashboard() {
 			              </Link>
 			              {' '}for å velge.
 			            </p>
-			          ) : (
-			            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7">
+		          ) : (
+		            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
 			              {calendarDays.map(({ key, date }) => {
 			                const dayFixtures = selectedFixturesByDateKey.get(key) ?? [];
 			                const isToday = key === todayKey;
 			                if (dayFixtures.length === 0) {
-			                  return (
-			                    <div
-			                      key={key}
-			                      className="flex flex-col rounded-xl border border-dashed border-zinc-200 bg-zinc-50 p-2 text-[11px] text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400"
-			                    >
+		                  return (
+		                    <div
+		                      key={key}
+		                      className="flex flex-col rounded-xl border border-dashed border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400"
+		                    >
 			                      <div className="flex items-baseline justify-between gap-2">
 			                        <span className="font-medium text-zinc-700 dark:text-zinc-200">
 			                          {formatCalendarDate(date)}
 			                        </span>
-			                        {isToday && (
-			                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-100">
+		                        {isToday && (
+		                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-100">
 			                            I dag
 			                          </span>
 			                        )}
@@ -773,17 +964,17 @@ export default function BarOwnerDashboard() {
 			                const visible = dayFixtures.slice(0, maxVisible);
 			                const remaining = dayFixtures.length - visible.length;
 			
-			                return (
-			                  <div
-			                    key={key}
-			                    className="flex flex-col rounded-xl border border-zinc-200 bg-white p-2 text-[11px] text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
-			                  >
+		                return (
+		                  <div
+		                    key={key}
+		                    className="flex flex-col rounded-xl border border-zinc-200 bg-white p-3 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+		                  >
 			                    <div className="flex items-baseline justify-between gap-2">
 			                      <span className="font-medium">
 			                        {formatCalendarDate(date)}
 			                      </span>
-			                      {isToday && (
-			                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-100">
+		                      {isToday && (
+		                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-100">
 			                          I dag
 			                        </span>
 			                      )}
