@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Autocomplete, GoogleMap as GoogleMapComponent, LoadScriptNext, Marker } from '@react-google-maps/api';
 import { useToast } from '@/contexts/ToastContext';
 import { useRequireAdminRole } from '@/lib/admin/useRequireAdminRole';
-import { sendEmailVerification } from 'firebase/auth';
 import { StatusPill } from '@/components/admin/StatusPill';
 import { getBillingText } from '@/lib/admin/statusText';
 import { daysRemaining, tsToMs } from '@/lib/utils/time';
@@ -157,12 +156,9 @@ export default function BarOwnerDashboard() {
 		  const [fixturesError, setFixturesError] = useState<string | null>(null);
 		  const [messages, setMessages] = useState<BarMessage[]>([]);
 		  const [messagesLoading, setMessagesLoading] = useState(false);
-		  const [messagesError, setMessagesError] = useState<string | null>(null);
-		  const [messagesOpen, setMessagesOpen] = useState(false);
-
-
-	  const emailVerified = Boolean(user?.emailVerified);
-	  const graceEndsMs = tsToMs(bar?.stripe?.gracePeriodEndsAt);
+			  const [messagesError, setMessagesError] = useState<string | null>(null);
+			  const [messagesOpen, setMessagesOpen] = useState(false);
+		  const graceEndsMs = tsToMs(bar?.stripe?.gracePeriodEndsAt);
 	  const paymentFailed = bar?.billingStatus === 'payment_failed';
 
 		  const graceDaysRemaining = useMemo(() => {
@@ -435,27 +431,6 @@ export default function BarOwnerDashboard() {
       setBusy(false);
     }
   };
-
-	const resendVerification = async () => {
-		if (!user) return;
-		setBusy(true);
-		try {
-			await sendEmailVerification(user);
-			showToast({
-				title: 'Sendt',
-				description: 'Vi har sendt en ny e-post for verifisering. Sjekk innboksen.',
-				variant: 'success',
-			});
-		} catch (e) {
-			showToast({
-				title: 'Feil',
-				description: e instanceof Error ? e.message : 'Ukjent feil',
-				variant: 'error',
-			});
-		} finally {
-			setBusy(false);
-		}
-	};
 
   const updatePaymentCard = async () => {
     if (!user) return;
@@ -904,23 +879,6 @@ export default function BarOwnerDashboard() {
 			          </div>
 			        )}
 		      </div>
-
-		      {!emailVerified && (
-		        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
-		          <div className="font-medium">E-post ikke verifisert</div>
-		          <div className="mt-1">
-		            Vi anbefaler å verifisere e-postadressen din slik at du er sikker på å motta viktige beskjeder og kvitteringer.
-		          </div>
-		          <button
-		            type="button"
-		            disabled={busy}
-		            onClick={resendVerification}
-		            className="mt-3 inline-flex items-center justify-center rounded-lg border border-amber-300 bg-amber-100 px-3 py-2 text-sm font-medium text-amber-900 disabled:opacity-50 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100"
-		          >
-		            Send verifisering på nytt
-		          </button>
-		        </div>
-		      )}
 
 		      {paymentFailed && graceActive && (
 	        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
