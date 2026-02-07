@@ -935,65 +935,68 @@ export default function BarOwnerDashboard() {
 			              {' '}for å velge.
 			            </p>
 		          ) : (
-		            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+		            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
 			              {calendarDays.map(({ key, date }) => {
 			                const dayFixtures = selectedFixturesByDateKey.get(key) ?? [];
 			                const isToday = key === todayKey;
 			                if (dayFixtures.length === 0) {
-		                  return (
-		                    <div
-		                      key={key}
-		                      className="flex flex-col rounded-xl border border-dashed border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400"
-		                    >
-			                      <div className="flex items-baseline justify-between gap-2">
-			                        <span className="font-medium text-zinc-700 dark:text-zinc-200">
-			                          {formatCalendarDate(date)}
-			                        </span>
-		                        {isToday && (
-		                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-100">
-			                            I dag
-			                          </span>
-			                        )}
-			                      </div>
-			                      <span className="mt-1">Ingen kamper</span>
-			                    </div>
-			                  );
-			                }
-			
-			                const maxVisible = 2;
-			                const visible = dayFixtures.slice(0, maxVisible);
-			                const remaining = dayFixtures.length - visible.length;
-			
-		                return (
-		                  <div
-		                    key={key}
-		                    className="flex flex-col rounded-xl border border-zinc-200 bg-white p-3 text-xs text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
-		                  >
-			                    <div className="flex items-baseline justify-between gap-2">
-			                      <span className="font-medium">
-			                        {formatCalendarDate(date)}
-			                      </span>
-		                      {isToday && (
-		                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-100">
-			                          I dag
-			                        </span>
-			                      )}
-			                    </div>
-			                    <div className="mt-1 space-y-0.5">
-			                      {visible.map((f) => (
-			                        <div key={f.id} className="truncate">
-			                          {f.homeTeam} – {f.awayTeam}
-			                        </div>
-			                      ))}
-			                      {remaining > 0 && (
-			                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400">
-			                          +{remaining} flere kamper
-			                        </div>
-			                      )}
-			                    </div>
-			                  </div>
-			                );
-			              })}
+			                  return (
+			                    <div
+			                      key={key}
+			                      className="flex flex-col rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400"
+			                    >
+				                      <div className="flex items-baseline justify-between gap-2">
+				                        <span className="font-medium text-zinc-700 dark:text-zinc-200">
+				                          {formatCalendarDate(date)}
+				                        </span>
+			                        {isToday && (
+			                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-100">
+				                            I dag
+				                          </span>
+				                        )}
+				                      </div>
+				                      <span className="mt-2 text-sm">Ingen kamper</span>
+				                    </div>
+				                  );
+				                }
+				
+				                const maxVisible = 2;
+				                const visible = dayFixtures.slice(0, maxVisible);
+				                const remaining = dayFixtures.length - visible.length;
+				
+			                return (
+			                  <div
+			                    key={key}
+			                    className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-4 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+			                  >
+				                    <div className="flex items-baseline justify-between gap-2">
+				                      <span className="font-medium">
+				                        {formatCalendarDate(date)}
+				                      </span>
+			                      {isToday && (
+			                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-100">
+				                          I dag
+				                        </span>
+				                      )}
+				                    </div>
+				                    <div className="mt-2 space-y-1.5">
+				                      {visible.map((f) => (
+				                        <div
+				                          key={f.id}
+				                          className="truncate rounded-lg bg-zinc-100 px-3 py-1.5 text-[13px] font-medium dark:bg-zinc-800/80"
+				                        >
+				                          {f.homeTeam} – {f.awayTeam}
+				                        </div>
+				                      ))}
+				                      {remaining > 0 && (
+				                        <div className="pt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+				                          +{remaining} flere kamper
+				                        </div>
+				                      )}
+				                    </div>
+				                  </div>
+				                );
+				              })}
 			            </div>
 			          )}
 			        </div>
