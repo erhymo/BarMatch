@@ -14,6 +14,7 @@ export default function ContactFormModal({ barId, barName, onClose }: ContactFor
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [category, setCategory] = useState("booking");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +42,7 @@ export default function ContactFormModal({ barId, barName, onClose }: ContactFor
           name: name.trim(),
           email: trimmedEmail,
           phone: phone.trim(),
+          category,
           message: trimmedMessage,
         }),
       });
@@ -60,7 +62,7 @@ export default function ContactFormModal({ barId, barName, onClose }: ContactFor
 
       showToast({
         title: "Melding sendt",
-        description: `Meldingen din er sendt til ${barName ?? "baren"}.`,
+        description: `Meldingen din er sendt til ${barName ?? "baren"}. Baren får den både som e-post og i where2watch-innboksen sin.`,
         variant: "success",
       });
 
@@ -88,7 +90,7 @@ export default function ContactFormModal({ barId, barName, onClose }: ContactFor
               Kontakt {barName ?? "baren"}
             </h2>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Fyll inn skjemaet så sender vi meldingen din til baren på e-post.
+              Meldingen sendes både som e-post til baren og inn i where2watch-innboksen deres. De svarer deg direkte på e-post.
             </p>
           </div>
           <button
@@ -143,6 +145,24 @@ export default function ContactFormModal({ barId, barName, onClose }: ContactFor
 
           <div>
             <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              Hva gjelder henvendelsen?
+            </label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
+            >
+              <option value="booking">Bordreservasjon / større følge</option>
+              <option value="match_question">Spørsmål om en spesifikk kamp</option>
+              <option value="other">Annet</option>
+            </select>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Dette hjelper baren å forstå hva du trenger.
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
               Melding
             </label>
             <textarea
@@ -160,7 +180,7 @@ export default function ContactFormModal({ barId, barName, onClose }: ContactFor
           )}
 
           <div className="flex items-center justify-between pt-1 text-xs text-zinc-500 dark:text-zinc-400">
-            <span>Baren får meldingen som e-post og svarer deg direkte.</span>
+            <span>Baren får meldingen både som e-post og i where2watch-innboksen sin. De fleste svarer i løpet av åpningstiden.</span>
           </div>
 
           <div className="mt-2 flex justify-end gap-2">

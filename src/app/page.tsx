@@ -1,7 +1,7 @@
 		'use client';
 
 			import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-		import { useSearchParams } from 'next/navigation';
+			import { useSearchParams, useRouter } from 'next/navigation';
 		import GoogleMap from '@/components/map/GoogleMap';
 		import SportFilterPanel from '@/components/filter/SportFilterPanel';
 		import CityFilterPanel from '@/components/filter/CityFilterPanel';
@@ -25,8 +25,9 @@
 			}
 
 		function HomeContent() {
-		  const searchParams = useSearchParams();
-		  const matchId = searchParams.get('matchId');
+			  const searchParams = useSearchParams();
+			  const router = useRouter();
+			  const matchId = searchParams.get('matchId');
 
 		  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
 			  const [selectedLeague, setSelectedLeague] = useState<LeagueKey>('EPL');
@@ -107,6 +108,14 @@
 			    if (isLoadingFixtures) return;
 			    void loadFixtures();
 			  }, [isFilterPanelOpen, fixtures.length, isLoadingFixtures, loadFixtures]);
+
+				  // Ensure fixtures are loaded when coming from /kamper with a specific matchId
+				  useEffect(() => {
+				    if (!matchId) return;
+				    if (fixtures.length > 0) return;
+				    if (isLoadingFixtures) return;
+				    void loadFixtures();
+				  }, [matchId, fixtures.length, isLoadingFixtures, loadFixtures]);
 
 			  // Migrate legacy key (matchbar.favoriteCity) -> where2watch.favoriteCity
 			  useEffect(() => {
@@ -264,7 +273,33 @@
 			    );
 			  }, [barsFilteredByTeam, matchId]);
 
-		const handleTeamSelect = (teamName: string | null) => {
+				  const activeMatch = useMemo(() => {
+				    if (!matchId) return null;
+				    if (!fixtures || fixtures.length === 0) return null;
+				    const found = fixtures.find((f) => f.id === matchId);
+				    return found ?? null;
+				  }, [fixtures, matchId]);
+
+				  const activeMatchDescription = useMemo(() => {
+				    if (!activeMatch) return null;
+				    const dt = new Date(activeMatch.kickoffUtc);
+				    const date = dt.toLocaleDateString('nb-NO', {
+				      weekday: 'short',
+				      day: 'numeric',
+				      month: 'short',
+				    });
+				    const time = dt.toLocaleTimeString('nb-NO', {
+				      hour: '2-digit',
+				      minute: '2-digit',
+				    });
+				    return `${activeMatch.homeTeam}  ${activeMatch.awayTeam}  ${date} kl. ${time}`;
+				  }, [activeMatch]);
+
+					const handleClearMatchFilter = () => {
+					  router.push('/');
+					};
+				
+					const handleTeamSelect = (teamName: string | null) => {
 		  setSelectedTeam(teamName);
 		};
 
@@ -453,6 +488,38 @@
 				              setIsNearestListOpen(false);
 				            }}
 				          />
+				        )}
+				
+				        {/* Active match filter banner when navigated from /kamper */}
+				        {matchId && (
+				          <div className="pointer-events-none absolute inset-x-0 top-20 flex justify-center px-4">
+				            <div className="pointer-events-auto max-w-md rounded-xl bg-emerald-50/95 dark:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-700 px-4 py-3 shadow-md text-xs text-emerald-950 dark:text-emerald-50">
+				              <div className="flex items-start justify-between gap-3">
+				                <div>
+				                  <p className="text-[11px] font-semibold uppercase tracking-wide">
+				                    Filtrerer p e5 kamp
+				                  </p>
+				                  <p className="mt-1 text-xs">
+				                    {activeMatchDescription ? (
+				                      <>
+				                        Viser barer som viser:{' '}
+				                        <span className="font-medium">{activeMatchDescription}</span>
+				                      </>
+				                    ) : (
+				                      'Viser barer som viser valgt kamp.'
+				                    )}
+				                  </p>
+				                </div>
+				                <button
+				                  type="button"
+				                  onClick={handleClearMatchFilter}
+				                  className="ml-2 inline-flex items-center rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-medium text-white hover:bg-emerald-700"
+				                >
+				                  Fjern kampfilter
+				                </button>
+				              </div>
+				            </div>
+				          </div>
 				        )}
 
 			        {/* Find nearest bar */}

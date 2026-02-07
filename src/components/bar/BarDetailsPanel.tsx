@@ -53,6 +53,7 @@ export default function BarDetailsPanel({
   const [showChat, setShowChat] = useState(false);
   const [isFacilitiesOpen, setIsFacilitiesOpen] = useState(true);
   const [isOpeningHoursOpen, setIsOpeningHoursOpen] = useState(true);
+	  const [nowMs] = useState(() => Date.now());
 
   const todayKey = useMemo(() => {
     // Date.getDay(): 0=sunday .. 6=saturday
@@ -114,7 +115,25 @@ export default function BarDetailsPanel({
     });
 
     return { todayFixtures, upcomingFixtures };
-  }, [selectedFixtures]);
+	  }, [selectedFixtures]);
+
+	 	 const matchesThisWeekCount = useMemo(() => {
+	 	   if (selectedFixtures.length === 0) return 0;
+	 	   const weekMs = 7 * 24 * 60 * 60 * 1000;
+	 	   const cutoff = nowMs + weekMs;
+	 	   let count = 0;
+	 	   for (const f of selectedFixtures) {
+	 	     const t = new Date(f.kickoffUtc).getTime();
+	 	     if (Number.isNaN(t)) continue;
+	 	     if (t >= nowMs && t <= cutoff) count++;
+	 	   }
+	 	   return count;
+	 	 }, [selectedFixtures, nowMs]);
+
+	  const nextHighlightedFixtures = useMemo(
+	    () => selectedFixtures.slice(0, 2),
+	    [selectedFixtures],
+	  );
 
   const distanceLabel = useMemo(() => {
     if (!userPosition) return null;
@@ -560,7 +579,52 @@ export default function BarDetailsPanel({
 	              </Link>
 	            </div>
 
-	            {isLoadingFixtures && (
+			            {matchesThisWeekCount > 0 && (
+			              <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
+			                Baren viser {matchesThisWeekCount} kamp
+			                {matchesThisWeekCount === 1 ? '' : 'er'} denne uken.
+			              </p>
+			            )}
+
+			            {nextHighlightedFixtures.length > 0 && (
+			              <div className="mt-4 rounded-2xl border border-emerald-300 bg-emerald-50/80 p-4 dark:border-emerald-700 dark:bg-emerald-900/30">
+			                <div className="mb-2 flex items-center justify-between gap-2">
+			                  <h4 className="text-sm font-semibold text-emerald-900 dark:text-emerald-50">
+			                    Neste kamp{nextHighlightedFixtures.length > 1 ? 'er' : ''}
+			                  </h4>
+			                  <span className="text-[11px] text-emerald-800/80 dark:text-emerald-100/80">
+			                    Starter snart hos denne baren
+			                  </span>
+			                </div>
+			                <div className="space-y-2">
+			                  {nextHighlightedFixtures.map((f) => {
+			                    const competition = getCompetitionByKey(f.league);
+			                    return (
+			                      <div
+			                        key={f.id}
+			                        className="rounded-xl bg-white/90 px-3 py-2 shadow-sm ring-1 ring-emerald-200 dark:bg-zinc-900/90 dark:ring-emerald-800"
+			                      >
+			                        <div className="flex items-center justify-between gap-2">
+			                          <div className="flex flex-col gap-1">
+			                            <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-50">
+			                              {formatFixtureDateTime(f.kickoffUtc)}
+			                            </span>
+			                            <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+			                              {f.homeTeam} – {f.awayTeam}
+			                            </div>
+			                          </div>
+			                          <span className="text-[11px] rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
+			                            {competition.label}
+			                          </span>
+			                        </div>
+			                      </div>
+			                    );
+			                  })}
+			                </div>
+			              </div>
+			            )}
+
+			            {isLoadingFixtures && (
 	              <p className="text-sm text-zinc-600 dark:text-zinc-400">Laster kamper…</p>
 	            )}
 

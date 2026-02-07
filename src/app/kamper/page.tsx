@@ -409,6 +409,9 @@ export default function KamperPage() {
             <p className="text-lg text-zinc-600 dark:text-zinc-400">
               Se kommende kamper, filtrer på liga og fokuser på dine favorittlag.
             </p>
+	            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+	              Trykk på en kamp for å se hvilke barer som viser den på kartet.
+	            </p>
           </header>
 
 			          {IS_DEV && (

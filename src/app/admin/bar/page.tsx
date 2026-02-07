@@ -52,16 +52,17 @@ type BarDoc = {
 	cancelledFixtureIds?: unknown;
 };
 
-type BarMessage = {
-	id: string;
-	barId: string;
-	name: string | null;
-	email: string;
-	phone: string | null;
-	message: string;
-	readByBar: boolean;
-	createdAt?: string | null;
-};
+	type BarMessage = {
+		id: string;
+		barId: string;
+		name: string | null;
+		email: string;
+		phone: string | null;
+		message: string;
+		category: string | null;
+		readByBar: boolean;
+		createdAt?: string | null;
+	};
 
 function parseStringArray(value: unknown): string[] {
 	if (!Array.isArray(value)) return [];
@@ -310,14 +311,19 @@ export default function BarOwnerDashboard() {
 	    return `${year}-${month}-${day}`;
 	  }, []);
 
-			  const hasAnyFixtures = fixtures.length > 0;
+				const hasAnyFixtures = fixtures.length > 0;
 
-		  const unreadMessageCount = useMemo(
-		    () => messages.filter((m) => !m.readByBar).length,
-		    [messages],
-		  );
+			  const { unreadMessages, readMessages, unreadMessageCount } = useMemo(() => {
+			    const unread: BarMessage[] = [];
+			    const read: BarMessage[] = [];
+			    for (const m of messages) {
+			      if (m.readByBar) read.push(m);
+			      else unread.push(m);
+			    }
+			    return { unreadMessages: unread, readMessages: read, unreadMessageCount: unread.length };
+			  }, [messages]);
 
-		  const loadMessages = useCallback(async () => {
+			  const loadMessages = useCallback(async () => {
 		    if (!user || !me || me.role !== 'bar_owner' || !me.barId) return;
 		    setMessagesLoading(true);
 		    setMessagesError(null);
@@ -374,15 +380,15 @@ export default function BarOwnerDashboard() {
 		    void loadMessages();
 		  }, [loadMessages]);
 
-		  const handleToggleMessagesOpen = () => {
-		    if (!messagesOpen) {
-		      const unreadIds = messages.filter((m) => !m.readByBar).map((m) => m.id);
-		      if (unreadIds.length > 0) {
-		        void markMessagesAsRead(unreadIds);
-		      }
-		    }
-		    setMessagesOpen((prev) => !prev);
-		  };
+			  const handleToggleMessagesOpen = () => {
+			    if (!messagesOpen) {
+			      const unreadIds = unreadMessages.map((m) => m.id);
+			      if (unreadIds.length > 0) {
+			        void markMessagesAsRead(unreadIds);
+			      }
+			    }
+			    setMessagesOpen((prev) => !prev);
+			  };
 
 		  const toggleVisible = async () => {
     if (!user || !me?.barId || !bar) return;
@@ -687,12 +693,108 @@ export default function BarOwnerDashboard() {
 			if (profile?.canReserveTable) previewFacilityBadges.push('📅 Reservasjon til kamp');
 			if (profile?.hasProjector) previewFacilityBadges.push('📽️ Projektor');
 
-			const previewCapacityLabel =
+				const previewCapacityLabel =
 				profile && profile.capacity.trim().length > 0
 					? `Ca. ${profile.capacity.trim()} personer`
 					: 'Ikke oppgitt';
+				
+				const matchesNext7DaysCount = useMemo(() => {
+				  if (fixtures.length === 0 || activeSelectedFixtureIds.size === 0) return 0;
+				  const now = Date.now();
+				  const weekMs = 7 * 24 * 60 * 60 * 1000;
+				  const cutoff = now + weekMs;
+				  let count = 0;
+				  for (const f of fixtures) {
+				    if (!activeSelectedFixtureIds.has(f.id)) continue;
+				    const t = new Date(f.kickoffUtc).getTime();
+				    if (Number.isNaN(t)) continue;
+				    if (t >= now && t <= cutoff) count++;
+				  }
+				  return count;
+				}, [fixtures, activeSelectedFixtureIds]);
 
-			return (
+				const formatMessageCategory = (category: string | null | undefined): string => {
+				  switch (category) {
+				    case 'booking':
+				      return 'Bordreservasjon / større følge';
+				    case 'match_question':
+				      return 'Spørsmål om kamp';
+				    case 'other':
+				    default:
+				      return 'Annet / ikke spesifisert';
+				  }
+				};
+
+				const renderMessageCard = (msg: BarMessage) => {
+				  const createdLabel =
+				    msg.createdAt && typeof msg.createdAt === 'string'
+				      ? new Date(msg.createdAt).toLocaleString('nb-NO', {
+				          dateStyle: 'short',
+				          timeStyle: 'short',
+				        })
+				      : 'Ukjent tidspunkt';
+				  const subjectBase = bar?.name
+				    ? `Svar: melding til ${bar.name}`
+				    : 'Svar: melding via where2watch';
+				  const bodyBase =
+				    `Hei${msg.name ? ' ' + msg.name : ''},\n\n` +
+				    `Takk for meldingen din til ${bar?.name ?? 'baren vår'} via where2watch.\n\n` +
+				    '---\nOriginal melding:\n' +
+				    msg.message;
+				  const replyHref = `mailto:${encodeURIComponent(
+				    msg.email,
+				  )}?subject=${encodeURIComponent(subjectBase)}&body=${encodeURIComponent(bodyBase)}`;
+				  const categoryLabel = formatMessageCategory(msg.category);
+				
+				  return (
+				    <div
+				      key={msg.id}
+				      className={`rounded-xl border p-3 ${
+				        msg.readByBar
+				          ? 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900'
+				          : 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/20'
+				      }`}
+				    >
+				      <div className="flex items-start justify-between gap-2">
+				        <div>
+				          <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-50">
+				            {msg.name || 'Ukjent navn'}
+				          </div>
+				          <div className="mt-0.5 text-[11px] text-zinc-600 dark:text-zinc-400">
+				            {msg.email}
+				            {msg.phone ? ` · ${msg.phone}` : ''}
+				          </div>
+				          <div className="mt-1 flex flex-wrap gap-1">
+				            <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
+				              {categoryLabel}
+				            </span>
+				          </div>
+				        </div>
+				        <div className="flex flex-col items-end gap-1 text-[10px] text-zinc-500 dark:text-zinc-400">
+				          <span>{createdLabel}</span>
+				          {!msg.readByBar && (
+				            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-100">
+				              Ny
+				            </span>
+				          )}
+				        </div>
+				      </div>
+				      <p className="mt-2 whitespace-pre-line text-xs text-zinc-700 dark:text-zinc-200">
+				        {msg.message}
+				      </p>
+				      <div className="mt-2 flex justify-end">
+				        <a
+				          href={replyHref}
+				          className="inline-flex items-center rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600"
+				        >
+				          Svar
+				        </a>
+				      </div>
+				    </div>
+				  );
+				};
+
+				return (
 		    <div>
 		      <div className="mb-6">
 		        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Bar-panel</h1>
@@ -700,6 +802,67 @@ export default function BarOwnerDashboard() {
 		          Synlighet, betaling og barprofil.
 		        </p>
 		      </div>
+
+			      <div className="mb-4 grid gap-3 md:grid-cols-3">
+			        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+			          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+			            Synlighet
+			          </div>
+			          <div className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+			            {bar?.isVisible ? 'Synlig på kartet' : 'Skjult på kartet'}
+			          </div>
+			          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+			            {bar?.isVisible
+			              ? 'Baren din er synlig for supportere som søker i området.'
+			              : 'Skru på «Gjør synlig» under for å dukke opp i søk.'}
+			          </p>
+			        </div>
+
+			        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+			          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+			            Kamper neste 7 dager
+			          </div>
+			          <div className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+			            {matchesNext7DaysCount} kamp{matchesNext7DaysCount === 1 ? '' : 'er'}
+			          </div>
+			          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+			            {matchesNext7DaysCount > 0
+			              ? 'Disse kampene vises for brukere som ser på baren din.'
+			              : 'Ingen valgte kamper den neste uken ennå.'}
+			          </p>
+			          <Link
+			            href="/admin/bar/fixtures"
+			            className="mt-2 inline-flex text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+			          >
+			            Juster kamper
+			          </Link>
+			        </div>
+
+			        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+			          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+			            Meldinger fra kunder
+			          </div>
+			          <div className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+			            {messagesLoading
+			              ? 'Laster meldinger…'
+			              : unreadMessageCount > 0
+			                ? `${unreadMessageCount} ulest${unreadMessageCount === 1 ? '' : 'e'}`
+			                : 'Ingen uleste meldinger'}
+			          </div>
+			          {messages.length > 0 && (
+			            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+			              Totalt {messages.length} melding{messages.length === 1 ? '' : 'er'}.
+			            </p>
+			          )}
+			          <button
+			            type="button"
+			            onClick={handleToggleMessagesOpen}
+			            className="mt-2 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:bg-zinc-800"
+			          >
+			            Åpne innboks
+			          </button>
+			        </div>
+			      </div>
 
 		      <div className="mb-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
 		        <button
@@ -738,71 +901,32 @@ export default function BarOwnerDashboard() {
 		          </div>
 		        </button>
 
-		        {messagesOpen && (
-		          <div className="mt-3 max-h-80 space-y-2 overflow-y-auto text-xs">
-		            {messages.length === 0 ? (
-		              <p className="text-zinc-600 dark:text-zinc-400">Ingen meldinger ennå.</p>
-		            ) : (
-		              messages.map((msg) => {
-		                const createdLabel =
-		                  msg.createdAt && typeof msg.createdAt === 'string'
-		                    ? new Date(msg.createdAt).toLocaleString('nb-NO', {
-		                        dateStyle: 'short',
-		                        timeStyle: 'short',
-		                      })
-		                    : 'Ukjent tidspunkt';
-		                const subjectBase = bar?.name
-		                  ? `Svar: melding til ${bar.name}`
-		                  : 'Svar: melding via where2watch';
-		                const bodyBase =
-		                  `Hei${msg.name ? ' ' + msg.name : ''},\n\n` +
-		                  `Takk for meldingen din til ${bar?.name ?? 'baren vår'} via where2watch.\n\n` +
-		                  '---\nOriginal melding:\n' +
-		                  msg.message;
-		                const replyHref = `mailto:${encodeURIComponent(
-		                  msg.email,
-		                )}?subject=${encodeURIComponent(subjectBase)}&body=${encodeURIComponent(bodyBase)}`;
-
-		                return (
-		                  <div
-		                    key={msg.id}
-		                    className={`rounded-xl border p-3 ${
-		                      msg.readByBar
-		                        ? 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900'
-		                        : 'border-emerald-300 bg-emerald-50 dark:border-emerald-700 dark:bg-emerald-900/20'
-		                    }`}
-		                  >
-		                    <div className="flex items-start justify-between gap-2">
-		                      <div>
-		                        <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-50">
-		                          {msg.name || 'Ukjent navn'}
-		                        </div>
-		                        <div className="mt-0.5 text-[11px] text-zinc-600 dark:text-zinc-400">
-		                          {msg.email}
-		                          {msg.phone ? ` · ${msg.phone}` : ''}
-		                        </div>
-		                      </div>
-		                      <div className="text-[10px] text-zinc-500 dark:text-zinc-400">
-		                        {createdLabel}
-		                      </div>
-		                    </div>
-		                    <p className="mt-2 whitespace-pre-line text-xs text-zinc-700 dark:text-zinc-200">
-		                      {msg.message}
-		                    </p>
-		                    <div className="mt-2 flex justify-end">
-		                      <a
-		                        href={replyHref}
-		                        className="inline-flex items-center rounded-lg bg-emerald-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600"
-		                      >
-		                        Svar
-		                      </a>
-		                    </div>
-		                  </div>
-		                );
-		              })
-		            )}
-		          </div>
-		        )}
+			        {messagesOpen && (
+			          <div className="mt-3 max-h-80 space-y-2 overflow-y-auto text-xs">
+			            {messages.length === 0 ? (
+			              <p className="text-zinc-600 dark:text-zinc-400">Ingen meldinger ennå.</p>
+			            ) : (
+			              <>
+			                {unreadMessages.length > 0 && (
+			                  <div className="space-y-2">
+			                    <div className="mb-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">
+			                      Nye meldinger
+			                    </div>
+			                    {unreadMessages.map(renderMessageCard)}
+			                  </div>
+			                )}
+			                {readMessages.length > 0 && (
+			                  <div className="mt-3 space-y-2">
+			                    <div className="mb-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">
+			                      Tidligere meldinger
+			                    </div>
+			                    {readMessages.map(renderMessageCard)}
+			                  </div>
+			                )}
+			              </>
+			            )}
+			          </div>
+			        )}
 		      </div>
 
 		      {!emailVerified && (

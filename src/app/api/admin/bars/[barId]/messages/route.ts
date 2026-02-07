@@ -53,6 +53,7 @@ export async function GET(
 	        const message = typeof data.message === 'string' ? data.message : '';
 	        const readByBar = Boolean(data.readByBar);
 	        const createdAt = toIsoMaybe(data.createdAt);
+		        const category = typeof data.category === 'string' ? data.category : null;
 
 	        return {
 	          id: doc.id,
@@ -62,6 +63,7 @@ export async function GET(
 	          phone,
 	          message,
 	          readByBar,
+		          category,
 	          createdAt,
 	        };
 	      })

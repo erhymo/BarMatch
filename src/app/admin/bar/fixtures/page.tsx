@@ -252,8 +252,8 @@ export default function BarFixturesPage() {
 	  const hasAnyFixtures = fixtures.length > 0;
 	  const hasVisibleFixtures = fixturesByDay.length > 0;
 
-	  return (
-    <div>
+		  return (
+	    <div>
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Velg kamper</h1>
@@ -352,70 +352,120 @@ export default function BarFixturesPage() {
 	        <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
 	          Ingen kamper for de valgte ligaene. Juster filteret over.
 	        </div>
-      ) : (
-        <div className="space-y-5">
-          {fixturesByDay.map(([day, items]) => (
-            <section key={day} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{day}</h2>
-              <div className="mt-3 space-y-2">
-                {items.map((f) => {
-                  const selected = selectedSet.has(f.id);
-                  const cancelled = cancelledSet.has(f.id);
-                  const comp = getCompetitionByKey(f.league);
-                  return (
-                    <div
-                      key={f.id}
-                      className="flex flex-col gap-2 rounded-xl border border-zinc-200 p-3 dark:border-zinc-800 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-xs rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-                            {comp.label}
-                          </span>
-                          <span className="text-xs text-zinc-500 dark:text-zinc-400">{formatKickoff(f.kickoffUtc)}</span>
-                          {cancelled && (
-                            <span className="text-xs rounded-full bg-red-100 px-2 py-0.5 text-red-800 dark:bg-red-900/30 dark:text-red-200">
-                              Avlyst
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-1 text-sm font-medium text-zinc-900 dark:text-zinc-50 truncate">
-                          {f.homeTeam} – {f.awayTeam}
-                        </div>
-                      </div>
+	      ) : (
+	        <div className="space-y-5">
+	          {fixturesByDay.map(([day, items]) => {
+	            const totalForDay = items.length;
+	            const selectedForDay = items.filter((f) => selectedSet.has(f.id) && !cancelledSet.has(f.id));
+	            const selectedCount = selectedForDay.length;
+	            const hasSelected = selectedCount > 0;
 
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => toggleSelected(f.id)}
-                          className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
-                            selected
-                              ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900'
-                              : 'border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-900'
-                          }`}
-                        >
-                          {selected ? 'Vises' : 'Vis'}
-                        </button>
+	            let hasClusterWarning = false;
+	            if (selectedForDay.length >= 3) {
+	              const times = selectedForDay
+	                .map((f) => new Date(f.kickoffUtc).getTime())
+	                .filter((t) => !Number.isNaN(t))
+	                .sort((a, b) => a - b);
+	              const threeHoursMs = 3 * 60 * 60 * 1000;
+	              for (let i = 0; i < times.length; i++) {
+	                let count = 1;
+	                for (let j = i + 1; j < times.length; j++) {
+	                  if (times[j] - times[i] <= threeHoursMs) count++;
+	                  else break;
+	                }
+	                if (count >= 3) {
+	                  hasClusterWarning = true;
+	                  break;
+	                }
+	              }
+	            }
 
-                        <button
-                          type="button"
-                          disabled={!selected}
-                          onClick={() => toggleCancelled(f.id)}
-                          className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
-                            cancelled
-                              ? 'border-red-600 bg-red-600 text-white dark:border-red-500 dark:bg-red-500 dark:text-zinc-900'
-                              : 'border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-900'
-                          }`}
-                        >
-                          {cancelled ? 'Avlyst' : 'Marker avlyst'}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-	              </div>
-	            </section>
-	          ))}
+	            return (
+	              <section
+	                key={day}
+	                className={`rounded-2xl border p-5 shadow-sm ${
+	                  hasSelected
+	                    ? 'border-emerald-300 bg-emerald-50/60 dark:border-emerald-700 dark:bg-emerald-900/20'
+	                    : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950'
+	                }`}
+	              >
+	                <h2 className="flex items-baseline justify-between gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+	                  <span>{day}</span>
+	                  <span className="text-xs font-normal text-zinc-600 dark:text-zinc-400">
+	                    {totalForDay} kamp{totalForDay === 1 ? '' : 'er'}
+	                    {hasSelected && (
+	                      <>
+	                        {' '}
+	                        • {selectedCount} valgt
+	                      </>
+	                    )}
+	                  </span>
+	                </h2>
+			        {hasClusterWarning && (
+		                  <p className="mt-1 text-xs text-amber-800 dark:text-amber-200">
+		                    Mange valgte kamper tett på hverandre denne dagen. Sjekk at dere rekker å vise alle.
+		                  </p>
+		                )}
+	                <div className="mt-3 space-y-2">
+	                  {items.map((f) => {
+	                    const selected = selectedSet.has(f.id);
+	                    const cancelled = cancelledSet.has(f.id);
+	                    const comp = getCompetitionByKey(f.league);
+	                    return (
+	                      <div
+	                        key={f.id}
+	                        className="flex flex-col gap-2 rounded-xl border border-zinc-200 p-3 dark:border-zinc-800 sm:flex-row sm:items-center sm:justify-between"
+	                      >
+	                        <div className="min-w-0">
+	                          <div className="flex flex-wrap items-center gap-2">
+	                            <span className="text-xs rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+	                              {comp.label}
+	                            </span>
+	                            <span className="text-xs text-zinc-500 dark:text-zinc-400">{formatKickoff(f.kickoffUtc)}</span>
+	                            {cancelled && (
+	                              <span className="text-xs rounded-full bg-red-100 px-2 py-0.5 text-red-800 dark:bg-red-900/30 dark:text-red-200">
+	                                Avlyst
+	                              </span>
+	                            )}
+	                          </div>
+	                          <div className="mt-1 truncate text-sm font-medium text-zinc-900 dark:text-zinc-50">
+	                            {f.homeTeam} – {f.awayTeam}
+	                          </div>
+	                        </div>
+
+	                        <div className="flex items-center gap-3">
+	                          <button
+	                            type="button"
+	                            onClick={() => toggleSelected(f.id)}
+	                            className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+	                              selected
+	                                ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900'
+	                                : 'border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-900'
+	                            }`}
+	                          >
+	                            {selected ? 'Vises' : 'Vis'}
+	                          </button>
+
+	                          <button
+	                            type="button"
+	                            disabled={!selected}
+	                            onClick={() => toggleCancelled(f.id)}
+	                            className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors disabled:opacity-50 ${
+	                              cancelled
+	                                ? 'border-red-600 bg-red-600 text-white dark:border-red-500 dark:bg-red-500 dark:text-zinc-900'
+	                                : 'border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-900'
+	                            }`}
+	                          >
+	                            {cancelled ? 'Avlyst' : 'Marker avlyst'}
+	                          </button>
+	                        </div>
+	                      </div>
+	                    );
+	                  })}
+	                </div>
+	              </section>
+	            );
+	          })}
 	        </div>
 	      )}
 	    </div>

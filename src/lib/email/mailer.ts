@@ -110,23 +110,30 @@ export async function sendHiddenDay14(params: { to: string; barName?: string }) 
 }
 
 export async function sendBarContactMessageEmail(params: {
-  to: string;
-  barName?: string;
-  customerName?: string;
-  customerEmail: string;
-  customerPhone?: string;
-  message: string;
-}) {
+	  to: string;
+	  barName?: string;
+	  customerName?: string;
+	  customerEmail: string;
+	  customerPhone?: string;
+	  message: string;
+	  category?: string;
+	}) {
   const from = getMailFrom();
-  const { to, barName, customerName, customerEmail, customerPhone, message } = params;
+	  const { to, barName, customerName, customerEmail, customerPhone, message, category } = params;
 
   const subject = 'where2watch – Ny melding fra kunde';
 
   const safeBarName = barName ?? 'baren din';
   const safeCustomerName = customerName && customerName.trim().length > 0 ? customerName.trim() : 'Ikke oppgitt';
   const safePhone = customerPhone && customerPhone.trim().length > 0 ? customerPhone.trim() : 'Ikke oppgitt';
+	  const categoryLabel =
+	    category === 'booking'
+	      ? 'Bordreservasjon / større følge'
+	      : category === 'match_question'
+	        ? 'Spørsmål om kamp'
+	        : 'Annet / ikke oppgitt';
 
-  const text = `Hei ${safeBarName}.\n\nDu har fått en ny melding fra en kunde via where2watch:\n\nNavn: ${safeCustomerName}\nE-post: ${customerEmail}\nTelefon: ${safePhone}\n\nMelding:\n${message}\n\nDu kan svare direkte ved å svare på denne e-posten.\n\nHilsen where2watch`;
+	  const text = `Hei ${safeBarName}.\n\nDu har fått en ny melding fra en kunde via where2watch:\n\nNavn: ${safeCustomerName}\nE-post: ${customerEmail}\nTelefon: ${safePhone}\nType henvendelse: ${categoryLabel}\n\nMelding:\n${message}\n\nDu kan svare direkte ved å svare på denne e-posten.\n\nHilsen where2watch`;
 
   const html = `
     <div style="font-family: ui-sans-serif, system-ui; line-height: 1.5">
@@ -137,6 +144,7 @@ export async function sendBarContactMessageEmail(params: {
         <li><strong>Navn:</strong> ${safeCustomerName}</li>
         <li><strong>E-post:</strong> ${customerEmail}</li>
         <li><strong>Telefon:</strong> ${safePhone}</li>
+	        <li><strong>Type henvendelse:</strong> ${categoryLabel}</li>
       </ul>
       <p><strong>Melding:</strong></p>
       <p style="white-space: pre-wrap; border-left: 3px solid #e4e4e7; padding-left: 12px; margin: 8px 0 16px;">${message}</p>
