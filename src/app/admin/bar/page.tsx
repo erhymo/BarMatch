@@ -145,28 +145,26 @@ export default function BarOwnerDashboard() {
 	  const [fixturesError, setFixturesError] = useState<string | null>(null);
 
 
-  const emailVerified = Boolean(user?.emailVerified);
-  const graceEndsMs = tsToMs(bar?.stripe?.gracePeriodEndsAt);
-  const paymentFailed = bar?.billingStatus === 'payment_failed';
+	  const emailVerified = Boolean(user?.emailVerified);
+	  const graceEndsMs = tsToMs(bar?.stripe?.gracePeriodEndsAt);
+	  const paymentFailed = bar?.billingStatus === 'payment_failed';
 
-	  const graceDaysRemaining = useMemo(() => {
-    if (!paymentFailed || typeof graceEndsMs !== 'number') return null;
-    const d = daysRemaining(graceEndsMs);
-    return d > 0 ? d : null;
-  }, [paymentFailed, graceEndsMs]);
+		  const graceDaysRemaining = useMemo(() => {
+	    if (!paymentFailed || typeof graceEndsMs !== 'number') return null;
+	    const d = daysRemaining(graceEndsMs);
+	    return d > 0 ? d : null;
+	  }, [paymentFailed, graceEndsMs]);
 
-  const graceActive = paymentFailed && typeof graceDaysRemaining === 'number';
-  const graceExpired = paymentFailed && !graceActive;
-  const canceled = bar?.billingStatus === 'canceled';
+	  const graceActive = paymentFailed && typeof graceDaysRemaining === 'number';
+	  const graceExpired = paymentFailed && !graceActive;
+	  const canceled = bar?.billingStatus === 'canceled';
 
 	  const visibilityBlockedReason =
-    !emailVerified
-      ? 'Du må verifisere e-post før baren kan settes synlig.'
-      : canceled
-        ? 'Abonnementet er kansellert. Baren kan ikke settes synlig.'
-        : graceExpired
-          ? 'Betalingen har feilet og fristen er utløpt. Oppdater betalingskort før baren kan bli synlig.'
-          : null;
+	    canceled
+	      ? 'Abonnementet er kansellert. Baren kan ikke settes synlig.'
+	      : graceExpired
+	        ? 'Betalingen har feilet og fristen er utløpt. Oppdater betalingskort før baren kan bli synlig.'
+	        : null;
 
 	  const fixtureProvider = useMemo(() => getFixtureProvider(), []);
 	  const calendarRange = useMemo(() => createCalendarRange(), []);

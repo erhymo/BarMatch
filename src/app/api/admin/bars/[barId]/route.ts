@@ -145,20 +145,14 @@ export async function PATCH(
       const billingStatus = typeof barData.billingStatus === 'string' ? barData.billingStatus : 'unknown';
       const graceEndsMs = toMillisMaybe((barData.stripe as Record<string, unknown> | undefined)?.gracePeriodEndsAt);
 
-      // Bar-owner rules (superadmin can override from superadmin page)
-      if (me.role === 'bar_owner' && nextVisible) {
-        // Email verification gate
-        const auth = getFirebaseAdminAuth();
-        const user = await auth.getUser(uid);
-        update.emailVerified = user.emailVerified;
-        if (!user.emailVerified) {
-          return NextResponse.json(
-            { error: 'Du må verifisere e-post før baren kan settes synlig.' },
-            { status: 400 },
-          );
-        }
+	      // Bar-owner rules (superadmin can override from superadmin page)
+	      if (me.role === 'bar_owner' && nextVisible) {
+	        // Keep emailVerified in sync for bar owners (no longer a hard gate for visibility).
+	        const auth = getFirebaseAdminAuth();
+	        const user = await auth.getUser(uid);
+	        update.emailVerified = user.emailVerified;
 
-        // Billing gate
+	        // Billing gate
         if (billingStatus === 'canceled') {
           return NextResponse.json(
             { error: 'Abonnementet er kansellert. Baren kan ikke settes synlig.' },
