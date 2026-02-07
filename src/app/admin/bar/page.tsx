@@ -803,7 +803,7 @@ export default function BarOwnerDashboard() {
 		        </p>
 		      </div>
 
-			      <div className="mb-4 grid gap-3 md:grid-cols-3">
+				      <div className="mb-4 grid gap-3 md:grid-cols-2">
 			        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
 			          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
 			            Synlighet
@@ -838,30 +838,6 @@ export default function BarOwnerDashboard() {
 			          </Link>
 			        </div>
 
-			        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-			          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-			            Meldinger fra kunder
-			          </div>
-			          <div className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-			            {messagesLoading
-			              ? 'Laster meldinger…'
-			              : unreadMessageCount > 0
-			                ? `${unreadMessageCount} ulest${unreadMessageCount === 1 ? '' : 'e'}`
-			                : 'Ingen uleste meldinger'}
-			          </div>
-			          {messages.length > 0 && (
-			            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-			              Totalt {messages.length} melding{messages.length === 1 ? '' : 'er'}.
-			            </p>
-			          )}
-			          <button
-			            type="button"
-			            onClick={handleToggleMessagesOpen}
-			            className="mt-2 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-900 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:bg-zinc-800"
-			          >
-			            Åpne innboks
-			          </button>
-			        </div>
 			      </div>
 
 		      <div className="mb-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
