@@ -280,20 +280,20 @@
 				    return found ?? null;
 				  }, [fixtures, matchId]);
 
-				  const activeMatchDescription = useMemo(() => {
-				    if (!activeMatch) return null;
-				    const dt = new Date(activeMatch.kickoffUtc);
-				    const date = dt.toLocaleDateString('nb-NO', {
-				      weekday: 'short',
-				      day: 'numeric',
-				      month: 'short',
-				    });
-				    const time = dt.toLocaleTimeString('nb-NO', {
-				      hour: '2-digit',
-				      minute: '2-digit',
-				    });
-				    return `${activeMatch.homeTeam}  ${activeMatch.awayTeam}  ${date} kl. ${time}`;
-				  }, [activeMatch]);
+					  const activeMatchDescription = useMemo(() => {
+					    if (!activeMatch) return null;
+					    const dt = new Date(activeMatch.kickoffUtc);
+					    const date = dt.toLocaleDateString('nb-NO', {
+					      weekday: 'short',
+					      day: 'numeric',
+					      month: 'short',
+					    });
+					    const time = dt.toLocaleTimeString('nb-NO', {
+					      hour: '2-digit',
+					      minute: '2-digit',
+					    });
+					    return `${activeMatch.homeTeam} - ${activeMatch.awayTeam}, ${date} kl. ${time}`;
+					  }, [activeMatch]);
 
 					const handleClearMatchFilter = () => {
 					  router.push('/');
@@ -398,12 +398,39 @@
 				              </span>
 				            </button>
 		            <div className="flex-1 text-center">
-		              <div className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-		                Finn kamp → bar
-		              </div>
-		              <div className="text-xs text-zinc-600 dark:text-zinc-400">
-		                {selectedTeam ? `Filter: ${selectedTeam}` : 'Velg liga/lag eller se alle barer'}
-		              </div>
+					              {matchId ? (
+					                <div className="space-y-1">
+					                  <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+					                    Filtrerer på kamp
+					                  </div>
+					                  <div className="text-xs text-zinc-700 dark:text-zinc-300">
+					                    {activeMatchDescription ? (
+					                      <>
+					                        Viser barer som viser:{' '}
+					                        <span className="font-medium">{activeMatchDescription}</span>
+					                      </>
+					                    ) : (
+					                      'Viser barer som viser valgt kamp.'
+					                    )}
+					                  </div>
+					                  <button
+					                    type="button"
+					                    onClick={handleClearMatchFilter}
+					                    className="mt-1 inline-flex items-center rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-medium text-white hover:bg-emerald-700"
+					                  >
+					                    Fjern kampfilter
+					                  </button>
+					                </div>
+					              ) : (
+					                <>
+					                  <div className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+					                    Finn kamp → bar
+					                  </div>
+					                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
+					                    {selectedTeam ? `Filter: ${selectedTeam}` : 'Velg liga/lag eller se alle barer'}
+					                  </div>
+					                </>
+					              )}
 		            </div>
 				            <button
 				              type="button"
@@ -490,37 +517,7 @@
 				          />
 				        )}
 				
-				        {/* Active match filter banner when navigated from /kamper */}
-				        {matchId && (
-				          <div className="pointer-events-none absolute inset-x-0 top-20 flex justify-center px-4">
-				            <div className="pointer-events-auto max-w-md rounded-xl bg-emerald-50/95 dark:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-700 px-4 py-3 shadow-md text-xs text-emerald-950 dark:text-emerald-50">
-				              <div className="flex items-start justify-between gap-3">
-				                <div>
-				                  <p className="text-[11px] font-semibold uppercase tracking-wide">
-				                    Filtrerer p e5 kamp
-				                  </p>
-				                  <p className="mt-1 text-xs">
-				                    {activeMatchDescription ? (
-				                      <>
-				                        Viser barer som viser:{' '}
-				                        <span className="font-medium">{activeMatchDescription}</span>
-				                      </>
-				                    ) : (
-				                      'Viser barer som viser valgt kamp.'
-				                    )}
-				                  </p>
-				                </div>
-				                <button
-				                  type="button"
-				                  onClick={handleClearMatchFilter}
-				                  className="ml-2 inline-flex items-center rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-medium text-white hover:bg-emerald-700"
-				                >
-				                  Fjern kampfilter
-				                </button>
-				              </div>
-				            </div>
-				          </div>
-				        )}
+ 					        {/* Active match filter banner when navigated from /kamper (moved to header) */}
 
 			        {/* Find nearest bar */}
 					<div className="pointer-events-none absolute bottom-20 md:bottom-4 right-4 flex flex-col items-end gap-2 px-4">
