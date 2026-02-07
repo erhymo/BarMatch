@@ -154,5 +154,8 @@ export async function sendBarContactMessageEmail(params: {
 	    replyTo: customerEmail,
 	  };
 
+	  // `replyTo` is supported by nodemailer at runtime, but the typings don't include it.
+	  // We cast to `any` here and explicitly disable the lint rule for this one call.
+	  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 	  await getTransporter().sendMail(mailOptions as any);
 }

@@ -38,36 +38,43 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const db = getFirebaseAdminDb();
-    const snap = await db
-      .collection('barMessages')
-      .where('barId', '==', barId)
-      .orderBy('createdAt', 'desc')
-      .limit(50)
-      .get();
+	    const db = getFirebaseAdminDb();
+	    const snap = await db
+	      .collection('barMessages')
+	      .where('barId', '==', barId)
+	      .get();
 
-    const messages = snap.docs.map((doc) => {
-      const data = (doc.data() ?? {}) as Record<string, unknown>;
-      const name = typeof data.name === 'string' ? data.name : null;
-      const email = typeof data.email === 'string' ? data.email : '';
-      const phone = typeof data.phone === 'string' ? data.phone : null;
-      const message = typeof data.message === 'string' ? data.message : '';
-      const readByBar = Boolean(data.readByBar);
-      const createdAt = toIsoMaybe(data.createdAt);
+	    const messages = snap.docs
+	      .map((doc) => {
+	        const data = (doc.data() ?? {}) as Record<string, unknown>;
+	        const name = typeof data.name === 'string' ? data.name : null;
+	        const email = typeof data.email === 'string' ? data.email : '';
+	        const phone = typeof data.phone === 'string' ? data.phone : null;
+	        const message = typeof data.message === 'string' ? data.message : '';
+	        const readByBar = Boolean(data.readByBar);
+	        const createdAt = toIsoMaybe(data.createdAt);
 
-      return {
-        id: doc.id,
-        barId,
-        name,
-        email,
-        phone,
-        message,
-        readByBar,
-        createdAt,
-      };
-    });
+	        return {
+	          id: doc.id,
+	          barId,
+	          name,
+	          email,
+	          phone,
+	          message,
+	          readByBar,
+	          createdAt,
+	        };
+	      })
+	      // Sort newest first by createdAt (ISO string) and cap to 50 messages.
+	      .sort((a, b) => {
+	        if (!a.createdAt && !b.createdAt) return 0;
+	        if (!a.createdAt) return 1;
+	        if (!b.createdAt) return -1;
+	        return b.createdAt.localeCompare(a.createdAt);
+	      })
+	      .slice(0, 50);
 
-    return NextResponse.json({ messages });
+	    return NextResponse.json({ messages });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unauthorized';
     const status = msg === 'Forbidden' ? 403 : 401;
