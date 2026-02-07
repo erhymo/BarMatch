@@ -238,6 +238,11 @@ function OnboardInner() {
     }
   };
 
+	  const continueWithoutPayment = () => {
+	    if (!barId) return;
+	    router.push('/admin/bar');
+	  };
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
       <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Onboarding</h1>
@@ -300,9 +305,24 @@ function OnboardInner() {
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
             Kort registreres nå. Første belastning skjer ved slutten av prøvetiden ({trialDays} dager).
           </p>
-          <button disabled={busy || !barId} onClick={startCheckout} className="mt-4 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50">
-            Gå til Stripe Checkout
-          </button>
+	          <button
+	            disabled={busy || !barId}
+	            onClick={startCheckout}
+	            className="mt-4 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+	          >
+	            Gå til Stripe Checkout
+	          </button>
+	          <button
+	            type="button"
+	            disabled={busy || !barId}
+	            onClick={continueWithoutPayment}
+	            className="mt-3 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-50"
+	          >
+	            Fortsett uten betaling
+	          </button>
+	          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+	            Du kan sette opp betaling senere fra barpanelet under «Betaling».
+	          </p>
         </div>
       )}
     </div>
