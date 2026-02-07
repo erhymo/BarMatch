@@ -145,12 +145,14 @@ export async function sendBarContactMessageEmail(params: {
     </div>
   `;
 
-  await getTransporter().sendMail({
-    from,
-    to,
-    replyTo: customerEmail,
-    subject,
-    text,
-    html,
-  });
+	  const mailOptions = {
+	    from,
+	    to,
+	    subject,
+	    text,
+	    html,
+	    replyTo: customerEmail,
+	  };
+
+	  await getTransporter().sendMail(mailOptions as any);
 }
