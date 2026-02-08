@@ -769,116 +769,125 @@ export default function BarOwnerDashboard() {
 				  );
 				};
 
-				return (
-		    <div>
-		      <div className="mb-6">
+					return (
+			    <div className="mx-auto max-w-6xl px-4 py-6">
+			      <div className="mb-6">
 		        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Bar-panel</h1>
 		        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
 		          Synlighet, betaling og barprofil.
 		        </p>
 		      </div>
 
-				      <div className="mb-4 grid gap-3 md:grid-cols-2">
-			        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-			          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-			            Synlighet
-			          </div>
-			          <div className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-			            {bar?.isVisible ? 'Synlig på kartet' : 'Skjult på kartet'}
-			          </div>
-			          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-			            {bar?.isVisible
-			              ? 'Baren din er synlig for supportere som søker i området.'
-			              : 'Skru på «Gjør synlig» under for å dukke opp i søk.'}
-			          </p>
-			        </div>
+					      <section className="mb-6">
+					        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+					          Status for baren
+					        </div>
+					        <div className="grid gap-3 md:grid-cols-2">
+					          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+					            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+					              Synlighet
+					            </div>
+					            <div className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+					              {bar?.isVisible ? 'Synlig på kartet' : 'Skjult på kartet'}
+					            </div>
+					            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+					              {bar?.isVisible
+					                ? 'Baren din er synlig for supportere som søker i området.'
+					                : 'Skru på «Gjør synlig» under for å dukke opp i søk.'}
+					            </p>
+					          </div>
+					
+					          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+					            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+					              Kamper neste 7 dager
+					            </div>
+					            <div className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+					              {matchesNext7DaysCount} kamp{matchesNext7DaysCount === 1 ? '' : 'er'}
+					            </div>
+					            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+					              {matchesNext7DaysCount > 0
+					                ? 'Disse kampene vises for brukere som ser på baren din.'
+					                : 'Ingen valgte kamper den neste uken ennå.'}
+					            </p>
+					            <Link
+					              href="/admin/bar/fixtures"
+					              className="mt-2 inline-flex text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+					            >
+					              Juster kamper
+					            </Link>
+					          </div>
+					        </div>
+					      </section>
 
-			        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-			          <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-			            Kamper neste 7 dager
-			          </div>
-			          <div className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-			            {matchesNext7DaysCount} kamp{matchesNext7DaysCount === 1 ? '' : 'er'}
-			          </div>
-			          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-			            {matchesNext7DaysCount > 0
-			              ? 'Disse kampene vises for brukere som ser på baren din.'
-			              : 'Ingen valgte kamper den neste uken ennå.'}
-			          </p>
-			          <Link
-			            href="/admin/bar/fixtures"
-			            className="mt-2 inline-flex text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-			          >
-			            Juster kamper
-			          </Link>
-			        </div>
-
-			      </div>
-
-		      <div className="mb-4 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-		        <button
-		          type="button"
-		          onClick={handleToggleMessagesOpen}
-		          className="flex w-full items-center justify-between gap-3 text-left"
-		        >
-		          <div>
-		            <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-		              Meldinger fra kunder
-		            </div>
-		            <div className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
-		              {messagesLoading
-		                ? 'Laster meldinger...'
-		                : unreadMessageCount > 0
-		                  ? `${unreadMessageCount} ulest${unreadMessageCount === 1 ? '' : 'e'} melding${unreadMessageCount === 1 ? '' : 'er'}`
-		                  : messages.length > 0
-		                    ? 'Ingen uleste meldinger'
-		                    : 'Ingen meldinger ennå'}
-		            </div>
-		            {messagesError && (
-		              <div className="mt-1 text-xs text-red-600 dark:text-red-400">
-		                {messagesError}
-		              </div>
-		            )}
-		          </div>
-		          <div className="flex items-center gap-2">
-		            {unreadMessageCount > 0 && (
-		              <span className="inline-flex items-center justify-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-100">
-		                {unreadMessageCount}
-		              </span>
-		            )}
-		            <span className="text-xs text-zinc-500 dark:text-zinc-400">
-		              {messagesOpen ? 'Skjul' : 'Vis'}
-		            </span>
-		          </div>
-		        </button>
-
-			        {messagesOpen && (
-			          <div className="mt-3 max-h-80 space-y-2 overflow-y-auto text-xs">
-			            {messages.length === 0 ? (
-			              <p className="text-zinc-600 dark:text-zinc-400">Ingen meldinger ennå.</p>
-			            ) : (
-			              <>
-			                {unreadMessages.length > 0 && (
-			                  <div className="space-y-2">
-			                    <div className="mb-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">
-			                      Nye meldinger
-			                    </div>
-			                    {unreadMessages.map(renderMessageCard)}
-			                  </div>
-			                )}
-			                {readMessages.length > 0 && (
-			                  <div className="mt-3 space-y-2">
-			                    <div className="mb-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">
-			                      Tidligere meldinger
-			                    </div>
-			                    {readMessages.map(renderMessageCard)}
-			                  </div>
-			                )}
-			              </>
-			            )}
-			          </div>
-			        )}
-		      </div>
+				      <section className="mb-8">
+				        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+				          Innboks
+				        </div>
+				        <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+				          <button
+				            type="button"
+				            onClick={handleToggleMessagesOpen}
+				            className="flex w-full items-center justify-between gap-3 text-left"
+				          >
+				            <div>
+				              <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+				                Meldinger fra kunder
+				              </div>
+				              <div className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+				                {messagesLoading
+				                  ? 'Laster meldinger...'
+				                  : unreadMessageCount > 0
+				                    ? `${unreadMessageCount} ulest${unreadMessageCount === 1 ? '' : 'e'} melding${unreadMessageCount === 1 ? '' : 'er'}`
+				                    : messages.length > 0
+				                      ? 'Ingen uleste meldinger'
+				                      : 'Ingen meldinger ennå'}
+				              </div>
+				              {messagesError && (
+				                <div className="mt-1 text-xs text-red-600 dark:text-red-400">
+				                  {messagesError}
+				                </div>
+				              )}
+				            </div>
+				            <div className="flex items-center gap-2">
+				              {unreadMessageCount > 0 && (
+				                <span className="inline-flex items-center justify-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-100">
+				                  {unreadMessageCount}
+				                </span>
+				              )}
+				              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+				                {messagesOpen ? 'Skjul' : 'Vis'}
+				              </span>
+				            </div>
+				          </button>
+				
+				          {messagesOpen && (
+				            <div className="mt-3 max-h-80 space-y-2 overflow-y-auto text-xs">
+				              {messages.length === 0 ? (
+				                <p className="text-zinc-600 dark:text-zinc-400">Ingen meldinger ennå.</p>
+				              ) : (
+				                <>
+				                  {unreadMessages.length > 0 && (
+				                    <div className="space-y-2">
+				                      <div className="mb-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">
+				                        Nye meldinger
+				                      </div>
+				                      {unreadMessages.map(renderMessageCard)}
+				                    </div>
+				                  )}
+				                  {readMessages.length > 0 && (
+				                    <div className="mt-3 space-y-2">
+				                      <div className="mb-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">
+				                        Tidligere meldinger
+				                      </div>
+				                      {readMessages.map(renderMessageCard)}
+				                    </div>
+				                  )}
+				                </>
+				              )}
+				            </div>
+				          )}
+				        </div>
+				      </section>
 
 		      {paymentFailed && graceActive && (
 	        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100">
@@ -902,8 +911,11 @@ export default function BarOwnerDashboard() {
 	        </div>
 	      )}
 
-		      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+				      <div className="grid gap-4 md:grid-cols-2">
+		        <div className="md:col-span-2 mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+		          Synlighet og betaling
+		        </div>
+		        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">{bar?.name ?? '—'}</h2>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{bar?.email ?? '—'}</p>
 				<div className="mt-3">
