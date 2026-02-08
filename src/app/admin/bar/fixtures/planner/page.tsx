@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRequireAdminRole } from '@/lib/admin/useRequireAdminRole';
 import { useToast } from '@/contexts/ToastContext';
@@ -99,7 +99,7 @@ function formatCalendarDate(date: Date): string {
   });
 }
 
-export default function BarFixturesPlannerPage() {
+function BarFixturesPlannerPageInner() {
   const { showToast } = useToast();
   const { user, me } = useRequireAdminRole(['bar_owner']);
   const searchParams = useSearchParams();
@@ -323,7 +323,7 @@ export default function BarFixturesPlannerPage() {
     ? calendarDays.find((d) => d.key === selectedDateKey)?.date ?? null
     : null;
 
-  return (
+	  return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
@@ -569,6 +569,20 @@ export default function BarFixturesPlannerPage() {
           )}
         </div>
       )}
-    </div>
-  );
+	    </div>
+	  );
+	}
+
+export default function BarFixturesPlannerPage() {
+	return (
+		<Suspense
+			fallback={
+				<div className="mx-auto max-w-6xl px-4 py-6 text-sm text-zinc-600 dark:text-zinc-300">
+					Laster planlegger…
+				</div>
+			}
+		>
+			<BarFixturesPlannerPageInner />
+		</Suspense>
+	);
 }
