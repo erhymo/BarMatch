@@ -26,15 +26,30 @@ export async function POST(request: Request) {
     const snap = await db.collection('bars').doc(barId).get();
     if (!snap.exists) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    const bar = snap.data() as { stripe?: { customerId?: string } } | undefined;
-    const customerId = bar?.stripe?.customerId;
-    if (!customerId) {
-      return NextResponse.json({ error: 'Missing Stripe customerId for this bar' }, { status: 400 });
-    }
+	    const bar = snap.data() as { email?: string; stripe?: { customerId?: string } } | undefined;
+	    let customerId = bar?.stripe?.customerId;
 
-    const stripe = getStripeServer();
-    const portal = await stripe.billingPortal.sessions.create({
-      customer: customerId,
+	    const stripe = getStripeServer();
+
+	    if (!customerId) {
+	      const customer = await stripe.customers.create({
+	        email: typeof bar?.email === 'string' ? bar.email : undefined,
+	        metadata: { barId },
+	      });
+	      customerId = customer.id;
+	      await snap.ref.set(
+	        {
+	          stripe: {
+	            ...(bar?.stripe ?? {}),
+	            customerId,
+	          },
+	        },
+	        { merge: true },
+	      );
+	    }
+
+	    const portal = await stripe.billingPortal.sessions.create({
+	      customer: customerId!,
       return_url: `${appBaseUrl}/admin/bar`,
     });
 

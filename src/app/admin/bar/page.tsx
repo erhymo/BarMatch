@@ -30,6 +30,7 @@ type BarDoc = {
 	billingEnabled?: boolean;
 	billingStatus?: string;
 	stripe?: {
+			customerId?: string;
 		gracePeriodEndsAt?: unknown;
 	};
 	description?: string;
@@ -169,7 +170,10 @@ export default function BarOwnerDashboard() {
 
 	  const graceActive = paymentFailed && typeof graceDaysRemaining === 'number';
 	  const graceExpired = paymentFailed && !graceActive;
-	  const canceled = bar?.billingStatus === 'canceled';
+		  const canceled = bar?.billingStatus === 'canceled';
+		  const stripeCustomerId = bar?.stripe?.customerId;
+		  const hasStripeCustomerId =
+		    typeof stripeCustomerId === 'string' && stripeCustomerId.trim().length > 0;
 
 	  const visibilityBlockedReason =
 	    canceled
@@ -952,14 +956,20 @@ export default function BarOwnerDashboard() {
 				    })}</span>
 				  </p>
 
-          <button
-            type="button"
-            disabled={busy || !bar}
-            onClick={updatePaymentCard}
-            className="mt-4 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-          >
-	            Oppdater betalingskort
-          </button>
+	          <button
+	            type="button"
+	            disabled={busy || !bar || !hasStripeCustomerId}
+	            onClick={updatePaymentCard}
+	            className="mt-4 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+	          >
+		            Oppdater betalingskort
+	          </button>
+	          {!hasStripeCustomerId && (
+	            <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
+	              Første gang du legger inn betalingskort skjer via Stripe Checkout (onboarding-lenken du
+	              fikk). Etter at du har gjennomført første betaling kan du oppdatere kortet her.
+	            </p>
+	          )}
         </div>
 
 		        <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
