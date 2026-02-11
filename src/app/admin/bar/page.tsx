@@ -956,20 +956,21 @@ export default function BarOwnerDashboard() {
 				    })}</span>
 				  </p>
 
-	          <button
-	            type="button"
-	            disabled={busy || !bar || !hasStripeCustomerId}
-	            onClick={updatePaymentCard}
-	            className="mt-4 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-	          >
-		            Oppdater betalingskort
-	          </button>
-	          {!hasStripeCustomerId && (
-	            <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
-	              Første gang du legger inn betalingskort skjer via Stripe Checkout (onboarding-lenken du
-	              fikk). Etter at du har gjennomført første betaling kan du oppdatere kortet her.
-	            </p>
-	          )}
+		          <button
+		            type="button"
+		            disabled={busy || !bar}
+		            onClick={updatePaymentCard}
+		            className="mt-4 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+		          >
+			            Oppdater betalingskort
+		          </button>
+		          {!hasStripeCustomerId && (
+		            <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
+			              Vanligvis skjer første gangs registrering av kort via Stripe Checkout (onboarding-lenken du
+			              fikk). Hvis du ikke finner lenken, kan du også bruke knappen over for å åpne Stripe-portalen
+			              og legge inn eller oppdatere kortet.
+		            </p>
+		          )}
         </div>
 
 		        <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
