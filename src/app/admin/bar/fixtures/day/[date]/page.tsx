@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRequireAdminRole } from '@/lib/admin/useRequireAdminRole';
 import { useToast } from '@/contexts/ToastContext';
@@ -49,7 +50,7 @@ function formatKickoff(iso: string): string {
 }
 
 function formatDateLabelFromKey(key: string | null | undefined): string {
-	if (!key || typeof key !== 'string') return 'Ugyldig dato';
+	if (!key || typeof key !== 'string') return 'Ukjent dato';
 	const parts = key.split('-');
 	if (parts.length !== 3) return key;
 	const [yearStr, monthStr, dayStr] = parts;
@@ -65,8 +66,9 @@ function formatDateLabelFromKey(key: string | null | undefined): string {
 	});
 }
 
-export default function BarFixturesDayPage({ params }: { params: { date: string } }) {
-	const { date } = params;
+export default function BarFixturesDayPage() {
+	const params = useParams<{ date: string }>();
+	const date = params.date;
 	const { showToast } = useToast();
 	const { user, me } = useRequireAdminRole(['bar_owner']);
 	const [bar, setBar] = useState<BarDoc | null>(null);
