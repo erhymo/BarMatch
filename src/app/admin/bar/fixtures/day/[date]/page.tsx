@@ -48,8 +48,11 @@ function formatKickoff(iso: string): string {
 	});
 }
 
-function formatDateLabelFromKey(key: string): string {
-	const [yearStr, monthStr, dayStr] = key.split('-');
+function formatDateLabelFromKey(key: string | null | undefined): string {
+	if (!key || typeof key !== 'string') return 'Ugyldig dato';
+	const parts = key.split('-');
+	if (parts.length !== 3) return key;
+	const [yearStr, monthStr, dayStr] = parts;
 	const year = Number.parseInt(yearStr ?? '', 10);
 	const month = Number.parseInt(monthStr ?? '', 10) - 1;
 	const day = Number.parseInt(dayStr ?? '', 10);
@@ -169,6 +172,7 @@ export default function BarFixturesDayPage({ params }: { params: { date: string 
 	}, [fixtureProvider]);
 
 	const fixturesForDay = useMemo(() => {
+		if (!date || typeof date !== 'string') return [];
 		const list = fixtures.filter((f) => {
 			if (!activeLeagues.includes(f.league)) return false;
 			return dateKeyFromUtcIso(f.kickoffUtc) === date;
