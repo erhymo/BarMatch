@@ -814,7 +814,7 @@ export default function BarOwnerDashboard() {
 					                : 'Ingen valgte kamper den neste uken ennå.'}
 					            </p>
 					            <Link
-					              href="/admin/bar/fixtures"
+					              href={`/admin/bar/fixtures/day/${todayKey}`}
 					              className="mt-2 inline-flex text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
 					            >
 					              Juster kamper
@@ -971,31 +971,19 @@ export default function BarOwnerDashboard() {
 			              og legge inn eller oppdatere kortet.
 		            </p>
 		          )}
-        </div>
+		        				</div>
 
-		        <div className="rounded-2xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-		          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Kamper</h2>
-		          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-		            Velg hvilke kamper baren din viser, slik at de vises på kartet for sluttbrukere.
-		          </p>
-		          <Link
-		            href="/admin/bar/fixtures"
-		            className="mt-3 inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-900"
-		          >
-		            Velg kamper
-		          </Link>
-		        </div>
-		
-		        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+				        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 md:col-span-2">
 			          <div className="flex items-center justify-between gap-3">
 			            <div>
 			              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Kalender: valgte kamper</h2>
 			              <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-			                Oversikt over kampene du har valgt å vise på baren din (neste {CALENDAR_RANGE_DAYS} dager).
+					                Oversikt over kampene du har valgt å vise på baren din (neste {CALENDAR_RANGE_DAYS} dager).
 			              </p>
-			              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-			                Endre hvilke kamper som vises under fanen <span className="font-medium">Kamper</span>.
-			              </p>
+					              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+					                Klikk på en dag i kalenderen under for å justere kampene den dagen, eller bruk
+					                <span className="font-medium"> fullskjerm-planleggeren</span>.
+					              </p>
 			            </div>
 			            <Link
 			              href="/admin/bar/fixtures/planner"
@@ -1019,76 +1007,75 @@ export default function BarOwnerDashboard() {
 			            </p>
 			          ) : !hasSelectedFixturesInCalendar ? (
 			            <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
-			              Du har ikke valgt noen kamper ennå. Gå til
-			              <Link href="/admin/bar/fixtures" className="ml-1 underline">
-			                Kamper
-			              </Link>
-			              {' '}for å velge.
+					              Du har ikke valgt noen kamper ennå. Klikk på en dag i kalenderen under, eller bruk
+					              knappen «Planlegg» for å velge kamper i fullskjerm.
 			            </p>
 		          ) : (
-		            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-			              {calendarDays.map(({ key, date }) => {
-			                const dayFixtures = selectedFixturesByDateKey.get(key) ?? [];
-			                const isToday = key === todayKey;
-			                if (dayFixtures.length === 0) {
-			                  return (
-			                    <div
-			                      key={key}
-			                      className="flex flex-col rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400"
-			                    >
-				                      <div className="flex items-baseline justify-between gap-2">
-				                        <span className="font-medium text-zinc-700 dark:text-zinc-200">
-				                          {formatCalendarDate(date)}
-				                        </span>
-			                        {isToday && (
-			                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-100">
-				                            I dag
-				                          </span>
-				                        )}
-				                      </div>
-				                      <span className="mt-2 text-sm">Ingen kamper</span>
-				                    </div>
-				                  );
-				                }
-				
-				                const maxVisible = 2;
-				                const visible = dayFixtures.slice(0, maxVisible);
-				                const remaining = dayFixtures.length - visible.length;
-				
-			                return (
-			                  <div
-			                    key={key}
-			                    className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-4 text-sm text-zinc-800 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
-			                  >
-				                    <div className="flex items-baseline justify-between gap-2">
-				                      <span className="font-medium">
-				                        {formatCalendarDate(date)}
-				                      </span>
-			                      {isToday && (
-			                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-100">
-				                          I dag
-				                        </span>
-				                      )}
-				                    </div>
-				                    <div className="mt-2 space-y-1.5">
-				                      {visible.map((f) => (
-				                        <div
-				                          key={f.id}
-				                          className="truncate rounded-lg bg-zinc-100 px-3 py-1.5 text-[13px] font-medium dark:bg-zinc-800/80"
-				                        >
-				                          {f.homeTeam} – {f.awayTeam}
-				                        </div>
-				                      ))}
-				                      {remaining > 0 && (
-				                        <div className="pt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-				                          +{remaining} flere kamper
-				                        </div>
-				                      )}
-				                    </div>
-				                  </div>
-				                );
-				              })}
-			            </div>
+					            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
+						              {calendarDays.map(({ key, date }) => {
+						                const dayFixtures = selectedFixturesByDateKey.get(key) ?? [];
+						                const isToday = key === todayKey;
+						                if (dayFixtures.length === 0) {
+						                  return (
+						                    <Link
+						                      key={key}
+						                      href={`/admin/bar/fixtures/day/${key}`}
+						                      className="flex flex-col rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-500 transition-colors hover:border-emerald-500 hover:bg-emerald-50/60 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400 dark:hover:border-emerald-500 dark:hover:bg-emerald-900/20"
+						                    >
+							                      <div className="flex items-baseline justify-between gap-2">
+							                        <span className="font-medium text-zinc-700 dark:text-zinc-200">
+							                          {formatCalendarDate(date)}
+							                        </span>
+						                        {isToday && (
+						                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-100">
+							                            I dag
+							                          </span>
+							                        )}
+							                      </div>
+							                      <span className="mt-2 text-sm">Ingen valgte kamper</span>
+						                    </Link>
+						                  );
+						                }
+						
+						                const maxVisible = 2;
+						                const visible = dayFixtures.slice(0, maxVisible);
+						                const remaining = dayFixtures.length - visible.length;
+						
+						                return (
+						                  <Link
+						                    key={key}
+						                    href={`/admin/bar/fixtures/day/${key}`}
+						                    className="flex flex-col rounded-2xl border border-zinc-200 bg-white p-4 text-sm text-zinc-800 transition-colors hover:border-emerald-500 hover:bg-emerald-50/60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:border-emerald-500 dark:hover:bg-emerald-900/20"
+						                  >
+							                    <div className="flex items-baseline justify-between gap-2">
+							                      <span className="font-medium">
+							                        {formatCalendarDate(date)}
+							                      </span>
+						                      {isToday && (
+						                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-100">
+							                          I dag
+							                        </span>
+							                      )}
+							                    </div>
+							                    <div className="mt-2 space-y-1.5">
+							                      {visible.map((f) => (
+							                        <div
+							                          key={f.id}
+							                          className="rounded-lg bg-zinc-100 px-3 py-1.5 text-[13px] font-medium dark:bg-zinc-800/80"
+							                        >
+							                          {f.homeTeam} – {f.awayTeam}
+							                        </div>
+							                      ))}
+							                      {remaining > 0 && (
+							                        <div className="pt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+							                          +{remaining} flere kamper
+							                        </div>
+							                      )}
+							                    </div>
+							                  </Link>
+						                );
+						              })}
+					            </div>
 			          )}
 			        </div>
 
