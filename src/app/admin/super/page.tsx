@@ -308,6 +308,31 @@ export default function SuperAdminDashboard() {
     }
   };
 
+	  const deleteInvite = async (inviteId: string) => {
+	    if (!user) return;
+	    if (!confirm('Fjerne invitasjon helt? Dette sletter den fra listen og databasen.')) return;
+	    setNotice(null);
+	    setError(null);
+	    setBusyInviteActionId(inviteId);
+	    try {
+	      const token = await user.getIdToken();
+	      const res = await fetch(`/api/admin/invites/${inviteId}`, {
+	        method: 'DELETE',
+	        headers: { Authorization: `Bearer ${token}` },
+	      });
+	      const raw: unknown = await res.json().catch(() => ({}));
+	      const data = asRecord(raw);
+	      const msg = typeof data?.error === 'string' ? data.error : '';
+	      if (!res.ok) throw new Error(msg || `Feil (${res.status})`);
+	      setNotice('Invitasjon fjernet.');
+	      setInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
+	    } catch (e) {
+	      setError(e instanceof Error ? e.message : 'Ukjent feil');
+	    } finally {
+	      setBusyInviteActionId(null);
+	    }
+	  };
+
   const copyInviteLink = async (inviteId: string) => {
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -508,31 +533,39 @@ export default function SuperAdminDashboard() {
                   Sist sendt: {fmtDateTime(inv.lastSentAt)}
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => void copyInviteLink(inv.id)}
-                    className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-                  >
-                    Kopier lenke
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busyInviteActionId === inv.id || inv.status !== 'pending'}
-                    onClick={() => void resendInvite(inv.id)}
-                    className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-                  >
-                    Send på nytt
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busyInviteActionId === inv.id || inv.status !== 'pending'}
-                    onClick={() => void cancelInvite(inv.id)}
-                    className="col-span-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-                  >
-                    Avbryt
-                  </button>
-                </div>
+	                <div className="mt-4 grid grid-cols-2 gap-2">
+	                  <button
+	                    type="button"
+	                    onClick={() => void copyInviteLink(inv.id)}
+	                    className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+	                  >
+	                    Kopier lenke
+	                  </button>
+	                  <button
+	                    type="button"
+	                    disabled={busyInviteActionId === inv.id || inv.status !== 'pending'}
+	                    onClick={() => void resendInvite(inv.id)}
+	                    className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+	                  >
+	                    Send på nytt
+	                  </button>
+	                  <button
+	                    type="button"
+	                    disabled={busyInviteActionId === inv.id || inv.status !== 'pending'}
+	                    onClick={() => void cancelInvite(inv.id)}
+	                    className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+	                  >
+	                    Avbryt
+	                  </button>
+	                  <button
+	                    type="button"
+	                    disabled={busyInviteActionId === inv.id}
+	                    onClick={() => void deleteInvite(inv.id)}
+	                    className="rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-700 disabled:opacity-50 dark:border-red-900/50 dark:bg-zinc-950 dark:text-red-200"
+	                  >
+	                    Fjern
+	                  </button>
+	                </div>
               </div>
             ))}
 
@@ -569,35 +602,44 @@ export default function SuperAdminDashboard() {
                   </td>
                   <td className="px-4 py-3">{fmtDateTime(inv.expiresAt)}</td>
                   <td className="px-4 py-3">{fmtDateTime(inv.lastSentAt)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => void copyInviteLink(inv.id)}
-                        className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-                      >
-                        Kopier lenke
-                      </button>
+	                  <td className="px-4 py-3">
+	                    <div className="flex flex-wrap gap-2">
+	                      <button
+	                        type="button"
+	                        onClick={() => void copyInviteLink(inv.id)}
+	                        className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+	                      >
+	                        Kopier lenke
+	                      </button>
 
-                      <button
-                        type="button"
-                        disabled={busyInviteActionId === inv.id || inv.status !== 'pending'}
-                        onClick={() => void resendInvite(inv.id)}
-                        className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-                      >
-                        Send på nytt
-                      </button>
+	                      <button
+	                        type="button"
+	                        disabled={busyInviteActionId === inv.id || inv.status !== 'pending'}
+	                        onClick={() => void resendInvite(inv.id)}
+	                        className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+	                      >
+	                        Send på nytt
+	                      </button>
 
-                      <button
-                        type="button"
-                        disabled={busyInviteActionId === inv.id || inv.status !== 'pending'}
-                        onClick={() => void cancelInvite(inv.id)}
-                        className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
-                      >
-                        Avbryt
-                      </button>
-                    </div>
-                  </td>
+	                      <button
+	                        type="button"
+	                        disabled={busyInviteActionId === inv.id || inv.status !== 'pending'}
+	                        onClick={() => void cancelInvite(inv.id)}
+	                        className="rounded-lg border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50"
+	                      >
+	                        Avbryt
+	                      </button>
+
+	                      <button
+	                        type="button"
+	                        disabled={busyInviteActionId === inv.id}
+	                        onClick={() => void deleteInvite(inv.id)}
+	                        className="rounded-lg border border-red-200 bg-white px-2 py-1 text-xs font-medium text-red-700 disabled:opacity-50 dark:border-red-900/50 dark:bg-zinc-950 dark:text-red-200"
+	                      >
+	                        Fjern
+	                      </button>
+	                    </div>
+	                  </td>
                 </tr>
               ))}
 
