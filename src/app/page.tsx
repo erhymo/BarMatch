@@ -411,7 +411,9 @@
 					              ) : (
 					                <>
 					                  <div className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-					                    Finn kamp → bar
+					                    <span className="bg-gradient-to-r from-emerald-500 via-lime-400 to-cyan-400 bg-clip-text text-transparent uppercase tracking-[0.18em] text-[0.78rem] md:text-xs">
+					                      where2watch
+					                    </span>
 					                  </div>
 					                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
 					                    {selectedTeam ? `Filter: ${selectedTeam}` : 'Bruk søk for å filtrere på lag eller liga'}
