@@ -375,7 +375,7 @@
 					          <button
 					            type="button"
 					            onClick={toggleFilterPanel}
-					            className={`inline-flex h-9 items-center justify-center rounded-full border px-3 text-xs font-medium transition-colors ${
+					            className={`inline-flex h-9 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors ${
 					                isFilterPanelOpen
 					                  ? 'border-emerald-500 text-emerald-700 dark:border-emerald-400 dark:text-emerald-200'
 					                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200'
@@ -424,7 +424,7 @@
 					          <button
 					            type="button"
 					            onClick={toggleCityPanel}
-					              className={`inline-flex h-9 items-center justify-center rounded-full border px-3 text-xs font-medium transition-colors ${
+					              className={`inline-flex h-9 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors ${
 					                isCityPanelOpen
 					                  ? 'border-blue-500 text-blue-700 dark:border-blue-400 dark:text-blue-200'
 					                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200'
