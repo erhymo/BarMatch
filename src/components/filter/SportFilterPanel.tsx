@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Fixture, LeagueKey } from "@/lib/types/fixtures";
 
 type LeagueOption = { key: LeagueKey; label: string };
@@ -19,6 +19,13 @@ type LeagueSuggestion = {
 };
 
 type SearchSuggestion = TeamSuggestion | LeagueSuggestion;
+
+	type RecentSearchEntry = {
+		teamName: string;
+		league: LeagueKey;
+	};
+
+	const RECENT_SEARCHES_STORAGE_KEY = "bar_match_recent_team_searches_v1";
 
 interface SportFilterPanelProps {
 	leagues: LeagueOption[];
@@ -45,7 +52,40 @@ export default function SportFilterPanel({
 	onRetryLoad,
 	onDone,
 }: SportFilterPanelProps) {
-	const [query, setQuery] = useState("");
+		const [query, setQuery] = useState("");
+		const [recentSearches, setRecentSearches] = useState<RecentSearchEntry[]>([]);
+
+		// Load recent searches from localStorage on mount
+		useEffect(() => {
+			if (typeof window === "undefined") return;
+			try {
+				const raw = window.localStorage.getItem(RECENT_SEARCHES_STORAGE_KEY);
+				if (!raw) return;
+				const parsed = JSON.parse(raw);
+				if (!Array.isArray(parsed)) return;
+				const cleaned: RecentSearchEntry[] = parsed
+					.filter((entry: any) =>
+						entry && typeof entry.teamName === "string" && typeof entry.league === "string",
+					)
+					.slice(0, 6);
+				setRecentSearches(cleaned);
+			} catch {
+				// Ignorer korrupt lagret data
+			}
+		}, []);
+
+		// Persist recent searches when they change
+		useEffect(() => {
+			if (typeof window === "undefined") return;
+			try {
+				window.localStorage.setItem(
+					RECENT_SEARCHES_STORAGE_KEY,
+					JSON.stringify(recentSearches),
+				);
+			} catch {
+				// Best effort – ignorer hvis lagring feiler
+			}
+		}, [recentSearches]);
 
 	const leagueLabelMap = useMemo(() => {
 		const map = new Map<LeagueKey, string>();
@@ -118,29 +158,48 @@ export default function SportFilterPanel({
 		return { teamSuggestions, leagueSuggestions };
 	}, [fixtures, leagues, leagueLabelMap]);
 
-	const filteredTeamSuggestions = useMemo(() => {
-		const q = query.trim().toLowerCase();
-		if (!q) {
-			return teamSuggestions.slice(0, 15);
-		}
-		return teamSuggestions
-			.filter(
-				(s) =>
-					s.teamName.toLowerCase().includes(q) ||
-					s.leagueLabel.toLowerCase().includes(q),
-			)
-			.slice(0, 20);
-	}, [query, teamSuggestions]);
+		const filteredTeamSuggestions = useMemo(() => {
+			const q = query.trim().toLowerCase();
+			if (!q) {
+				// Når søket er tomt viser vi heller nylige søk enn generelle forslag
+				return [];
+			}
+			return teamSuggestions
+				.filter(
+					(s) =>
+						s.teamName.toLowerCase().includes(q) ||
+						s.leagueLabel.toLowerCase().includes(q),
+				)
+				.slice(0, 20);
+		}, [query, teamSuggestions]);
+	
+		const filteredLeagueSuggestions = useMemo(() => {
+			const q = query.trim().toLowerCase();
+			if (!q) {
+				// Når søket er tomt viser vi heller nylige søk enn generelle forslag
+				return [];
+			}
+			return leagueSuggestions.filter((s) =>
+				s.label.toLowerCase().includes(q),
+			);
+		}, [query, leagueSuggestions]);
 
-	const filteredLeagueSuggestions = useMemo(() => {
-		const q = query.trim().toLowerCase();
-		if (!q) {
-			return leagueSuggestions;
-		}
-		return leagueSuggestions.filter((s) =>
-			s.label.toLowerCase().includes(q),
-		);
-	}, [query, leagueSuggestions]);
+		const addRecentFromTeamSuggestion = useCallback((suggestion: TeamSuggestion) => {
+			setRecentSearches((prev) => {
+				const filtered = prev.filter(
+					(entry) =>
+						!(
+							entry.teamName === suggestion.teamName &&
+							entry.league === suggestion.league
+						),
+				);
+				const next: RecentSearchEntry[] = [
+					{ teamName: suggestion.teamName, league: suggestion.league },
+					...filtered,
+				];
+				return next.slice(0, 6);
+			});
+		}, []);
 
 	const handleReset = () => {
 		onTeamSelect(null);
@@ -150,6 +209,7 @@ export default function SportFilterPanel({
 
 	const handleSelectSuggestion = (suggestion: SearchSuggestion) => {
 		if (suggestion.type === "team") {
+				addRecentFromTeamSuggestion(suggestion);
 			onLeagueChange(suggestion.league);
 			onTeamSelect(suggestion.teamName);
 		} else {
@@ -160,9 +220,22 @@ export default function SportFilterPanel({
 		onDone?.();
 	};
 
-	const hasSuggestions =
-		filteredTeamSuggestions.length > 0 ||
-		filteredLeagueSuggestions.length > 0;
+			const recentSuggestions: TeamSuggestion[] = useMemo(
+				() =>
+					recentSearches.map((entry) => ({
+						type: "team" as const,
+						teamName: entry.teamName,
+						league: entry.league,
+						leagueLabel: leagueLabelMap.get(entry.league) ?? entry.league,
+					})),
+				[recentSearches, leagueLabelMap],
+			);
+
+			const hasSuggestions =
+				filteredTeamSuggestions.length > 0 ||
+				filteredLeagueSuggestions.length > 0;
+
+			const showRecent = query.trim().length === 0 && recentSuggestions.length > 0;
 
 	return (
 		<div className="bg-gradient-to-br from-zinc-900/95 to-zinc-800/95 backdrop-blur-md rounded-2xl shadow-2xl border border-zinc-700/50 max-w-md w-full text-sm">
@@ -201,63 +274,77 @@ export default function SportFilterPanel({
 					)}
 				</div>
 
-				{fixtures.length === 0 && !isLoading && !error ? (
+					{fixtures.length === 0 && !isLoading && !error ? (
 					<p className="text-xs text-zinc-400">
 						Ingen kamper er lastet inn ennå. Åpne søket på nytt om et øyeblikk, eller prøv igjen.
 					</p>
 				) : null}
 
-				{hasSuggestions ? (
-					<div className="space-y-3">
-						{filteredTeamSuggestions.length > 0 && (
-							<div>
-								<p className="text-[11px] uppercase tracking-wide text-zinc-400 mb-1">
-									Lag
-								</p>
-								<div className="space-y-1">
-									{filteredTeamSuggestions.map((s) => (
-										<button
-											key={`team-${s.teamName}-${s.league}`}
-											type="button"
-											onClick={() => handleSelectSuggestion(s)}
-											className="w-full flex items-center justify-between rounded-xl bg-zinc-900/40 hover:bg-zinc-800/80 border border-zinc-700/60 px-3 py-2 text-left text-sm text-zinc-100 transition-colors"
-										>
-											<span className="font-medium">{s.teamName}</span>
-											<span className="ml-2 text-[11px] text-zinc-400">{s.leagueLabel}</span>
-										</button>
-									))}
+					{showRecent ? (
+						<div className="space-y-1">
+							{recentSuggestions.map((s) => (
+								<button
+									key={`recent-${s.teamName}-${s.league}`}
+									type="button"
+									onClick={() => handleSelectSuggestion(s)}
+									className="w-full flex items-center justify-between rounded-xl bg-zinc-900/40 hover:bg-zinc-800/80 border border-zinc-700/60 px-3 py-2 text-left text-sm text-zinc-100 transition-colors"
+								>
+									<span className="font-medium">{s.teamName}</span>
+									<span className="ml-2 text-[11px] text-zinc-400">{s.leagueLabel}</span>
+								</button>
+							))}
+						</div>
+					) : hasSuggestions ? (
+						<div className="space-y-3">
+							{filteredTeamSuggestions.length > 0 && (
+								<div>
+									<p className="text-[11px] uppercase tracking-wide text-zinc-400 mb-1">
+										Lag
+									</p>
+									<div className="space-y-1">
+										{filteredTeamSuggestions.map((s) => (
+											<button
+												key={`team-${s.teamName}-${s.league}`}
+												type="button"
+												onClick={() => handleSelectSuggestion(s)}
+												className="w-full flex items-center justify-between rounded-xl bg-zinc-900/40 hover:bg-zinc-800/80 border border-zinc-700/60 px-3 py-2 text-left text-sm text-zinc-100 transition-colors"
+											>
+												<span className="font-medium">{s.teamName}</span>
+												<span className="ml-2 text-[11px] text-zinc-400">{s.leagueLabel}</span>
+											</button>
+										))}
+									</div>
 								</div>
-							</div>
-						)}
-
-						{filteredLeagueSuggestions.length > 0 && (
-							<div>
-								<p className="text-[11px] uppercase tracking-wide text-zinc-400 mb-1">
-									Ligaer
-								</p>
-								<div className="space-y-1">
-									{filteredLeagueSuggestions.map((s) => (
-										<button
-											key={`league-${s.league}`}
-											type="button"
-											onClick={() => handleSelectSuggestion(s)}
-											className="w-full flex items-center justify-between rounded-xl bg-zinc-900/40 hover:bg-zinc-800/80 border border-zinc-700/60 px-3 py-2 text-left text-sm text-zinc-100 transition-colors"
-										>
-											<span className="font-medium">{s.label}</span>
-											{selectedLeague === s.league && !selectedTeam && (
-												<span className="ml-2 text-[11px] text-green-400">Aktiv</span>
-											)}
-										</button>
-									))}
+							)}
+							
+							{filteredLeagueSuggestions.length > 0 && (
+								<div>
+									<p className="text-[11px] uppercase tracking-wide text-zinc-400 mb-1">
+										Ligaer
+									</p>
+									<div className="space-y-1">
+										{filteredLeagueSuggestions.map((s) => (
+											<button
+												key={`league-${s.league}`}
+												type="button"
+												onClick={() => handleSelectSuggestion(s)}
+												className="w-full flex items-center justify-between rounded-xl bg-zinc-900/40 hover:bg-zinc-800/80 border border-zinc-700/60 px-3 py-2 text-left text-sm text-zinc-100 transition-colors"
+											>
+												<span className="font-medium">{s.label}</span>
+												{selectedLeague === s.league && !selectedTeam && (
+													<span className="ml-2 text-[11px] text-green-400">Aktiv</span>
+												)}
+											</button>
+										))}
+									</div>
 								</div>
-							</div>
-						)}
-					</div>
-			) : !isLoading && fixtures.length > 0 ? (
-				<p className="text-xs text-zinc-400">
-					Ingen treff. Prøv et annet lag eller en annen liga.
-				</p>
-			) : null}
+							)}
+						</div>
+					) : !isLoading && fixtures.length > 0 ? (
+						<p className="text-xs text-zinc-400">
+							Ingen treff. Prøv et annet lag eller en annen liga.
+						</p>
+					) : null}
 
 			<div className="flex items-center justify-between pt-2 border-t border-zinc-700/60">
 				<button
