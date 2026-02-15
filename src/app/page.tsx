@@ -435,16 +435,14 @@
 				            <button
 				              type="button"
 				              onClick={toggleCityPanel}
-				              className={`flex h-10 w-10 items-center justify-center rounded-full border text-xl transition-colors ${
-				                isCityPanelOpen
-				                  ? 'bg-blue-500/20 border-blue-400/70 text-blue-300'
-				                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-700/60'
-				              }`}
-				              aria-label="Åpne valg for by"
+					              className={`inline-flex h-9 items-center justify-center rounded-full border px-3 text-xs font-medium transition-colors ${
+					                isCityPanelOpen
+					                  ? 'bg-blue-500/20 border-blue-400/70 text-blue-700 dark:text-blue-200'
+					                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-700/60'
+					              }`}
+					              aria-label="Åpne valg for lokasjon"
 				            >
-				              <span aria-hidden="true" className="text-xl">
-				                🏙️
-				              </span>
+					              <span className="text-xs font-medium tracking-tight">Lokasjon</span>
 				            </button>
 				          </div>
 				        </div>
