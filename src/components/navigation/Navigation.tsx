@@ -83,13 +83,13 @@ export default function Navigation() {
 	                key={item.href}
 	                href={item.href}
 			                onClick={item.href === '/' ? handleHomeClick : undefined}
-	                className={`flex flex-col items-center justify-center text-xs font-medium transition-colors ${
+	                className={`inline-flex h-9 items-center justify-center rounded-full border px-3 text-xs font-medium transition-colors ${
 	                  active
-	                    ? 'text-zinc-900 dark:text-zinc-50'
-	                    : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'
+	                    ? 'border-zinc-900 text-zinc-900 dark:border-zinc-50 dark:text-zinc-50'
+	                    : 'border-zinc-300/70 text-zinc-700 dark:border-zinc-600/80 dark:text-zinc-200'
 	                }`}
 	              >
-	                <span>{label}</span>
+	                <span className="text-xs font-medium tracking-tight">{label}</span>
 	              </Link>
 	            );
 	          })}

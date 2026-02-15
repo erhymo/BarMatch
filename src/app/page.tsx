@@ -372,16 +372,16 @@
 				      <div className="flex-shrink-0 bg-white/90 dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-800">
 				        <div className="container mx-auto px-4 py-4">
 				          <div className="flex items-center justify-between gap-3">
-				            <button
-				              type="button"
-				              onClick={toggleFilterPanel}
-				              className={`inline-flex h-9 items-center justify-center rounded-full border px-3 text-xs font-medium transition-colors ${
+					          <button
+					            type="button"
+					            onClick={toggleFilterPanel}
+					            className={`inline-flex h-9 items-center justify-center rounded-full border px-3 text-xs font-medium transition-colors ${
 					                isFilterPanelOpen
-					                  ? 'bg-green-500/20 border-green-400/70 text-green-700 dark:text-green-200'
-					                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-700/60'
+					                  ? 'border-emerald-500 text-emerald-700 dark:border-emerald-400 dark:text-emerald-200'
+					                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200'
 					              }`}
-				              aria-label="Åpne søk etter lag og liga"
-				            >
+					            aria-label="Åpne søk etter lag og liga"
+					          >
 				              <span className="text-xs font-medium tracking-tight">Søk</span>
 				            </button>
 		            <div className="flex-1 text-center">
@@ -421,16 +421,16 @@
 					                </>
 					              )}
 		            </div>
-				            <button
-				              type="button"
-				              onClick={toggleCityPanel}
+					          <button
+					            type="button"
+					            onClick={toggleCityPanel}
 					              className={`inline-flex h-9 items-center justify-center rounded-full border px-3 text-xs font-medium transition-colors ${
 					                isCityPanelOpen
-					                  ? 'bg-blue-500/20 border-blue-400/70 text-blue-700 dark:text-blue-200'
-					                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-700/60'
+					                  ? 'border-blue-500 text-blue-700 dark:border-blue-400 dark:text-blue-200'
+					                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200'
 					              }`}
 					              aria-label="Åpne valg for lokasjon"
-				            >
+					          >
 					              <span className="text-xs font-medium tracking-tight">Lokasjon</span>
 				            </button>
 				          </div>
