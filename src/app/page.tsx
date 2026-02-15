@@ -229,17 +229,6 @@
 			    });
 			  }, [baseBars]);
 
-			  const availableTeams = useMemo(() => {
-			    const teamSet = new Set<string>();
-			    fixtures
-			      .filter((f) => f.league === selectedLeague)
-			      .forEach((f) => {
-			        teamSet.add(f.homeTeam);
-			        teamSet.add(f.awayTeam);
-			      });
-			    return Array.from(teamSet).sort((a, b) => a.localeCompare(b, 'nb'));
-			  }, [fixtures, selectedLeague]);
-
 			  const selectedTeamFixtureIds = useMemo(() => {
 			    if (!selectedTeam) return null;
 			    const set = new Set<string>();
@@ -386,16 +375,14 @@
 				            <button
 				              type="button"
 				              onClick={toggleFilterPanel}
-				              className={`flex h-10 w-10 items-center justify-center rounded-full border text-xl transition-colors ${
-				                isFilterPanelOpen
-				                  ? 'bg-green-500/20 border-green-400/70 text-green-300'
-				                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-700/60'
-				              }`}
-				              aria-label="Åpne filter for liga og lag"
+				              className={`inline-flex h-9 items-center justify-center rounded-full border px-3 text-xs font-medium transition-colors ${
+					                isFilterPanelOpen
+					                  ? 'bg-green-500/20 border-green-400/70 text-green-700 dark:text-green-200'
+					                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100/60 dark:hover:bg-zinc-700/60'
+					              }`}
+				              aria-label="Åpne søk etter lag og liga"
 				            >
-				              <span aria-hidden="true" className="text-xl">
-				                ⚽
-				              </span>
+				              <span className="text-xs font-medium tracking-tight">Søk</span>
 				            </button>
 		            <div className="flex-1 text-center">
 					              {matchId ? (
@@ -427,7 +414,7 @@
 					                    Finn kamp → bar
 					                  </div>
 					                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
-					                    {selectedTeam ? `Filter: ${selectedTeam}` : 'Velg liga/lag eller se alle barer'}
+					                    {selectedTeam ? `Filter: ${selectedTeam}` : 'Bruk søk for å filtrere på lag eller liga'}
 					                  </div>
 					                </>
 					              )}
@@ -456,13 +443,14 @@
 			              <SportFilterPanel
 			                leagues={leagueOptions}
 			                selectedLeague={selectedLeague}
-			                onLeagueChange={handleLeagueChange}
-			                teams={availableTeams}
 			                selectedTeam={selectedTeam}
+			                fixtures={fixtures}
+			                onLeagueChange={handleLeagueChange}
 			                onTeamSelect={handleTeamSelect}
 			                isLoading={isLoadingFixtures}
 			                error={fixturesError}
 			                onRetryLoad={loadFixtures}
+			                onDone={() => setIsFilterPanelOpen(false)}
 			              />
 			            )}
 			            {isCityPanelOpen && (
