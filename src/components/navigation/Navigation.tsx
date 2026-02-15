@@ -65,36 +65,36 @@ export default function Navigation() {
 	        </div>
 	      </nav>
 
-      {/* Bottom navigation (mobile) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-zinc-200 bg-white/95 backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/95 md:hidden">
-        <div className="max-w-xl mx-auto flex items-center justify-around h-16 px-4">
-          {navItems.map((item) => {
-            const active = isActive(item.href);
+	      {/* Bottom navigation (mobile) */}
+	      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-zinc-200 bg-white/95 backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/95 md:hidden">
+	        <div className="max-w-xl mx-auto flex items-center justify-around h-16 px-4">
+	          {navItems.map((item) => {
+	            const active = isActive(item.href);
 
-		            let icon = '⚽';
-		            if (item.name === 'Hjem') icon = '🏠';
-		            if (item.name === 'Kamper') icon = '📅';
+	            const label =
+	              item.name === 'Hjem'
+	                ? 'Hjem/resett'
+	                : item.name === 'Kamper'
+	                ? 'Kamper'
+	                : item.name;
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-		                onClick={item.href === '/' ? handleHomeClick : undefined}
-                className={`flex flex-col items-center justify-center text-xs font-medium transition-colors ${
-                  active
-                    ? 'text-zinc-900 dark:text-zinc-50'
-                    : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'
-                }`}
-              >
-                <span className="text-lg" aria-hidden="true">
-                  {icon}
-                </span>
-                <span>{item.name}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+	            return (
+	              <Link
+	                key={item.href}
+	                href={item.href}
+			                onClick={item.href === '/' ? handleHomeClick : undefined}
+	                className={`flex flex-col items-center justify-center text-xs font-medium transition-colors ${
+	                  active
+	                    ? 'text-zinc-900 dark:text-zinc-50'
+	                    : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'
+	                }`}
+	              >
+	                <span>{label}</span>
+	              </Link>
+	            );
+	          })}
+	        </div>
+	      </nav>
     </>
   );
 }
