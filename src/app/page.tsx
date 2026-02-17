@@ -1,19 +1,20 @@
-		'use client';
-
-			import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-			import { useSearchParams, useRouter } from 'next/navigation';
-		import GoogleMap from '@/components/map/GoogleMap';
-		import SportFilterPanel from '@/components/filter/SportFilterPanel';
-		import CityFilterPanel from '@/components/filter/CityFilterPanel';
-		import BarDetailsPanel from '@/components/bar/BarDetailsPanel';
-			import NearestBarListPanel from '@/components/bar/NearestBarListPanel';
-		import { dummyBars } from '@/lib/data/bars';
-		import { CITY_COORDINATES, type CityId } from '@/lib/data/cities';
-		import { Bar } from '@/lib/models';
-			import type { Fixture, LeagueKey } from '@/lib/types/fixtures';
-			import { getFixtureProvider } from '@/lib/providers/fixtures';
-			import { getCompetitionByKey } from '@/lib/config/competitions';
-			import { BarFixtureSelectionService, BarService } from '@/lib/services';
+			'use client';
+		
+				import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+				import Image from 'next/image';
+				import { useSearchParams, useRouter } from 'next/navigation';
+			import GoogleMap from '@/components/map/GoogleMap';
+			import SportFilterPanel from '@/components/filter/SportFilterPanel';
+			import CityFilterPanel from '@/components/filter/CityFilterPanel';
+			import BarDetailsPanel from '@/components/bar/BarDetailsPanel';
+				import NearestBarListPanel from '@/components/bar/NearestBarListPanel';
+			import { dummyBars } from '@/lib/data/bars';
+			import { CITY_COORDINATES, type CityId } from '@/lib/data/cities';
+			import { Bar } from '@/lib/models';
+				import type { Fixture, LeagueKey } from '@/lib/types/fixtures';
+				import { getFixtureProvider } from '@/lib/providers/fixtures';
+				import { getCompetitionByKey } from '@/lib/config/competitions';
+				import { BarFixtureSelectionService, BarService } from '@/lib/services';
 
 			const DEFAULT_RANGE_DAYS = 14;
 			const LEAGUES: LeagueKey[] = ['EPL', 'NOR_ELITESERIEN', 'SERIE_A', 'UCL', 'UEL'];
@@ -408,18 +409,23 @@
 					                    Fjern kampfilter
 					                  </button>
 					                </div>
-					              ) : (
-					                <>
-					                  <div className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-					                    <span className="bg-gradient-to-r from-emerald-500 via-lime-400 to-cyan-400 bg-clip-text text-transparent uppercase tracking-[0.18em] text-[0.78rem] md:text-xs">
-					                      where2watch
-					                    </span>
-					                  </div>
-					                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
-					                    {selectedTeam ? `Filter: ${selectedTeam}` : 'Bruk søk for å filtrere på lag eller liga'}
-					                  </div>
-					                </>
-					              )}
+				              ) : (
+				                <>
+				                  <div className="flex justify-center">
+				                    <Image
+				                      src="/where2watch-logo.svg"
+				                      alt="where2watch"
+				                      width={120}
+				                      height={24}
+				                      className="h-5 w-auto md:h-6"
+				                      priority
+				                    />
+				                  </div>
+				                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
+				                    {selectedTeam ? `Filter: ${selectedTeam}` : 'Bruk søk for å filtrere på lag eller liga'}
+				                  </div>
+				                </>
+				              )}
 		            </div>
 					          <button
 					            type="button"
