@@ -417,7 +417,7 @@
 				                      alt="where2watch"
 				                      width={120}
 				                      height={24}
-				                      className="h-5 w-auto md:h-6"
+				                      className="h-6 w-auto md:h-8"
 				                      priority
 				                    />
 				                  </div>
