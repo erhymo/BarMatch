@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { MatchService } from "@/lib/services";
 import { useFavorites } from "@/contexts/FavoritesContext";
@@ -586,27 +587,51 @@ export default function KamperPage() {
                             {MatchService.getLeagueEmoji(leagueLabel)} {leagueLabel}
                           </span>
                         </div>
-                        <div className="text-sm sm:text-base font-medium text-zinc-900 dark:text-zinc-50">
-                          <span
-                            className={
-                              favoriteTeamNameSet.has(fixture.homeTeam)
-                                ? "text-blue-600 dark:text-blue-400"
-                                : ""
-                            }
-                          >
-                            {fixture.homeTeam}
-                          </span>
-                          <span className="mx-1 text-zinc-400">vs</span>
-                          <span
-                            className={
-                              favoriteTeamNameSet.has(fixture.awayTeam)
-                                ? "text-blue-600 dark:text-blue-400"
-                                : ""
-                            }
-                          >
-                            {fixture.awayTeam}
-                          </span>
-                        </div>
+	                        <div className="flex items-center gap-3 text-sm sm:text-base font-medium text-zinc-900 dark:text-zinc-50">
+	                          <div className="flex items-center gap-1.5">
+	                            {fixture.homeTeamLogoUrl && (
+	                              <div className="h-5 w-5 sm:h-6 sm:w-6 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+	                                <img
+	                                  src={fixture.homeTeamLogoUrl}
+	                                  alt={fixture.homeTeam}
+	                                  loading="lazy"
+	                                  className="h-full w-full object-contain"
+	                                />
+	                              </div>
+	                            )}
+	                            <span
+	                              className={
+	                                favoriteTeamNameSet.has(fixture.homeTeam)
+	                                  ? "text-blue-600 dark:text-blue-400"
+	                                  : ""
+	                              }
+	                            >
+	                              {fixture.homeTeam}
+	                            </span>
+	                          </div>
+	                          <span className="mx-1 text-zinc-400">vs</span>
+	                          <div className="flex items-center gap-1.5">
+	                            {fixture.awayTeamLogoUrl && (
+	                              <div className="h-5 w-5 sm:h-6 sm:w-6 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+	                                <img
+	                                  src={fixture.awayTeamLogoUrl}
+	                                  alt={fixture.awayTeam}
+	                                  loading="lazy"
+	                                  className="h-full w-full object-contain"
+	                                />
+	                              </div>
+	                            )}
+	                            <span
+	                              className={
+	                                favoriteTeamNameSet.has(fixture.awayTeam)
+	                                  ? "text-blue-600 dark:text-blue-400"
+	                                  : ""
+	                              }
+	                            >
+	                              {fixture.awayTeam}
+	                            </span>
+	                          </div>
+	                        </div>
                       </div>
 
                       {isFavoriteMatch && (

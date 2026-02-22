@@ -14,12 +14,16 @@ export type ApiFootballFixtureLike = {
     round?: string | null;
   } | null;
   teams?: {
-    home?: {
-      name?: string | null;
-    } | null;
-    away?: {
-      name?: string | null;
-    } | null;
+	    home?: {
+	      id?: number | string | null;
+	      name?: string | null;
+	      logo?: string | null;
+	    } | null;
+	    away?: {
+	      id?: number | string | null;
+	      name?: string | null;
+	      logo?: string | null;
+	    } | null;
   } | null;
 };
 
@@ -53,6 +57,15 @@ export function mapApiFootballFixtureToFixture(
   const awayTeam =
     apiFixture.teams?.away?.name?.trim() || 'Ukjent bortelag';
 
+	  const homeTeamLogoUrl =
+	    apiFixture.teams?.home?.logo && apiFixture.teams.home.logo.trim()
+	      ? apiFixture.teams.home.logo.trim() || undefined
+	      : undefined;
+	  const awayTeamLogoUrl =
+	    apiFixture.teams?.away?.logo && apiFixture.teams.away.logo.trim()
+	      ? apiFixture.teams.away.logo.trim() || undefined
+	      : undefined;
+
   const round = apiFixture.league?.round || undefined;
   const venue =
     apiFixture.fixture?.venue?.name?.trim() || undefined;
@@ -68,7 +81,9 @@ export function mapApiFootballFixtureToFixture(
     awayTeam,
     kickoffUtc: toKickoffUtcFromApiFootball(apiFixture.fixture),
     round,
-    venue,
+	    venue,
+	    homeTeamLogoUrl,
+	    awayTeamLogoUrl,
   };
 }
 

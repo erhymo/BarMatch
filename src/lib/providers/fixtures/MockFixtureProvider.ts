@@ -35,13 +35,15 @@ function toKickoffUtc(date: string, time: string): string {
 }
 
 function mapMatchToFixture(match: Match, league: LeagueKey): Fixture {
-  return {
-    id: match.id,
-    league,
-    homeTeam: match.homeTeam.name,
-    awayTeam: match.awayTeam.name,
-    kickoffUtc: toKickoffUtc(match.date, match.time),
-  };
+	  return {
+	    id: match.id,
+	    league,
+	    homeTeam: match.homeTeam.name,
+	    awayTeam: match.awayTeam.name,
+	    kickoffUtc: toKickoffUtc(match.date, match.time),
+	    homeTeamLogoUrl: match.homeTeam.logo,
+	    awayTeamLogoUrl: match.awayTeam.logo,
+	  };
 }
 
 export class MockFixtureProvider implements FixtureProvider {
