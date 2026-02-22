@@ -387,9 +387,37 @@ export default function BarFixturesDayPage() {
 											</span>
 										)}
 									</div>
-									<div className="mt-1 text-sm font-medium text-zinc-900 dark:text-zinc-50">
-										{f.homeTeam} – {f.awayTeam}
+								<div className="mt-1 text-sm font-medium text-zinc-900 dark:text-zinc-50">
+									<div className="flex flex-wrap items-center gap-2">
+										<div className="flex items-center gap-1.5">
+											{f.homeTeamLogoUrl && (
+												<div className="h-5 w-5 sm:h-6 sm:w-6 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+													<img
+														src={f.homeTeamLogoUrl}
+														alt={f.homeTeam}
+														loading="lazy"
+														className="h-full w-full object-contain"
+													/>
+												</div>
+											)}
+											<span>{f.homeTeam}</span>
+										</div>
+										<span className="text-zinc-400">–</span>
+										<div className="flex items-center gap-1.5">
+											{f.awayTeamLogoUrl && (
+												<div className="h-5 w-5 sm:h-6 sm:w-6 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+													<img
+														src={f.awayTeamLogoUrl}
+														alt={f.awayTeam}
+														loading="lazy"
+														className="h-full w-full object-contain"
+													/>
+												</div>
+											)}
+											<span>{f.awayTeam}</span>
+										</div>
 									</div>
+								</div>
 								</div>
 								<div className="flex items-center gap-3">
 									<button
