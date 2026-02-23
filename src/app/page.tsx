@@ -4,7 +4,6 @@
 				import Image from 'next/image';
 				import { useSearchParams, useRouter } from 'next/navigation';
 			import GoogleMap from '@/components/map/GoogleMap';
-			import SportFilterPanel from '@/components/filter/SportFilterPanel';
 			import CityFilterPanel from '@/components/filter/CityFilterPanel';
 			import BarDetailsPanel from '@/components/bar/BarDetailsPanel';
 				import NearestBarListPanel from '@/components/bar/NearestBarListPanel';
@@ -41,7 +40,7 @@
 			  const [fixturesError, setFixturesError] = useState<string | null>(null);
 			  const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
 			  const [mapFocusPosition, setMapFocusPosition] = useState<{ lat: number; lng: number } | null>(null);
-		  const [favoriteCity, setFavoriteCity] = useState<CityId | null>(() => {
+			  const [favoriteCity, setFavoriteCity] = useState<CityId | null>(() => {
 		    if (typeof window === 'undefined') return null;
 		    try {
 			      const stored = window.localStorage.getItem('where2watch.favoriteCity');
@@ -58,8 +57,7 @@
 		    }
 		    return null;
 		  });
-		  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-		  const [isCityPanelOpen, setIsCityPanelOpen] = useState(false);
+			  const [isCityPanelOpen, setIsCityPanelOpen] = useState(false);
 			  const [isNearestListOpen, setIsNearestListOpen] = useState(false);
 
 			  const range = useMemo(() => createDefaultRange(DEFAULT_RANGE_DAYS), []);
@@ -101,14 +99,6 @@
 			      setIsLoadingFixtures(false);
 			    }
 			  }, [fixtureProvider, range.from, range.to]);
-
-			  // Load fixtures on-demand when user opens filter panel
-			  useEffect(() => {
-			    if (!isFilterPanelOpen) return;
-			    if (fixtures.length > 0) return;
-			    if (isLoadingFixtures) return;
-			    void loadFixtures();
-			  }, [isFilterPanelOpen, fixtures.length, isLoadingFixtures, loadFixtures]);
 
 				  // Ensure fixtures are loaded when coming from /kamper with a specific matchId
 				  useEffect(() => {
@@ -184,25 +174,24 @@
 	    }
 	  }, [favoriteCity]);
 
-		  // Nullstill lag- og kampfiltre når "Hjem" klikkes på nytt mens vi allerede er på forsiden
-		  useEffect(() => {
-		    if (typeof window === 'undefined') return;
-
-			  const handleResetFilters = () => {
-			      setSelectedLeague('EPL');
-		      setSelectedTeam(null);
-		      setSelectedBar(null);
-			      setMapFocusPosition(null);
-		      setIsFilterPanelOpen(false);
-		      setIsCityPanelOpen(false);
-		    };
-
-		    window.addEventListener('where2watch:reset-home-filters', handleResetFilters);
-
-		    return () => {
-		      window.removeEventListener('where2watch:reset-home-filters', handleResetFilters);
-		    };
-		  }, []);
+			  // Nullstill lag- og kampfiltre når "Hjem" klikkes på nytt mens vi allerede er på forsiden
+			  useEffect(() => {
+			    if (typeof window === 'undefined') return;
+			
+				  const handleResetFilters = () => {
+				      setSelectedLeague('EPL');
+			      setSelectedTeam(null);
+			      setSelectedBar(null);
+				      setMapFocusPosition(null);
+			      setIsCityPanelOpen(false);
+			    };
+			
+			    window.addEventListener('where2watch:reset-home-filters', handleResetFilters);
+			
+			    return () => {
+			      window.removeEventListener('where2watch:reset-home-filters', handleResetFilters);
+			    };
+			  }, []);
 
 		  const isLoadingPublicBars = publicBars === null && !publicBarsError;
 		  const baseBars = useMemo(() => {
@@ -321,36 +310,23 @@
 			    setMapFocusPosition(null);
 		  };
 
-			  const leagueOptions = useMemo(() => {
-			    return LEAGUES.map((key) => ({ key, label: getCompetitionByKey(key).label }));
-			  }, []);
-
-		  const toggleFilterPanel = () => {
-		    setIsFilterPanelOpen((prev) => {
-		      const next = !prev;
-			      if (next) {
-			        setIsCityPanelOpen(false);
-			        setIsNearestListOpen(false);
-			      }
-		      return next;
-		    });
-		  };
-
-		  const toggleCityPanel = () => {
-		    setIsCityPanelOpen((prev) => {
-		      const next = !prev;
-			      if (next) {
-			        setIsFilterPanelOpen(false);
-			        setIsNearestListOpen(false);
-			      }
-		      return next;
-		    });
-		  };
-
-				  const closePanels = useCallback(() => {
-				    setIsFilterPanelOpen(false);
-				    setIsCityPanelOpen(false);
+				  const leagueOptions = useMemo(() => {
+				    return LEAGUES.map((key) => ({ key, label: getCompetitionByKey(key).label }));
 				  }, []);
+				
+			  const toggleCityPanel = () => {
+			    setIsCityPanelOpen((prev) => {
+			      const next = !prev;
+				      if (next) {
+				        setIsNearestListOpen(false);
+				      }
+			      return next;
+			    });
+			  };
+			
+					  const closePanels = useCallback(() => {
+					    setIsCityPanelOpen(false);
+					  }, []);
 
 				  const closeOverlays = useCallback(() => {
 				    closePanels();
@@ -369,23 +345,11 @@
 		
 		  return (
 			    <div className="flex flex-col h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black">
-			      {/* Header Section */}
-				      <div className="flex-shrink-0 bg-white/90 dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-800">
-				        <div className="container mx-auto px-4 py-4">
-				          <div className="flex items-center justify-between gap-3">
-					          <button
-					            type="button"
-					            onClick={toggleFilterPanel}
-					            className={`inline-flex h-9 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors ${
-					                isFilterPanelOpen
-					                  ? 'border-emerald-500 text-emerald-700 dark:border-emerald-400 dark:text-emerald-200'
-					                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200'
-					              }`}
-					            aria-label="Åpne søk etter lag og liga"
-					          >
-				              <span className="text-xs font-medium tracking-tight">Søk</span>
-				            </button>
-		            <div className="flex-1 text-center">
+				      {/* Header Section */}
+					      <div className="flex-shrink-0 bg-white/90 dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-800">
+					        <div className="container mx-auto px-4 py-4">
+					          <div className="flex items-center justify-between gap-3">
+					            <div className="flex-1 text-center">
 					              {matchId ? (
 					                <div className="space-y-1">
 					                  <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
@@ -410,21 +374,23 @@
 					                  </button>
 					                </div>
 				              ) : (
-				                <>
-				                  <div className="flex justify-center">
-				                    <Image
-				                      src="/where2watch-logo.svg"
-				                      alt="where2watch"
-				                      width={120}
-				                      height={24}
-				                      className="h-6 w-auto md:h-8"
-				                      priority
-				                    />
-				                  </div>
-				                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
-				                    {selectedTeam ? `Filter: ${selectedTeam}` : 'Bruk søk for å filtrere på lag eller liga'}
-				                  </div>
-				                </>
+						                <>
+						                  <div className="flex justify-center">
+						                    <Image
+						                      src="/where2watch-logo.svg"
+						                      alt="where2watch"
+						                      width={120}
+						                      height={24}
+						                      className="h-6 w-auto md:h-8"
+						                      priority
+						                    />
+						                  </div>
+						                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
+						                    {selectedTeam
+						                      ? `Filter: ${selectedTeam}`
+						                      : 'Gå til «Kamper» for å søke etter lag og liga'}
+						                  </div>
+						                </>
 				              )}
 		            </div>
 					          <button
@@ -443,33 +409,17 @@
 				        </div>
 			      </div>
 			
-			      {/* Filter / City panels under header */}
-			      {(isFilterPanelOpen || isCityPanelOpen) && (
-			        <div className="flex-shrink-0 pt-1 pb-2">
-			          <div className="container mx-auto px-4">
-			            {isFilterPanelOpen && (
-			              <SportFilterPanel
-			                leagues={leagueOptions}
-			                selectedLeague={selectedLeague}
-			                selectedTeam={selectedTeam}
-			                fixtures={fixtures}
-			                onLeagueChange={handleLeagueChange}
-			                onTeamSelect={handleTeamSelect}
-			                isLoading={isLoadingFixtures}
-			                error={fixturesError}
-			                onRetryLoad={loadFixtures}
-			                onDone={() => setIsFilterPanelOpen(false)}
-			              />
-			            )}
-			            {isCityPanelOpen && (
-			              <CityFilterPanel
-			                favoriteCity={favoriteCity}
-			                onFavoriteCityChange={handleFavoriteCityChange}
-			              />
-			            )}
-			          </div>
-			        </div>
-			      )}
+					      {/* City panel under header */}
+					      {isCityPanelOpen && (
+					        <div className="flex-shrink-0 pt-1 pb-2">
+					          <div className="container mx-auto px-4">
+					            <CityFilterPanel
+					              favoriteCity={favoriteCity}
+					              onFavoriteCityChange={handleFavoriteCityChange}
+					            />
+					          </div>
+					        </div>
+					      )}
 			
 			      {/* Map Section - Takes up remaining space */}
 			      <div className="flex-1 relative overflow-hidden">
@@ -488,11 +438,11 @@
 			            onUserPositionChange={setUserPosition}
 			            bars={filteredBars}
 			            onBarClick={handleBarClick}
-			            onMapClick={() => {
-				              if (isFilterPanelOpen || isCityPanelOpen || isNearestListOpen) {
-				                closeOverlays();
-				              }
-			            }}
+					            onMapClick={() => {
+						              if (isCityPanelOpen || isNearestListOpen) {
+						                closeOverlays();
+						              }
+					            }}
 			          />
 			        </div>
 

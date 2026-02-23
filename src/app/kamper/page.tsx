@@ -70,6 +70,28 @@ const LEAGUE_LABEL_BY_KEY: Record<LeagueKey, string> = {
   UEL: "UEFA Europa League",
 };
 
+type TeamSuggestion = {
+  type: "team";
+  teamName: string;
+  league: LeagueKey;
+  leagueLabel: string;
+};
+
+type LeagueSuggestion = {
+  type: "league";
+  league: LeagueKey;
+  label: string;
+};
+
+type SearchSuggestion = TeamSuggestion | LeagueSuggestion;
+
+type RecentSearchEntry = {
+  teamName: string;
+  league: LeagueKey;
+};
+
+const RECENT_SEARCHES_STORAGE_KEY = "bar_match_recent_team_searches_v1";
+
 // Mapping fra interne lag-ID-er (favoritter) til visningsnavn slik de kommer fra Fixture
 const TEAM_ID_TO_NAME: Record<string, string> = {
   tot: "Tottenham",
@@ -125,6 +147,8 @@ export default function KamperPage() {
 
   const [selectedLeague, setSelectedLeague] = useState<LeagueKey | "">("");
   const [showOnlyFavorites, setShowOnlyFavorites] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [recentSearches, setRecentSearches] = useState<RecentSearchEntry[]>([]);
   const [range] = useState<DateRange>(() => createDefaultRange());
   const [fixturesByLeague, setFixturesByLeague] = useState<
     Record<LeagueKey, Fixture[]>
@@ -330,6 +354,184 @@ export default function KamperPage() {
     [favoriteTeamNames],
   );
 
+  // Last inn nylige søk (lag+liga) fra localStorage
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(RECENT_SEARCHES_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+      const cleaned: RecentSearchEntry[] = parsed
+        .filter(
+          (entry: any) =>
+            entry &&
+            typeof entry.teamName === "string" &&
+            typeof entry.league === "string",
+        )
+        .slice(0, 6);
+      setRecentSearches(cleaned);
+    } catch {
+      // Ignorer korrupt lagret data
+    }
+  }, []);
+
+  // Best-effort: hold localStorage i sync hvis noe annet endrer state
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(
+        RECENT_SEARCHES_STORAGE_KEY,
+        JSON.stringify(recentSearches),
+      );
+    } catch {
+      // Best effort – ignorer hvis lagring feiler
+    }
+  }, [recentSearches]);
+
+  const { teamSuggestions, leagueSuggestions } = useMemo(() => {
+    const teamMap = new Map<string, Set<LeagueKey>>();
+    const leagueSet = new Set<LeagueKey>();
+
+    allFixtures.forEach((f) => {
+      leagueSet.add(f.league);
+
+      let set = teamMap.get(f.homeTeam);
+      if (!set) {
+        set = new Set<LeagueKey>();
+        teamMap.set(f.homeTeam, set);
+      }
+      set.add(f.league);
+
+      set = teamMap.get(f.awayTeam);
+      if (!set) {
+        set = new Set<LeagueKey>();
+        teamMap.set(f.awayTeam, set);
+      }
+      set.add(f.league);
+    });
+
+    const leagueKeys: LeagueKey[] =
+      leagueSet.size > 0
+        ? Array.from(leagueSet)
+        : LEAGUES.map((l) => l.key);
+
+    const buildLeagueLabel = (league: LeagueKey) =>
+      LEAGUE_LABEL_BY_KEY[league] ?? league;
+
+    const teamSuggestions: TeamSuggestion[] = [];
+    teamMap.forEach((leagueSetForTeam, teamName) => {
+      leagueSetForTeam.forEach((league) => {
+        teamSuggestions.push({
+          type: "team",
+          teamName,
+          league,
+          leagueLabel: buildLeagueLabel(league),
+        });
+      });
+    });
+
+    const leagueSuggestions: LeagueSuggestion[] = leagueKeys.map((league) => ({
+      type: "league",
+      league,
+      label: buildLeagueLabel(league),
+    }));
+
+    teamSuggestions.sort((a, b) => {
+      const nameCompare = a.teamName.localeCompare(b.teamName, "nb");
+      if (nameCompare !== 0) return nameCompare;
+      return a.leagueLabel.localeCompare(b.leagueLabel, "nb");
+    });
+
+    leagueSuggestions.sort((a, b) => a.label.localeCompare(b.label, "nb"));
+
+    return { teamSuggestions, leagueSuggestions };
+  }, [allFixtures]);
+
+  const filteredTeamSuggestions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) {
+      // Når søket er tomt viser vi heller nylige søk enn generelle forslag
+      return [];
+    }
+    return teamSuggestions
+      .filter(
+        (s) =>
+          s.teamName.toLowerCase().includes(q) ||
+          s.leagueLabel.toLowerCase().includes(q),
+      )
+      .slice(0, 20);
+  }, [searchQuery, teamSuggestions]);
+
+  const filteredLeagueSuggestions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) {
+      // Når søket er tomt viser vi heller nylige søk enn generelle forslag
+      return [];
+    }
+    return leagueSuggestions.filter((s) =>
+      s.label.toLowerCase().includes(q),
+    );
+  }, [searchQuery, leagueSuggestions]);
+
+  const recentSuggestions: TeamSuggestion[] = useMemo(
+    () =>
+      recentSearches.map((entry) => ({
+        type: "team" as const,
+        teamName: entry.teamName,
+        league: entry.league,
+        leagueLabel:
+          LEAGUE_LABEL_BY_KEY[entry.league] ?? (entry.league as string),
+      })),
+    [recentSearches],
+  );
+
+  const hasSuggestions =
+    filteredTeamSuggestions.length > 0 ||
+    filteredLeagueSuggestions.length > 0;
+
+  const showRecent =
+    searchQuery.trim().length === 0 && recentSuggestions.length > 0;
+
+  function addRecentFromTeamSuggestion(suggestion: TeamSuggestion) {
+    const filtered = recentSearches.filter(
+      (entry) =>
+        !(
+          entry.teamName === suggestion.teamName &&
+          entry.league === suggestion.league
+        ),
+    );
+
+    const next: RecentSearchEntry[] = [
+      { teamName: suggestion.teamName, league: suggestion.league },
+      ...filtered,
+    ].slice(0, 6);
+
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(
+          RECENT_SEARCHES_STORAGE_KEY,
+          JSON.stringify(next),
+        );
+      } catch {
+        // Ignorer hvis lagring feiler
+      }
+    }
+
+    setRecentSearches(next);
+  }
+
+  function handleSelectSuggestion(suggestion: SearchSuggestion) {
+    if (suggestion.type === "team") {
+      addRecentFromTeamSuggestion(suggestion);
+      setSelectedLeague(suggestion.league);
+      setSearchQuery(suggestion.teamName);
+    } else {
+      setSelectedLeague(suggestion.league);
+      setSearchQuery("");
+    }
+  }
+
   const filteredFixtures = useMemo(() => {
     let fixtures = allFixtures;
 
@@ -346,8 +548,27 @@ export default function KamperPage() {
       });
     }
 
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      fixtures = fixtures.filter((fixture) => {
+        const leagueLabel =
+          LEAGUE_LABEL_BY_KEY[fixture.league] ?? String(fixture.league);
+        return (
+          fixture.homeTeam.toLowerCase().includes(q) ||
+          fixture.awayTeam.toLowerCase().includes(q) ||
+          leagueLabel.toLowerCase().includes(q)
+        );
+      });
+    }
+
     return fixtures;
-  }, [allFixtures, selectedLeague, showOnlyFavorites, favoriteTeamNameSet]);
+  }, [
+    allFixtures,
+    selectedLeague,
+    showOnlyFavorites,
+    favoriteTeamNameSet,
+    searchQuery,
+  ]);
 
   const handleMatchClick = (matchId: string) => {
     // Naviger til kartet og filtrer barer som viser denne kampen
@@ -481,6 +702,96 @@ export default function KamperPage() {
                       {label}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Search by team or league */}
+              <div>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                  Søk etter lag eller liga
+                </label>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="F.eks. Rosenborg eller Premier League"
+                  className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                />
+                {searchQuery.trim().length > 0 && (
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    Viser bare kamper som matcher søket ditt.
+                  </p>
+                )}
+
+                {/* Suggestions / recent searches */}
+                <div className="mt-2 space-y-2">
+                  {showRecent ? (
+                    <div className="space-y-1">
+                      {recentSuggestions.map((s) => (
+                        <button
+                          key={`recent-${s.teamName}-${s.league}`}
+                          type="button"
+                          onClick={() => handleSelectSuggestion(s)}
+                          className="w-full flex items-center justify-between rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800/70 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-left text-sm text-zinc-900 dark:text-zinc-100 transition-colors"
+                        >
+                          <span className="font-medium">{s.teamName}</span>
+                          <span className="ml-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+                            {s.leagueLabel}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : hasSuggestions ? (
+                    <div className="space-y-3">
+                      {filteredTeamSuggestions.length > 0 && (
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-1">
+                            Lag
+                          </p>
+                          <div className="space-y-1">
+                            {filteredTeamSuggestions.map((s) => (
+                              <button
+                                key={`team-${s.teamName}-${s.league}`}
+                                type="button"
+                                onClick={() => handleSelectSuggestion(s)}
+                                className="w-full flex items-center justify-between rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800/70 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-left text-sm text-zinc-900 dark:text-zinc-100 transition-colors"
+                              >
+                                <span className="font-medium">{s.teamName}</span>
+                                <span className="ml-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+                                  {s.leagueLabel}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {filteredLeagueSuggestions.length > 0 && (
+                        <div>
+                          <p className="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-1">
+                            Ligaer
+                          </p>
+                          <div className="space-y-1">
+                            {filteredLeagueSuggestions.map((s) => (
+                              <button
+                                key={`league-${s.league}`}
+                                type="button"
+                                onClick={() => handleSelectSuggestion(s)}
+                                className="w-full flex items-center justify-between rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800/70 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-left text-sm text-zinc-900 dark:text-zinc-100 transition-colors"
+                              >
+                                <span className="font-medium">{s.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : !isLoading && allFixtures.length > 0 &&
+                    searchQuery.trim().length > 0 ? (
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Ingen treff. Prøv et annet lag eller en annen liga.
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
