@@ -13,17 +13,19 @@ import { useRatings } from '@/contexts/RatingsContext';
 
 // Marker-ikoner for barer. Vi skiller mellom:
 // - Rød fotball: onboardede Where2Watch-partnere (viser kamper, har profil)
-// - Hvit fotball: vanlige sportsbarer fra eksterne kilder (viser kun navn ved klikk)
-const PARTNER_FOOTBALL_SVG =
+// Kartmarkører i stil med en enkel pin:
+// - Fylt pin: Where2Watch-partnere (kunder)
+// - Tom pin: vanlige sportsbarer fra eksterne kilder
+	const PARTNER_FOOTBALL_SVG =
 	  '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">' +
-	  '<circle cx="20" cy="20" r="18" fill="#ef4444" />' +
-	  '<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-size="22" fill="#ffffff">⚽</text>' +
+	  '<circle cx="20" cy="12" r="8" fill="#111827" stroke="#111827" stroke-width="2" />' +
+	  '<path d="M20 22 L14 34 L26 34 Z" fill="#111827" stroke="#111827" stroke-width="2" stroke-linejoin="round" />' +
 	  '</svg>';
-
-const CANDIDATE_FOOTBALL_SVG =
+	
+	const CANDIDATE_FOOTBALL_SVG =
 	  '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">' +
-	  '<circle cx="20" cy="20" r="18" fill="#f9fafb" stroke="#111827" stroke-width="2" />' +
-	  '<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-size="22" fill="#111827">⚽</text>' +
+	  '<circle cx="20" cy="12" r="8" fill="#ffffff" stroke="#111827" stroke-width="2" />' +
+	  '<path d="M20 22 L14 34 L26 34 Z" fill="#ffffff" stroke="#111827" stroke-width="2" stroke-linejoin="round" />' +
 	  '</svg>';
 
 const PARTNER_FOOTBALL_ICON_URL = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
