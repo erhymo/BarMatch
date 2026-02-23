@@ -450,12 +450,12 @@ interface GoogleMapProps {
 			              position={selectedBar.position}
 			              onCloseClick={() => setSelectedBar(null)}
 			            >
-			              {selectedBar.source === 'places_candidate' ? (
-			                <div className="p-2 max-w-xs">
-			                  <h3 className="font-semibold text-sm text-zinc-900">
+				              {selectedBar.source === 'places_candidate' ? (
+				                <div className="p-2 max-w-xs rounded-lg border border-zinc-200 bg-white/95 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/95">
+				                  <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-50">
 			                    {selectedBar.name}
 			                  </h3>
-			                  <p className="mt-1 text-xs text-zinc-600">
+				                  <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">
 			                    Eier du denne baren?{' '}
 			                    <a
 			                      href={buildCandidateOnboardingMailto(selectedBar)}
