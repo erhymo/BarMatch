@@ -13,17 +13,35 @@ import { useRatings } from '@/contexts/RatingsContext';
 
 // Marker-ikoner for barer. Vi skiller mellom:
 // - Rød fotball: onboardede Where2Watch-partnere (viser kamper, har profil)
-// - Hvit fotball:vanlige sportsbarer fra eksterne kilder (viser kun navn ved klikk)
+// - Hvit fotball: vanlige sportsbarer fra eksterne kilder (viser kun navn ved klikk)
+//
+// For å få konsistente ikoner på tvers av enheter bruker vi egne små SVG-fotballer
+// i stedet for emoji. Hvit ball = klassisk fotball, rød ball = samme mønster men
+// med røde "felter" i stedet for hvite.
 const PARTNER_FOOTBALL_SVG =
 	  '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">' +
-	  '<circle cx="20" cy="20" r="18" fill="#ef4444" />' +
-	  '<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-size="22" fill="#ffffff">⚽</text>' +
+	  '<circle cx="20" cy="20" r="18" fill="#ef4444" stroke="#111827" stroke-width="2" />' +
+	  // midtre femkant
+	  '<polygon points="20,10 14,15 16,22 24,22 26,15" fill="#111827" />' +
+	  // linjer ut fra femkanten for å hint'e mønster
+	  '<line x1="20" y1="10" x2="20" y2="4" stroke="#111827" stroke-width="1.5" />' +
+	  '<line x1="14" y1="15" x2="8" y2="12" stroke="#111827" stroke-width="1.5" />' +
+	  '<line x1="26" y1="15" x2="32" y2="12" stroke="#111827" stroke-width="1.5" />' +
+	  '<line x1="16" y1="22" x2="10" y2="26" stroke="#111827" stroke-width="1.5" />' +
+	  '<line x1="24" y1="22" x2="30" y2="26" stroke="#111827" stroke-width="1.5" />' +
 	  '</svg>';
 
 const CANDIDATE_FOOTBALL_SVG =
 	  '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">' +
 	  '<circle cx="20" cy="20" r="18" fill="#f9fafb" stroke="#111827" stroke-width="2" />' +
-	  '<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-size="22" fill="#111827">⚽</text>' +
+	  // midtre femkant
+	  '<polygon points="20,10 14,15 16,22 24,22 26,15" fill="#111827" />' +
+	  // linjer ut fra femkanten for å hint'e mønster
+	  '<line x1="20" y1="10" x2="20" y2="4" stroke="#111827" stroke-width="1.5" />' +
+	  '<line x1="14" y1="15" x2="8" y2="12" stroke="#111827" stroke-width="1.5" />' +
+	  '<line x1="26" y1="15" x2="32" y2="12" stroke="#111827" stroke-width="1.5" />' +
+	  '<line x1="16" y1="22" x2="10" y2="26" stroke="#111827" stroke-width="1.5" />' +
+	  '<line x1="24" y1="22" x2="30" y2="26" stroke="#111827" stroke-width="1.5" />' +
 	  '</svg>';
 
 const PARTNER_FOOTBALL_ICON_URL = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
