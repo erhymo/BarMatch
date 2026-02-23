@@ -441,69 +441,69 @@ interface GoogleMapProps {
 			          );
 			        })}
 				
-			          {/* InfoWindow for selected bar
-			             - Partner-barer: rik info når kartet brukes uten onBarClick
-			             - Hvite (places_candidate): kun navn, selv om onBarClick finnes */}
-			          {selectedBar && (!onBarClick || selectedBar.source === 'places_candidate') && (
-			            <InfoWindow
-			              position={selectedBar.position}
-			              onCloseClick={() => setSelectedBar(null)}
-			            >
-				              {selectedBar.source === 'places_candidate' ? (
-				                <div className="max-w-xs rounded-xl border border-zinc-200 bg-white/95 px-3 py-2 shadow-md dark:border-zinc-700 dark:bg-zinc-900/95">
-				                  <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-50 mb-1">
-				                    {selectedBar.name}
-				                  </h3>
-				                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-			                    Eier du denne baren?{' '}
-			                    <a
-			                      href={buildCandidateOnboardingMailto(selectedBar)}
-			                      className="font-medium text-emerald-600 hover:text-emerald-700 underline"
-			                    >
-			                      Klikk her for å sende oss en e-post
-			                    </a>
-			                  </p>
-				                </div>
-				              ) : (
-				                <div className="max-w-xs rounded-xl border border-zinc-200 bg-white/95 px-3 py-2 shadow-md dark:border-zinc-700 dark:bg-zinc-900/95">
-				                  <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-50 mb-1">
-			                    {selectedBar.name}
-			                  </h3>
-				                  {selectedBar.address && (
-				                    <p className="text-sm text-zinc-600 dark:text-zinc-300 mb-2">
-			                      📍 {selectedBar.address}
-			                    </p>
-			                  )}
-				                  {selectedBar.description && (
-				                    <p className="text-sm text-zinc-700 dark:text-zinc-200 mb-2">
-			                      {selectedBar.description}
-			                    </p>
-			                  )}
-			                  {(() => {
-			                    const partnerRating = getBarRating(selectedBar.id);
-			                    const ratingValueInner =
-			                      partnerRating?.averageRating ?? selectedBar.rating ?? 0;
-			                    const totalRatings =
-			                      partnerRating?.totalRatings ?? (selectedBar.rating ? 1 : 0);
-					
-			                    if (!ratingValueInner) return null;
-					
-			                    return (
-				                      <div className="flex items-center mt-1">
-				                        <span className="text-yellow-500 mr-1">⭐</span>
-				                        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50 mr-1">
-			                          {ratingValueInner.toFixed(1)}
-			                        </span>
-			                        <span className="text-xs text-zinc-500">
-			                          ({totalRatings})
-			                        </span>
-			                      </div>
-			                    );
-			                  })()}
-			                </div>
+			      {/* InfoWindow for valgt bar.
+			         - Partner-barer: rik info (navn, adresse, rating osv.).
+			         - Hvite (places_candidate): kun navn + onboarding-lenke. */}
+			      {selectedBar && (
+			        <InfoWindow
+			          position={selectedBar.position}
+			          onCloseClick={() => setSelectedBar(null)}
+			        >
+			          {selectedBar.source === 'places_candidate' ? (
+			            <div className="max-w-xs rounded-xl border border-zinc-200 bg-white/95 px-3 py-2 shadow-md dark:border-zinc-700 dark:bg-zinc-900/95">
+			              <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-50 mb-1">
+			                {selectedBar.name}
+			              </h3>
+			              <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
+			                Eier du denne baren?{' '}
+			                <a
+			                  href={buildCandidateOnboardingMailto(selectedBar)}
+			                  className="font-medium text-emerald-600 hover:text-emerald-700 underline"
+			                >
+			                  Klikk her for å sende oss en e-post
+			                </a>
+			              </p>
+			            </div>
+			          ) : (
+			            <div className="max-w-xs rounded-xl border border-zinc-200 bg-white/95 px-3 py-2 shadow-md dark:border-zinc-700 dark:bg-zinc-900/95">
+			              <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-50 mb-1">
+			                {selectedBar.name}
+			              </h3>
+			              {selectedBar.address && (
+			                <p className="text-sm text-zinc-600 dark:text-zinc-300 mb-2">
+			                  📍 {selectedBar.address}
+			                </p>
 			              )}
-			            </InfoWindow>
+			              {selectedBar.description && (
+			                <p className="text-sm text-zinc-700 dark:text-zinc-200 mb-2">
+			                  {selectedBar.description}
+			                </p>
+			              )}
+			              {(() => {
+			                const partnerRating = getBarRating(selectedBar.id);
+			                const ratingValueInner =
+			                  partnerRating?.averageRating ?? selectedBar.rating ?? 0;
+			                const totalRatings =
+			                  partnerRating?.totalRatings ?? (selectedBar.rating ? 1 : 0);
+			  
+			                if (!ratingValueInner) return null;
+			  
+			                return (
+			                  <div className="flex items-center mt-1">
+			                    <span className="text-yellow-500 mr-1">⭐</span>
+			                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50 mr-1">
+			                      {ratingValueInner.toFixed(1)}
+			                    </span>
+			                    <span className="text-xs text-zinc-500">
+			                      ({totalRatings})
+			                    </span>
+			                  </div>
+			                );
+			              })()}
+			            </div>
 			          )}
+			        </InfoWindow>
+			      )}
 	          </GoogleMapComponent>
 	        </LoadScriptNext>
 	      )}
