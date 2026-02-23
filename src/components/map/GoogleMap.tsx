@@ -60,7 +60,7 @@ function buildCandidateOnboardingMailto(bar: Bar): string {
 	    '[Telefonnummer]',
 	  ];
 	  const body = encodeURIComponent(bodyLines.join('\n'));
-	  return `mailto:support@where2watch.co?subject=${subject}&body=${body}`;
+	  return `mailto:support@where2watch.com?subject=${subject}&body=${body}`;
 	}
 
 interface GoogleMapProps {
@@ -452,10 +452,10 @@ interface GoogleMapProps {
 			            >
 				              {selectedBar.source === 'places_candidate' ? (
 				                <div className="max-w-xs rounded-xl border border-zinc-200 bg-white/95 px-3 py-2 shadow-md dark:border-zinc-700 dark:bg-zinc-900/95">
-				                  <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-50">
-			                    {selectedBar.name}
-			                  </h3>
-				                  <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">
+				                  <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-50 mb-1">
+				                    {selectedBar.name}
+				                  </h3>
+				                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
 			                    Eier du denne baren?{' '}
 			                    <a
 			                      href={buildCandidateOnboardingMailto(selectedBar)}
