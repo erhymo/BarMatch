@@ -11,15 +11,27 @@ import { Bar } from '@/lib/models';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useRatings } from '@/contexts/RatingsContext';
 
-// Fotball-ikon for bar-markører basert på ball-emoji
-// Vi bruker en enkel SVG som viser ⚽, slik at kartet matcher ikonene ellers i appen.
-const FOOTBALL_SVG =
-		  '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">' +
-		  '<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-size="26">⚽</text>' +
-		  '</svg>';
+// Marker-ikoner for barer. Vi skiller mellom:
+// - Rød fotball: onboardede Where2Watch-partnere (viser kamper, har profil)
+// - Hvit fotball:vanlige sportsbarer fra eksterne kilder (viser kun navn ved klikk)
+const PARTNER_FOOTBALL_SVG =
+	  '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">' +
+	  '<circle cx="20" cy="20" r="18" fill="#ef4444" />' +
+	  '<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-size="22" fill="#ffffff">⚽</text>' +
+	  '</svg>';
 
-const FOOTBALL_ICON_URL = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
-  FOOTBALL_SVG,
+const CANDIDATE_FOOTBALL_SVG =
+	  '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">' +
+	  '<circle cx="20" cy="20" r="18" fill="#f9fafb" stroke="#111827" stroke-width="2" />' +
+	  '<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-size="22" fill="#111827">⚽</text>' +
+	  '</svg>';
+
+const PARTNER_FOOTBALL_ICON_URL = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+	  PARTNER_FOOTBALL_SVG,
+ )}`;
+
+const CANDIDATE_FOOTBALL_ICON_URL = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+	  CANDIDATE_FOOTBALL_SVG,
  )}`;
 
 const defaultContainerStyle = {
@@ -29,9 +41,27 @@ const defaultContainerStyle = {
 
 // Default center: Oslo, Norway
 const defaultCenter = {
-  lat: 59.9139,
-  lng: 10.7522,
-};
+	  lat: 59.9139,
+	  lng: 10.7522,
+	};
+
+function buildCandidateOnboardingMailto(bar: Bar): string {
+	  const name = bar.name || 'Bar';
+	  const subject = encodeURIComponent(`${name} – onboarding`);
+	  const bodyLines = [
+	    'Hei Where2Watch,',
+	    '',
+	    `Vi eier eller drifter ${name} og ønsker å se på hvordan vi kan bli synlige i appen deres.`,
+	    '',
+	    'Send oss gjerne litt informasjon om hvordan vi kommer i gang, og hva dere trenger fra oss.',
+	    '',
+	    'Vennlig hilsen',
+	    '[Navn]',
+	    '[Telefonnummer]',
+	  ];
+	  const body = encodeURIComponent(bodyLines.join('\n'));
+	  return `mailto:support@where2watch.co?subject=${subject}&body=${body}`;
+	}
 
 interface GoogleMapProps {
 	  apiKey: string;
@@ -365,23 +395,29 @@ interface GoogleMapProps {
 			          const isFavorite = isFavoriteBar(bar.id);
 			          const barRating = getBarRating(bar.id);
 			          const ratingValue = barRating?.averageRating ?? bar.rating ?? 0;
-			
+			          // Hvis source ikke er satt antar vi at baren er en partner-bar slik
+			          // at eksisterende data fortsetter å fungere.
+			          const isPartnerBar = bar.source ? bar.source === 'partner' : true;
+					
 			          return (
 			            <Marker
 			              key={bar.id}
 			              position={bar.position}
 			              onClick={() => {
 			                setSelectedBar(bar);
-			                if (onBarClick) {
+			                // Kun partner-barer åpner full bar-detaljvisning.
+			                if (isPartnerBar && onBarClick) {
 			                  onBarClick(bar);
 			                }
 			              }}
 			              icon={{
-			                url: FOOTBALL_ICON_URL,
+			                url: isPartnerBar ? PARTNER_FOOTBALL_ICON_URL : CANDIDATE_FOOTBALL_ICON_URL,
 			                // Litt større ikon for favorittbarer så de skiller seg ut
-			                scaledSize: isFavorite
-			                  ? ({ width: 42, height: 42 } as google.maps.Size)
-			                  : ({ width: 36, height: 36 } as google.maps.Size),
+			                scaledSize: isPartnerBar
+			                  ? ((isFavorite
+			                      ? { width: 42, height: 42 }
+			                      : { width: 36, height: 36 }) as google.maps.Size)
+			                  : ({ width: 32, height: 32 } as google.maps.Size),
 			              }}
 			              title={
 			                ratingValue > 0
@@ -391,49 +427,70 @@ interface GoogleMapProps {
 			            />
 			          );
 			        })}
-
-	          {/* InfoWindow for selected bar - Simple tooltip */}
-	          {selectedBar && !onBarClick && (
-	            <InfoWindow
-	              position={selectedBar.position}
-	              onCloseClick={() => setSelectedBar(null)}
-	            >
-	              <div className="p-2 max-w-xs">
-	                <h3 className="font-bold text-lg text-zinc-900 mb-1">
-	                  {selectedBar.name}
-	                </h3>
-	                {selectedBar.address && (
-	                  <p className="text-sm text-zinc-600 mb-2">
-	                    📍 {selectedBar.address}
-	                  </p>
-	                )}
-	                {selectedBar.description && (
-	                  <p className="text-sm text-zinc-700 mb-2">
-	                    {selectedBar.description}
-	                  </p>
-	                )}
-	                {(() => {
-	                  const barRating = getBarRating(selectedBar.id);
-	                  const ratingValue = barRating?.averageRating ?? selectedBar.rating ?? 0;
-	                  const totalRatings = barRating?.totalRatings ?? (selectedBar.rating ? 1 : 0);
-
-	                  if (!ratingValue) return null;
-
-	                  return (
-	                    <div className="flex items-center mt-1">
-	                      <span className="text-yellow-500 mr-1">⭐</span>
-	                      <span className="text-sm font-medium text-zinc-900 mr-1">
-	                        {ratingValue.toFixed(1)}
-	                      </span>
-	                      <span className="text-xs text-zinc-500">
-	                        ({totalRatings})
-	                      </span>
-	                    </div>
-	                  );
-	                })()}
-	              </div>
-	            </InfoWindow>
-	          )}
+				
+			          {/* InfoWindow for selected bar
+			             - Partner-barer: rik info når kartet brukes uten onBarClick
+			             - Hvite (places_candidate): kun navn, selv om onBarClick finnes */}
+			          {selectedBar && (!onBarClick || selectedBar.source === 'places_candidate') && (
+			            <InfoWindow
+			              position={selectedBar.position}
+			              onCloseClick={() => setSelectedBar(null)}
+			            >
+			              {selectedBar.source === 'places_candidate' ? (
+			                <div className="p-2 max-w-xs">
+			                  <h3 className="font-semibold text-sm text-zinc-900">
+			                    {selectedBar.name}
+			                  </h3>
+			                  <p className="mt-1 text-xs text-zinc-600">
+			                    Eier du denne baren?{' '}
+			                    <a
+			                      href={buildCandidateOnboardingMailto(selectedBar)}
+			                      className="font-medium text-emerald-600 hover:text-emerald-700 underline"
+			                    >
+			                      Klikk her for å sende oss en e-post
+			                    </a>
+			                  </p>
+			                </div>
+			              ) : (
+			                <div className="p-2 max-w-xs">
+			                  <h3 className="font-bold text-lg text-zinc-900 mb-1">
+			                    {selectedBar.name}
+			                  </h3>
+			                  {selectedBar.address && (
+			                    <p className="text-sm text-zinc-600 mb-2">
+			                      📍 {selectedBar.address}
+			                    </p>
+			                  )}
+			                  {selectedBar.description && (
+			                    <p className="text-sm text-zinc-700 mb-2">
+			                      {selectedBar.description}
+			                    </p>
+			                  )}
+			                  {(() => {
+			                    const partnerRating = getBarRating(selectedBar.id);
+			                    const ratingValueInner =
+			                      partnerRating?.averageRating ?? selectedBar.rating ?? 0;
+			                    const totalRatings =
+			                      partnerRating?.totalRatings ?? (selectedBar.rating ? 1 : 0);
+					
+			                    if (!ratingValueInner) return null;
+					
+			                    return (
+			                      <div className="flex items-center mt-1">
+			                        <span className="text-yellow-500 mr-1">⭐</span>
+			                        <span className="text-sm font-medium text-zinc-900 mr-1">
+			                          {ratingValueInner.toFixed(1)}
+			                        </span>
+			                        <span className="text-xs text-zinc-500">
+			                          ({totalRatings})
+			                        </span>
+			                      </div>
+			                    );
+			                  })()}
+			                </div>
+			              )}
+			            </InfoWindow>
+			          )}
 	          </GoogleMapComponent>
 	        </LoadScriptNext>
 	      )}

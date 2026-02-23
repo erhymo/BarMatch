@@ -1,6 +1,13 @@
 import { Match } from './match.model';
 
 /**
+ * Where a bar comes from in our system.
+ * - `partner`: Onboarded Where2Watch-bar som har egen profil og kampoppsett.
+ * - `places_candidate`: Foreslått sportsbar fra ekstern kilde (f.eks. Google Places).
+ */
+export type BarSource = 'partner' | 'places_candidate';
+
+/**
  * Bar facilities model
  * Represents amenities available at a bar
  */
@@ -53,10 +60,20 @@ export interface Bar {
   id: string;
   name: string;
   position: Position;
+  /**
+   * Where this bar comes from. Hvis ikke satt, antar vi i dag at baren er en
+   * "egen" Where2Watch-partner slik at eksisterende data fortsetter å fungere.
+   */
+  source?: BarSource;
   address?: string;
   description?: string;
   rating?: number;
   imageUrl?: string;
+  /**
+   * Optional Google Places-ID brukt til å koble en bar mot data fra
+   * Google Places / Maps. Brukes primært for "hvite" sportsbar-forslag.
+   */
+  googlePlaceId?: string;
   matches?: Match[];
   /**
    * Optional persisted fixture selection (used to decide which real fixtures a bar shows).

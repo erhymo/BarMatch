@@ -71,14 +71,20 @@ function toPublicBar(docId: string, data: Record<string, unknown>): Bar | null {
   const bar: Bar = {
     id: docId,
     name,
-    position,
+	    position,
+	    // Alle barer som eksponeres via dette endepunktet er i dag onboardede
+	    // Where2Watch-partnere. Vi markerer dem eksplisitt som partner-barer.
+	    source: 'partner',
   };
 
   if (typeof data.address === 'string' && data.address.trim()) bar.address = data.address.trim();
   if (typeof data.description === 'string' && data.description.trim()) bar.description = data.description.trim();
-  if (typeof data.phone === 'string' && data.phone.trim()) bar.phone = data.phone.trim();
+	  if (typeof data.phone === 'string' && data.phone.trim()) bar.phone = data.phone.trim();
   if (typeof data.imageUrl === 'string' && data.imageUrl.trim()) bar.imageUrl = data.imageUrl.trim();
   if (typeof data.rating === 'number' && Number.isFinite(data.rating)) bar.rating = data.rating;
+	  if (typeof data.googlePlaceId === 'string' && data.googlePlaceId.trim()) {
+	    bar.googlePlaceId = data.googlePlaceId.trim();
+	  }
 
   const facilities = parseFacilities(data.facilities);
   if (facilities) bar.facilities = facilities;
