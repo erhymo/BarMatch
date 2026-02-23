@@ -451,7 +451,7 @@ interface GoogleMapProps {
 			              onCloseClick={() => setSelectedBar(null)}
 			            >
 				              {selectedBar.source === 'places_candidate' ? (
-				                <div className="p-2 max-w-xs rounded-lg border border-zinc-200 bg-white/95 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/95">
+				                <div className="max-w-xs rounded-xl border border-zinc-200 bg-white/95 px-3 py-2 shadow-md dark:border-zinc-700 dark:bg-zinc-900/95">
 				                  <h3 className="font-semibold text-sm text-zinc-900 dark:text-zinc-50">
 			                    {selectedBar.name}
 			                  </h3>
@@ -464,19 +464,19 @@ interface GoogleMapProps {
 			                      Klikk her for å sende oss en e-post
 			                    </a>
 			                  </p>
-			                </div>
-			              ) : (
-			                <div className="p-2 max-w-xs">
-			                  <h3 className="font-bold text-lg text-zinc-900 mb-1">
+				                </div>
+				              ) : (
+				                <div className="max-w-xs rounded-xl border border-zinc-200 bg-white/95 px-3 py-2 shadow-md dark:border-zinc-700 dark:bg-zinc-900/95">
+				                  <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-50 mb-1">
 			                    {selectedBar.name}
 			                  </h3>
-			                  {selectedBar.address && (
-			                    <p className="text-sm text-zinc-600 mb-2">
+				                  {selectedBar.address && (
+				                    <p className="text-sm text-zinc-600 dark:text-zinc-300 mb-2">
 			                      📍 {selectedBar.address}
 			                    </p>
 			                  )}
-			                  {selectedBar.description && (
-			                    <p className="text-sm text-zinc-700 mb-2">
+				                  {selectedBar.description && (
+				                    <p className="text-sm text-zinc-700 dark:text-zinc-200 mb-2">
 			                      {selectedBar.description}
 			                    </p>
 			                  )}
@@ -490,9 +490,9 @@ interface GoogleMapProps {
 			                    if (!ratingValueInner) return null;
 					
 			                    return (
-			                      <div className="flex items-center mt-1">
-			                        <span className="text-yellow-500 mr-1">⭐</span>
-			                        <span className="text-sm font-medium text-zinc-900 mr-1">
+				                      <div className="flex items-center mt-1">
+				                        <span className="text-yellow-500 mr-1">⭐</span>
+				                        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50 mr-1">
 			                          {ratingValueInner.toFixed(1)}
 			                        </span>
 			                        <span className="text-xs text-zinc-500">
