@@ -17,7 +17,7 @@ import { useRatings } from '@/contexts/RatingsContext';
 	const PARTNER_FOOTBALL_SVG =
 	  '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24">' +
 	  '<path d="M19.5 10.5C19.5 17.6421 12 21.75 12 21.75C12 21.75 4.5 17.6421 4.5 10.5C4.5 6.35786 7.85786 3 12 3C16.1421 3 19.5 6.35786 19.5 10.5Z" fill="#ffffff" stroke="#0F172A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />' +
-	  '<circle cx="12" cy="10.5" r="2" fill="#22C55E" />' +
+	  '<circle cx="12" cy="10.5" r="2.2" fill="#22C55E" />' +
 	  '</svg>';
 	
 	const CANDIDATE_FOOTBALL_SVG =
