@@ -3,9 +3,10 @@
 				import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 				import Image from 'next/image';
 				import { useSearchParams, useRouter } from 'next/navigation';
-			import GoogleMap from '@/components/map/GoogleMap';
-			import CityFilterPanel from '@/components/filter/CityFilterPanel';
-			import BarDetailsPanel from '@/components/bar/BarDetailsPanel';
+				import GoogleMap from '@/components/map/GoogleMap';
+				import CityFilterPanel from '@/components/filter/CityFilterPanel';
+				import FavoriteTeamsPanel from '@/components/filter/FavoriteTeamsPanel';
+				import BarDetailsPanel from '@/components/bar/BarDetailsPanel';
 				import NearestBarListPanel from '@/components/bar/NearestBarListPanel';
 			import { dummyBars } from '@/lib/data/bars';
 			import { CITY_COORDINATES, type CityId } from '@/lib/data/cities';
@@ -56,8 +57,9 @@
 		      // Ignorer feil fra localStorage
 		    }
 		    return null;
-		  });
+			  });
 			  const [isCityPanelOpen, setIsCityPanelOpen] = useState(false);
+			  const [isFavoritesPanelOpen, setIsFavoritesPanelOpen] = useState(false);
 			  const [isNearestListOpen, setIsNearestListOpen] = useState(false);
 
 			  const range = useMemo(() => createDefaultRange(DEFAULT_RANGE_DAYS), []);
@@ -178,13 +180,15 @@
 			  useEffect(() => {
 			    if (typeof window === 'undefined') return;
 			
-				  const handleResetFilters = () => {
-				      setSelectedLeague('EPL');
-			      setSelectedTeam(null);
-			      setSelectedBar(null);
-				      setMapFocusPosition(null);
-			      setIsCityPanelOpen(false);
-			    };
+					  const handleResetFilters = () => {
+					      setSelectedLeague('EPL');
+				      setSelectedTeam(null);
+				      setSelectedBar(null);
+					      setMapFocusPosition(null);
+				      setIsCityPanelOpen(false);
+				      setIsFavoritesPanelOpen(false);
+				      setIsNearestListOpen(false);
+				    };
 			
 			    window.addEventListener('where2watch:reset-home-filters', handleResetFilters);
 			
@@ -314,32 +318,46 @@
 				    return LEAGUES.map((key) => ({ key, label: getCompetitionByKey(key).label }));
 				  }, []);
 				
-			  const toggleCityPanel = () => {
-			    setIsCityPanelOpen((prev) => {
-			      const next = !prev;
+				  const toggleCityPanel = () => {
+				    setIsCityPanelOpen((prev) => {
+				      const next = !prev;
+						      if (next) {
+						        setIsNearestListOpen(false);
+						        setIsFavoritesPanelOpen(false);
+						      }
+				      return next;
+				    });
+				  };
+				
+				  const toggleFavoritesPanel = () => {
+				    setIsFavoritesPanelOpen((prev) => {
+				      const next = !prev;
 				      if (next) {
+				        ensureFixturesLoaded();
+				        setIsCityPanelOpen(false);
 				        setIsNearestListOpen(false);
 				      }
-			      return next;
-			    });
-			  };
-			
-					  const closePanels = useCallback(() => {
-					    setIsCityPanelOpen(false);
-					  }, []);
+				      return next;
+				    });
+				  };
+				
+						  const closePanels = useCallback(() => {
+						    setIsCityPanelOpen(false);
+						    setIsFavoritesPanelOpen(false);
+						  }, []);
 
-				  const closeOverlays = useCallback(() => {
-				    closePanels();
-				    setIsNearestListOpen(false);
-				  }, [closePanels]);
+					  const closeOverlays = useCallback(() => {
+					    closePanels();
+					    setIsNearestListOpen(false);
+					  }, [closePanels]);
 
-				  const handleFindNearestBar = useCallback(() => {
-				    // UX: Button opens a distance-sorted list. Selection is the 2nd click.
-				    closePanels();
-				    setSelectedBar(null);
-				    setMapFocusPosition(null);
-				    setIsNearestListOpen(true);
-				  }, [closePanels]);
+					  const handleFindNearestBar = useCallback(() => {
+					    // UX: Button opens a distance-sorted list. Selection is the 2nd click.
+					    closePanels();
+					    setSelectedBar(null);
+					    setMapFocusPosition(null);
+					    setIsNearestListOpen(true);
+					  }, [closePanels]);
 
 		  const mapCenter = favoriteCity ? CITY_COORDINATES[favoriteCity] : undefined;
 		
@@ -347,8 +365,27 @@
 			    <div className="flex flex-col h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black">
 				      {/* Header Section */}
 					      <div className="flex-shrink-0 bg-white/90 dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-800">
-					        <div className="container mx-auto px-4 py-4">
+					      <div className="container mx-auto px-4 py-4">
 					          <div className="flex items-center justify-between gap-3">
+					            {/* Venstre: Favoritter-knapp */}
+					            <div className="flex-shrink-0">
+					              {!matchId && (
+					                <button
+					                  type="button"
+					                  onClick={toggleFavoritesPanel}
+					                  className={`inline-flex h-9 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors ${
+					                    isFavoritesPanelOpen
+					                      ? 'border-amber-500 text-amber-700 dark:border-amber-400 dark:text-amber-100'
+					                      : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200'
+					                  }`}
+					                  aria-label="Åpne favorittlag"
+					                >
+					                  <span className="text-xs font-medium tracking-tight">Favoritter</span>
+					                </button>
+					              )}
+					            </div>
+					
+					            {/* Midten: Logo / kamp-info */}
 					            <div className="flex-1 text-center">
 					              {matchId ? (
 					                <div className="space-y-1">
@@ -373,43 +410,52 @@
 					                    Fjern kampfilter
 					                  </button>
 					                </div>
-				              ) : (
-						                <>
-						                  <div className="flex justify-center">
-						                    <Image
-						                      src="/where2watch-logo.svg"
-						                      alt="where2watch"
-						                      width={120}
-						                      height={24}
-						                      className="h-6 w-auto md:h-8"
-						                      priority
-						                    />
-						                  </div>
-						                  <div className="text-xs text-zinc-600 dark:text-zinc-400">
-						                    {selectedTeam
-						                      ? `Filter: ${selectedTeam}`
-						                      : 'Gå til «Kamper» for å søke etter lag og liga'}
-						                  </div>
-						                </>
-				              )}
-		            </div>
-					          <button
-					            type="button"
-					            onClick={toggleCityPanel}
-					              className={`inline-flex h-9 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors ${
-					                isCityPanelOpen
-					                  ? 'border-blue-500 text-blue-700 dark:border-blue-400 dark:text-blue-200'
-					                  : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200'
-					              }`}
-					              aria-label="Åpne valg for lokasjon"
-					          >
-					              <span className="text-xs font-medium tracking-tight">Lokasjon</span>
-				            </button>
-				          </div>
+						              ) : (
+							                <>
+							                  <div className="flex justify-center">
+							                    <span className="bg-gradient-to-r from-emerald-400 via-sky-400 to-emerald-300 bg-clip-text text-transparent font-semibold tracking-tight text-lg md:text-2xl drop-shadow-sm">
+							                      where
+							                      <span className="font-black tracking-normal">2</span>
+							                      watch
+							                    </span>
+							                  </div>
+							                  <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+							                    {selectedTeam
+							                      ? `Filter: ${selectedTeam}`
+							                      : 'Gå til «Kamper» for å søke etter lag og liga'}
+							                  </div>
+							                </>
+							              )}
+					            </div>
+					
+					            {/* Høyre: Lokasjon-knapp */}
+					            <div className="flex-shrink-0">
+					              <button
+					                type="button"
+					                onClick={toggleCityPanel}
+					                  className={`inline-flex h-9 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors ${
+					                    isCityPanelOpen
+					                      ? 'border-blue-500 text-blue-700 dark:border-blue-400 dark:text-blue-200'
+					                      : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200'
+					                  }`}
+					                  aria-label="Åpne valg for lokasjon"
+					              >
+					                  <span className="text-xs font-medium tracking-tight">Lokasjon</span>
+					                </button>
+					            </div>
+						          </div>
 				        </div>
 			      </div>
 			
 					      {/* City panel under header */}
+					      {isFavoritesPanelOpen && (
+					        <div className="flex-shrink-0 pt-1 pb-2">
+					          <div className="container mx-auto px-4">
+					            <FavoriteTeamsPanel fixtures={fixtures} isLoadingFixtures={isLoadingFixtures} />
+					          </div>
+					        </div>
+					      )}
+					
 					      {isCityPanelOpen && (
 					        <div className="flex-shrink-0 pt-1 pb-2">
 					          <div className="container mx-auto px-4">
