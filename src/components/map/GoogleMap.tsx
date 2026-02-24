@@ -10,28 +10,7 @@ import {
 import { Bar } from '@/lib/models';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useRatings } from '@/contexts/RatingsContext';
-
-// Marker-ikoner for barer, inspirert av klassiske kart-pins (Heroicons-stil):
-// - Fylt pin: Where2Watch-partnere (kunder)
-// - Tom pin: vanlige sportsbarer fra eksterne kilder
-	const PARTNER_FOOTBALL_SVG =
-	  '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24">' +
-	  '<path d="M19.5 10.5C19.5 17.6421 12 21.75 12 21.75C12 21.75 4.5 17.6421 4.5 10.5C4.5 6.35786 7.85786 3 12 3C16.1421 3 19.5 6.35786 19.5 10.5Z" fill="#ffffff" stroke="#0F172A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />' +
-	  '<circle cx="12" cy="10.5" r="2.2" fill="#22C55E" />' +
-	  '</svg>';
-	
-	const CANDIDATE_FOOTBALL_SVG =
-	  '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24">' +
-	  '<path d="M19.5 10.5C19.5 17.6421 12 21.75 12 21.75C12 21.75 4.5 17.6421 4.5 10.5C4.5 6.35786 7.85786 3 12 3C16.1421 3 19.5 6.35786 19.5 10.5Z" fill="#ffffff" stroke="#0F172A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />' +
-	  '</svg>';
-
-const PARTNER_FOOTBALL_ICON_URL = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
-	  PARTNER_FOOTBALL_SVG,
- )}`;
-
-const CANDIDATE_FOOTBALL_ICON_URL = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
-	  CANDIDATE_FOOTBALL_SVG,
- )}`;
+import { getStarPinIcon, type StarPinType } from '@/lib/map/starPins';
 
 const defaultContainerStyle = {
   width: '100%',
@@ -404,48 +383,57 @@ interface GoogleMapProps {
           )}
 
 		      {/* Bar markers */}
-			        {bars.map((bar) => {
+		        {bars.map((bar) => {
 			          const isFavorite = isFavoriteBar(bar.id);
 			          const barRating = getBarRating(bar.id);
 			          const ratingValue = barRating?.averageRating ?? bar.rating ?? 0;
 			          // Hvis source ikke er satt antar vi at baren er en partner-bar slik
-			          // at eksisterende data fortsetter å fungere.
-			          const isPartnerBar = bar.source ? bar.source === 'partner' : true;
+			          // at eksisterende data fortsetter å fungere. Disse regnes som kunder.
+			          const isCustomerBar = bar.source ? bar.source === 'partner' : true;
+						  const isSelected = selectedBar?.id === bar.id;
+						  const starType: StarPinType = isCustomerBar ? 'customer' : 'nonCustomer';
+						
+						  // Basestørrelse på stjerne-markør.
+						  let iconSize = 34;
+						  // Favorittbarer får litt større stjerne.
+						  if (isCustomerBar && isFavorite) {
+						    iconSize = 38;
+						  }
+						  // Når en bar er valgt gjør vi stjernen ekstra tydelig.
+						  if (isSelected) {
+						    iconSize = 42;
+						  }
+						
+		          return (
+		            <Marker
+		              key={bar.id}
+		              position={bar.position}
+		              onClick={() => {
+		                setSelectedBar(bar);
+		                // Hvis parent har gitt onBarClick, åpner vi detaljvisning
+		                // (både for partner-barer og hvite kandidater).
+		                if (onBarClick) {
+		                  onBarClick(bar);
+		                }
+		              }}
+		              icon={{
+		                url: getStarPinIcon(starType),
+		                scaledSize: { width: iconSize, height: iconSize } as google.maps.Size,
+		                anchor: { x: iconSize / 2, y: iconSize / 2 } as google.maps.Point,
+		              }}
+		              title={
+		                ratingValue > 0
+		                  ? `${bar.name} – ${ratingValue.toFixed(1)}★`
+		                  : bar.name
+		              }
+		            />
+		          );
+		        })}
 					
-			          return (
-			            <Marker
-			              key={bar.id}
-			              position={bar.position}
-			              onClick={() => {
-			                setSelectedBar(bar);
-			                // Kun partner-barer åpner full bar-detaljvisning.
-			                if (isPartnerBar && onBarClick) {
-			                  onBarClick(bar);
-			                }
-			              }}
-			              icon={{
-			                url: isPartnerBar ? PARTNER_FOOTBALL_ICON_URL : CANDIDATE_FOOTBALL_ICON_URL,
-			                // Litt større ikon for favorittbarer så de skiller seg ut
-			                scaledSize: isPartnerBar
-			                  ? ((isFavorite
-			                      ? { width: 42, height: 42 }
-			                      : { width: 36, height: 36 }) as google.maps.Size)
-			                  : ({ width: 32, height: 32 } as google.maps.Size),
-			              }}
-			              title={
-			                ratingValue > 0
-			                  ? `${bar.name} – ${ratingValue.toFixed(1)}★`
-			                  : bar.name
-			              }
-			            />
-			          );
-			        })}
-				
-			      {/* InfoWindow for valgt bar.
-			         - Partner-barer: rik info (navn, adresse, rating osv.).
-			         - Hvite (places_candidate): kun navn + onboarding-lenke. */}
-			      {selectedBar && (
-			        <InfoWindow
+				      {/* InfoWindow for valgt bar når onBarClick ikke er gitt.
+				         Brukes som enkel tooltip i kontekster uten eget detaljpanel. */}
+				      {selectedBar && !onBarClick && (
+				        <InfoWindow
 			          position={selectedBar.position}
 			          onCloseClick={() => setSelectedBar(null)}
 			        >
@@ -454,13 +442,31 @@ interface GoogleMapProps {
 			              <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-50 mb-1">
 			                {selectedBar.name}
 			              </h3>
+			              {selectedBar.address && (
+			                <p className="text-sm text-zinc-600 dark:text-zinc-300 mb-2">
+			                  📍 {selectedBar.address}
+			                </p>
+			              )}
+			              {/* “Tomt” innhold som viser hvordan kunde-kortet ser ut */}
+			              <p className="text-sm text-zinc-700 dark:text-zinc-200 mb-1">
+			                Når baren blir kunde vil profiltekst, kampoppsett og tilbud vises her.
+			              </p>
+			              <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
+			                Denne baren er foreløpig ikke aktiv kunde hos Where2Watch.
+			              </p>
+			              <div className="flex items-center mt-1 mb-2">
+			                <span className="text-yellow-500 mr-1">⭐</span>
+			                <span className="text-sm font-medium text-zinc-400 dark:text-zinc-500 mr-1">
+			                  Rating kommer her når baren samler vurderinger.
+			                </span>
+			              </div>
 			              <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
 			                Eier du denne baren?{' '}
 			                <a
 			                  href={buildCandidateOnboardingMailto(selectedBar)}
 			                  className="font-medium text-emerald-600 hover:text-emerald-700 underline"
 			                >
-			                  Klikk her for å sende oss en e-post
+			                  Klikk her for å sende oss en e-post om onboarding
 			                </a>
 			              </p>
 			            </div>

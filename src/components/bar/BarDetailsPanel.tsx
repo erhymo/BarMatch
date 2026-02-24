@@ -374,9 +374,23 @@ export default function BarDetailsPanel({
             <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
               Om baren
             </h3>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              {bar.description ?? 'Ingen beskrivelse lagt til enda.'}
-            </p>
+	            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+	              {bar.description ?? 'Ingen beskrivelse lagt til enda.'}
+	            </p>
+	            {bar.source === 'places_candidate' && (
+	              <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+	                Denne baren er foreløpig ikke aktiv kunde hos Where2Watch. Eier du baren?{' '}
+	                <a
+	                  href={`mailto:support@where2watch.com?subject=${encodeURIComponent(
+	                    `${bar.name} – onboarding`,
+	                  )}`}
+	                  className="font-medium text-emerald-600 hover:text-emerald-700 underline"
+	                >
+	                  Trykk her for å sende oss en e-post om onboarding
+	                </a>
+	                .
+	              </p>
+	            )}
           </div>
 
           {/* Facilities (collapsible) */}
