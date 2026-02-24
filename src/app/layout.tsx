@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   title: 'where2watch - Finn din neste favorittbar',
   description: 'where2watch hjelper deg med å finne din neste favorittbar',
   manifest: '/manifest.webmanifest',
+  icons: {
+    apple: '/apple-touch-icon.png',
+  },
 };
 
 export default function RootLayout({
