@@ -457,27 +457,9 @@
 			    <div className="flex flex-col h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black">
 				      {/* Header Section */}
 					      <div className="flex-shrink-0 bg-white/90 dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-800">
-					      <div className="container mx-auto px-4 py-4">
-					          <div className="flex items-center justify-between gap-3">
-					            {/* Venstre: Favoritter-knapp */}
-					            <div className="flex-shrink-0">
-					              {!matchId && (
-					                <button
-					                  type="button"
-					                  onClick={toggleFavoritesPanel}
-					                  className={`inline-flex h-9 items-center justify-center rounded-md border px-3 text-xs font-medium transition-colors ${
-					                    isFavoritesPanelOpen
-					                      ? 'border-amber-500 text-amber-700 dark:border-amber-400 dark:text-amber-100'
-					                      : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200'
-					                  }`}
-					                  aria-label="Åpne favorittlag"
-					                >
-					                  <span className="text-xs font-medium tracking-tight">Favoritter</span>
-					                </button>
-					              )}
-					            </div>
-					
-					            {/* Midten: Logo / kamp-info */}
+              <div className="container mx-auto px-4 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    {/* Midten: Logo / kamp-info */}
 					            <div className="flex-1 text-center">
 					              {matchId ? (
 					                <div className="space-y-1">
