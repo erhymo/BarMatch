@@ -382,8 +382,8 @@ interface GoogleMapProps {
             />
           )}
 
-		      {/* Bar markers */}
-		        {bars.map((bar) => {
+		      {/* Bar markers – only render when google.maps is available */}
+		        {isMapReady && typeof google !== 'undefined' && bars.map((bar) => {
 			          const isFavorite = isFavoriteBar(bar.id);
 			          const barRating = getBarRating(bar.id);
 			          const ratingValue = barRating?.averageRating ?? bar.rating ?? 0;
