@@ -114,6 +114,13 @@ export const COMPETITIONS: Competition[] = [
     apiFootballLeagueId: 6029,
     defaultSeason: 2024,
   },
+  {
+    key: 'FRIENDLIES',
+    label: 'Friendlies',
+    type: 'tournament',
+    apiFootballLeagueId: 7977,
+    defaultSeason: 2026,
+  },
 ];
 
 export function getCompetitionByKey(key: LeagueKey): Competition {

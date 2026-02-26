@@ -17,6 +17,7 @@ const LEAGUES: { key: LeagueKey; label: string }[] = [
   { key: "FIFA_CWC", label: "FIFA Club World Cup" },
   { key: "FIFA_CWC_PLAYIN", label: "FIFA CWC Play-In" },
   { key: "UEFA_NL", label: "UEFA Nations League" },
+  { key: "FRIENDLIES", label: "Friendlies" },
   { key: "SERIE_A", label: "Serie A" },
   { key: "UCL", label: "UEFA Champions League" },
   { key: "UEL", label: "UEFA Europa League" },
