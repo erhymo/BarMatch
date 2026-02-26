@@ -9,6 +9,8 @@ function competitionToLeagueKey(competition: string): LeagueKey | null {
       return 'EPL';
     case 'Championship':
       return 'ENG_CHAMPIONSHIP';
+    case 'FA Cup':
+      return 'FA_CUP';
     case 'Eliteserien':
       return 'NOR_ELITESERIEN';
     case 'Serie A':

@@ -8,6 +8,7 @@ const RECENT_SEARCHES_STORAGE_KEY = "bar_match_recent_team_searches_v1";
 export const LEAGUE_LABEL_BY_KEY: Record<LeagueKey, string> = {
   EPL: "Premier League",
   ENG_CHAMPIONSHIP: "Championship",
+  FA_CUP: "FA Cup",
   NOR_ELITESERIEN: "Eliteserien",
   SERIE_A: "Serie A",
   UCL: "UEFA Champions League",

@@ -31,6 +31,13 @@ export const COMPETITIONS: Competition[] = [
     defaultSeason: 2025,
   },
   {
+    key: 'FA_CUP',
+    label: 'FA Cup',
+    type: 'tournament',
+    apiFootballLeagueId: 45,
+    defaultSeason: 2025,
+  },
+  {
     key: 'SERIE_A',
     label: 'Serie A',
     type: 'league',
