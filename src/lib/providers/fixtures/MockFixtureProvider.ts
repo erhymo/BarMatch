@@ -24,6 +24,8 @@ function competitionToLeagueKey(competition: string): LeagueKey | null {
     case 'OBOS-ligaen':
     case '1. Division':
       return 'NOR_1_DIVISION';
+    case 'FIFA Club World Cup':
+      return 'FIFA_CWC';
     case 'Serie A':
       return 'SERIE_A';
 	    case 'Champions League':

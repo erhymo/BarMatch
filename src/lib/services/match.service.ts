@@ -99,6 +99,7 @@ export class MatchService {
       'Eliteserien': '🇳🇴',
       'OBOS-ligaen': '🇳🇴',
       'Champions League': '🏆',
+      'FIFA Club World Cup': '🌍',
     };
     return emojiMap[league] || '⚽';
   }

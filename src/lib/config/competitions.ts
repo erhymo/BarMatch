@@ -93,6 +93,13 @@ export const COMPETITIONS: Competition[] = [
 	    apiFootballLeagueId: 3,
 	    defaultSeason: 2025,
 	  },
+  {
+    key: 'FIFA_CWC',
+    label: 'FIFA Club World Cup',
+    type: 'tournament',
+    apiFootballLeagueId: 15,
+    defaultSeason: 2025,
+  },
 ];
 
 export function getCompetitionByKey(key: LeagueKey): Competition {
