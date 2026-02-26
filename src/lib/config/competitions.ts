@@ -107,6 +107,13 @@ export const COMPETITIONS: Competition[] = [
     apiFootballLeagueId: 7283,
     defaultSeason: 2025,
   },
+  {
+    key: 'UEFA_NL',
+    label: 'UEFA Nations League',
+    type: 'tournament',
+    apiFootballLeagueId: 6029,
+    defaultSeason: 2024,
+  },
 ];
 
 export function getCompetitionByKey(key: LeagueKey): Competition {

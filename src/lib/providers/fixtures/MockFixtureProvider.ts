@@ -28,6 +28,8 @@ function competitionToLeagueKey(competition: string): LeagueKey | null {
       return 'FIFA_CWC';
     case 'FIFA Club World Cup - Play-In':
       return 'FIFA_CWC_PLAYIN';
+    case 'UEFA Nations League':
+      return 'UEFA_NL';
     case 'Serie A':
       return 'SERIE_A';
 	    case 'Champions League':
