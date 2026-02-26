@@ -7,7 +7,7 @@ import { getFixtureProvider } from "@/lib/providers/fixtures";
 const DEFAULT_RANGE_DAYS = 14;
 const IS_DEV = process.env.NODE_ENV !== "production";
 
-const LEAGUES: LeagueKey[] = ["EPL", "ENG_CHAMPIONSHIP", "FA_CUP", "EFL_TROPHY", "NOR_ELITESERIEN", "SERIE_A", "COPA_DEL_REY", "BUNDESLIGA", "LIGUE_1", "UCL", "UEL"];
+const LEAGUES: LeagueKey[] = ["EPL", "ENG_CHAMPIONSHIP", "FA_CUP", "EFL_TROPHY", "NOR_ELITESERIEN", "NOR_1_DIVISION", "SERIE_A", "COPA_DEL_REY", "BUNDESLIGA", "LIGUE_1", "UCL", "UEL"];
 
 function getErrorInfo(err: unknown): { message: string; details?: string } {
   if (err && typeof err === "object") {
@@ -45,7 +45,7 @@ function createDefaultRange(): DateRange {
  */
 export function useKamperFixtures() {
   const [fixturesByLeague, setFixturesByLeague] = useState<Record<LeagueKey, Fixture[]>>({
-    EPL: [], ENG_CHAMPIONSHIP: [], FA_CUP: [], EFL_TROPHY: [], NOR_ELITESERIEN: [], SERIE_A: [], COPA_DEL_REY: [], BUNDESLIGA: [], LIGUE_1: [], UCL: [], UEL: [],
+    EPL: [], ENG_CHAMPIONSHIP: [], FA_CUP: [], EFL_TROPHY: [], NOR_ELITESERIEN: [], NOR_1_DIVISION: [], SERIE_A: [], COPA_DEL_REY: [], BUNDESLIGA: [], LIGUE_1: [], UCL: [], UEL: [],
   });
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -77,7 +77,7 @@ export function useKamperFixtures() {
         const results = await Promise.allSettled(LEAGUES.map((key) => fetchForLeague(key)));
         if (isCancelled) return;
 
-        const byLeague: Record<LeagueKey, Fixture[]> = { EPL: [], ENG_CHAMPIONSHIP: [], FA_CUP: [], EFL_TROPHY: [], NOR_ELITESERIEN: [], SERIE_A: [], COPA_DEL_REY: [], BUNDESLIGA: [], LIGUE_1: [], UCL: [], UEL: [] };
+        const byLeague: Record<LeagueKey, Fixture[]> = { EPL: [], ENG_CHAMPIONSHIP: [], FA_CUP: [], EFL_TROPHY: [], NOR_ELITESERIEN: [], NOR_1_DIVISION: [], SERIE_A: [], COPA_DEL_REY: [], BUNDESLIGA: [], LIGUE_1: [], UCL: [], UEL: [] };
         LEAGUES.forEach((key, i) => {
           const r = results[i];
           if (r.status === "fulfilled") {

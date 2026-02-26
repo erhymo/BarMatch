@@ -23,6 +23,7 @@ let hasLoggedEnv = false;
 function isLeagueKey(value: string | null): value is LeagueKey {
 		  return (
 		    value === 'NOR_ELITESERIEN' ||
+    value === 'NOR_1_DIVISION' ||
 		    value === 'EPL' ||
     value === 'ENG_CHAMPIONSHIP' ||
     value === 'FA_CUP' ||
@@ -138,7 +139,7 @@ export async function GET(req: NextRequest) {
           error: 'Ugyldig eller manglende leagueKey-parameter',
           status: 400,
 			          details:
-			            'leagueKey må være en av: NOR_ELITESERIEN, EPL, ENG_CHAMPIONSHIP, FA_CUP, EFL_TROPHY, SERIE_A, COPA_DEL_REY, BUNDESLIGA, LIGUE_1, UCL, UEL ' +
+			            'leagueKey må være en av: NOR_ELITESERIEN, NOR_1_DIVISION, EPL, ENG_CHAMPIONSHIP, FA_CUP, EFL_TROPHY, SERIE_A, COPA_DEL_REY, BUNDESLIGA, LIGUE_1, UCL, UEL ' +
 			            `(fikk: ${leagueParamRaw})`,
         },
         { status: 400 },

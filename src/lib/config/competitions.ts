@@ -17,6 +17,13 @@ export const COMPETITIONS: Competition[] = [
     defaultSeason: 2026,
   },
   {
+    key: 'NOR_1_DIVISION',
+    label: 'OBOS-ligaen',
+    type: 'league',
+    apiFootballLeagueId: 104,
+    defaultSeason: 2026,
+  },
+  {
     key: 'EPL',
     label: 'Premier League',
     type: 'league',

@@ -97,6 +97,7 @@ export class MatchService {
       'Ligue 1': '🇫🇷',
       'Serie A': '🇮🇹',
       'Eliteserien': '🇳🇴',
+      'OBOS-ligaen': '🇳🇴',
       'Champions League': '🏆',
     };
     return emojiMap[league] || '⚽';

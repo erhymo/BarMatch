@@ -21,6 +21,9 @@ function competitionToLeagueKey(competition: string): LeagueKey | null {
       return 'LIGUE_1';
     case 'Eliteserien':
       return 'NOR_ELITESERIEN';
+    case 'OBOS-ligaen':
+    case '1. Division':
+      return 'NOR_1_DIVISION';
     case 'Serie A':
       return 'SERIE_A';
 	    case 'Champions League':
