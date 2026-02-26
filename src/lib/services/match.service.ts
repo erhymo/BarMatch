@@ -91,6 +91,7 @@ export class MatchService {
       'Championship': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
       'FA Cup': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
       'EFL Trophy': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+      'Copa del Rey': '🇪🇸',
       'La Liga': '🇪🇸',
       'Bundesliga': '🇩🇪',
       'Serie A': '🇮🇹',

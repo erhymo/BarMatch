@@ -52,6 +52,13 @@ export const COMPETITIONS: Competition[] = [
     defaultSeason: 2025,
   },
   {
+    key: 'COPA_DEL_REY',
+    label: 'Copa del Rey',
+    type: 'tournament',
+    apiFootballLeagueId: 143,
+    defaultSeason: 2025,
+  },
+  {
     key: 'UCL',
     label: 'UEFA Champions League',
     type: 'tournament',
