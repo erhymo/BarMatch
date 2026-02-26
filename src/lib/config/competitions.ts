@@ -38,6 +38,13 @@ export const COMPETITIONS: Competition[] = [
     defaultSeason: 2025,
   },
   {
+    key: 'EFL_TROPHY',
+    label: 'EFL Trophy',
+    type: 'tournament',
+    apiFootballLeagueId: 46,
+    defaultSeason: 2025,
+  },
+  {
     key: 'SERIE_A',
     label: 'Serie A',
     type: 'league',

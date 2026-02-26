@@ -8,6 +8,7 @@ const LEAGUES: { key: LeagueKey; label: string }[] = [
   { key: "EPL", label: "Premier League" },
   { key: "ENG_CHAMPIONSHIP", label: "Championship" },
   { key: "FA_CUP", label: "FA Cup" },
+  { key: "EFL_TROPHY", label: "EFL Trophy" },
   { key: "NOR_ELITESERIEN", label: "Eliteserien" },
   { key: "SERIE_A", label: "Serie A" },
   { key: "UCL", label: "UEFA Champions League" },

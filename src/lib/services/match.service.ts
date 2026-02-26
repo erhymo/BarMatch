@@ -90,6 +90,7 @@ export class MatchService {
       'Premier League': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
       'Championship': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
       'FA Cup': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+      'EFL Trophy': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
       'La Liga': '🇪🇸',
       'Bundesliga': '🇩🇪',
       'Serie A': '🇮🇹',
