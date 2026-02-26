@@ -262,10 +262,10 @@ export async function GET(req: NextRequest) {
       headers: {
         'x-apisports-key': apiKey,
       },
-      next: {
-        // Enkle cache/rehydreringsregler for ikke-live fixtures
-        revalidate: 3600,
-      },
+      // Ikke bruk Next.js Data Cache her – vi har egen in-memory cache (5 min)
+      // + Cache-Control headers. Data Cache kan cache feilsvar (f.eks. utløpt
+      // abonnement) i opptil 1 time og overlever deployments.
+      cache: 'no-store',
     });
 
     const status = response.status;
