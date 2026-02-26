@@ -10,7 +10,7 @@ import {
 import { Bar } from '@/lib/models';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useRatings } from '@/contexts/RatingsContext';
-import { getStarPinIcon, type StarPinType } from '@/lib/map/starPins';
+import { getBarPinIcon, type BarPinType } from '@/lib/map/barPin';
 
 const defaultContainerStyle = {
   width: '100%',
@@ -391,19 +391,8 @@ interface GoogleMapProps {
 			          // at eksisterende data fortsetter å fungere. Disse regnes som kunder.
 			          const isCustomerBar = bar.source ? bar.source === 'partner' : true;
 						  const isSelected = selectedBar?.id === bar.id;
-						  const starType: StarPinType = isCustomerBar ? 'customer' : 'nonCustomer';
-						
-						  // Basestørrelse på stjerne-markør.
-						  let iconSize = 34;
-						  // Favorittbarer får litt større stjerne.
-						  if (isCustomerBar && isFavorite) {
-						    iconSize = 38;
-						  }
-						  // Når en bar er valgt gjør vi stjernen ekstra tydelig.
-						  if (isSelected) {
-						    iconSize = 42;
-						  }
-						
+						  const pinType: BarPinType = isCustomerBar ? 'customer' : 'nonCustomer';
+
 		          return (
 		            <Marker
 		              key={bar.id}
@@ -417,9 +406,9 @@ interface GoogleMapProps {
 		                }
 		              }}
 		              icon={{
-		                url: getStarPinIcon(starType),
-		                scaledSize: { width: iconSize, height: iconSize } as google.maps.Size,
-		                anchor: { x: iconSize / 2, y: iconSize / 2 } as google.maps.Point,
+		                url: getBarPinIcon(pinType),
+		                scaledSize: new google.maps.Size(38, 38),
+		                anchor: new google.maps.Point(19, 38),
 		              }}
 		              title={
 		                ratingValue > 0

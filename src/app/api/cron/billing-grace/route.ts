@@ -3,6 +3,7 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getFirebaseAdminDb } from '@/lib/firebase/admin';
 import { sendHiddenDay14, sendPaymentReminderDay7 } from '@/lib/email/mailer';
 import { tsToMs } from '@/lib/utils/time';
+import { asRecord } from '@/lib/utils/unknown';
 
 export const runtime = 'nodejs';
 
