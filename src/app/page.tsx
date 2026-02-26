@@ -214,9 +214,27 @@ function HomeContent() {
 			        .filter((id): id is string => typeof id === 'string' && id.trim().length > 0),
 			    );
 
+			    // Dedup thresholds (in km):
+			    // - Innenfor 50m: alltid duplikat (samme sted)
+			    // - Innenfor 150m + identisk navn: duplikat (inngang på annen side av bygning)
+			    const CLOSE_KM = 0.05;
+			    const NAME_MATCH_KM = 0.15;
+
 			    const extraCandidates = candidateBars.filter((bar) => {
+			      // 1) Exact googlePlaceId match
 			      if (bar.googlePlaceId && partnerPlaceIds.has(bar.googlePlaceId)) {
 			        return false;
+			      }
+			      // 2) Proximity-based dedup
+			      const candidateName = bar.name.trim().toLowerCase();
+			      for (const partner of filteredBars) {
+			        const dist = BarService.calculateDistance(partner.position, bar.position);
+			        // Veldig nær → alltid duplikat
+			        if (dist < CLOSE_KM) return false;
+			        // Innenfor 150m med identisk navn → duplikat
+			        if (dist < NAME_MATCH_KM && partner.name.trim().toLowerCase() === candidateName) {
+			          return false;
+			        }
 			      }
 			      return true;
 			    });
