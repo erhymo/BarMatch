@@ -1,6 +1,5 @@
 "use client";
 
-import type { Fixture } from "@/lib/types/fixtures";
 import type { SearchSuggestion, TeamSuggestion, LeagueSuggestion } from "@/lib/hooks/useTeamSearch";
 
 interface TeamSearchInputProps {
@@ -8,7 +7,7 @@ interface TeamSearchInputProps {
   onSearchQueryChange: (query: string) => void;
   filteredTeamSuggestions: TeamSuggestion[];
   filteredLeagueSuggestions: LeagueSuggestion[];
-  recentSuggestions: TeamSuggestion[];
+  recentSuggestions: SearchSuggestion[];
   hasSuggestions: boolean;
   showRecent: boolean;
   isLoading: boolean;
@@ -49,20 +48,32 @@ export default function TeamSearchInput({
       {/* Suggestions / recent searches */}
       <div className="mt-2 space-y-2">
         {showRecent ? (
-          <div className="space-y-1">
-            {recentSuggestions.map((s) => (
-              <button
-                key={`recent-${s.teamName}-${s.league}`}
-                type="button"
-                onClick={() => onSelectSuggestion(s)}
-                className="w-full flex items-center justify-between rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800/70 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-left text-sm text-zinc-900 dark:text-zinc-100 transition-colors"
-              >
-                <span className="font-medium">{s.teamName}</span>
-                <span className="ml-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-                  {s.leagueLabel}
-                </span>
-              </button>
-            ))}
+          <div>
+            <p className="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-1">
+              Siste søk
+            </p>
+            <div className="space-y-1">
+              {recentSuggestions.map((s) => {
+                const key = s.type === "team"
+                  ? `recent-team-${s.teamName}-${s.league}`
+                  : `recent-league-${s.league}`;
+                const label = s.type === "team" ? s.teamName : s.label;
+                const sublabel = s.type === "team" ? s.leagueLabel : "Liga";
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => onSelectSuggestion(s)}
+                    className="w-full flex items-center justify-between rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800/70 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-left text-sm text-zinc-900 dark:text-zinc-100 transition-colors"
+                  >
+                    <span className="font-medium">{label}</span>
+                    <span className="ml-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+                      {sublabel}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         ) : hasSuggestions ? (
           <div className="space-y-3">

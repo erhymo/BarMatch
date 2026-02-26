@@ -7,6 +7,7 @@ const RECENT_SEARCHES_STORAGE_KEY = "bar_match_recent_team_searches_v1";
 
 export const LEAGUE_LABEL_BY_KEY: Record<LeagueKey, string> = {
   EPL: "Premier League",
+  ENG_CHAMPIONSHIP: "Championship",
   NOR_ELITESERIEN: "Eliteserien",
   SERIE_A: "Serie A",
   UCL: "UEFA Champions League",
@@ -29,8 +30,11 @@ export type LeagueSuggestion = {
 export type SearchSuggestion = TeamSuggestion | LeagueSuggestion;
 
 type RecentSearchEntry = {
-  teamName: string;
+  /** For team searches */
+  teamName?: string;
   league: LeagueKey;
+  /** "team" or "league" */
+  searchType: "team" | "league";
 };
 
 /**
@@ -51,9 +55,14 @@ export function useTeamSearch(allFixtures: Fixture[]) {
       const cleaned: RecentSearchEntry[] = parsed
         .filter(
           (entry: any) =>
-            entry && typeof entry.teamName === "string" && typeof entry.league === "string",
+            entry && typeof entry.league === "string" &&
+            (entry.searchType === "league" || typeof entry.teamName === "string"),
         )
-        .slice(0, 6);
+        .map((entry: any) => ({
+          ...entry,
+          searchType: entry.searchType || "team",
+        }))
+        .slice(0, 2);
       setRecentSearches(cleaned);
     } catch {
       // Ignorer korrupt lagret data
@@ -121,28 +130,41 @@ export function useTeamSearch(allFixtures: Fixture[]) {
     return leagueSuggestions.filter((s) => s.label.toLowerCase().includes(q));
   }, [searchQuery, leagueSuggestions]);
 
-  const recentSuggestions: TeamSuggestion[] = useMemo(
+  const recentSuggestions: SearchSuggestion[] = useMemo(
     () =>
-      recentSearches.map((entry) => ({
-        type: "team" as const,
-        teamName: entry.teamName,
-        league: entry.league,
-        leagueLabel: LEAGUE_LABEL_BY_KEY[entry.league] ?? (entry.league as string),
-      })),
+      recentSearches.map((entry): SearchSuggestion => {
+        if (entry.searchType === "league") {
+          return {
+            type: "league",
+            league: entry.league,
+            label: LEAGUE_LABEL_BY_KEY[entry.league] ?? (entry.league as string),
+          };
+        }
+        return {
+          type: "team",
+          teamName: entry.teamName ?? "",
+          league: entry.league,
+          leagueLabel: LEAGUE_LABEL_BY_KEY[entry.league] ?? (entry.league as string),
+        };
+      }),
     [recentSearches],
   );
 
   const hasSuggestions = filteredTeamSuggestions.length > 0 || filteredLeagueSuggestions.length > 0;
   const showRecent = searchQuery.trim().length === 0 && recentSuggestions.length > 0;
 
-  function addRecentFromTeamSuggestion(suggestion: TeamSuggestion) {
-    const filtered = recentSearches.filter(
-      (entry) => !(entry.teamName === suggestion.teamName && entry.league === suggestion.league),
-    );
-    const next: RecentSearchEntry[] = [
-      { teamName: suggestion.teamName, league: suggestion.league },
-      ...filtered,
-    ].slice(0, 6);
+  function addRecentSearch(suggestion: SearchSuggestion) {
+    const isMatch = (entry: RecentSearchEntry) => {
+      if (suggestion.type === "league") {
+        return entry.searchType === "league" && entry.league === suggestion.league;
+      }
+      return entry.searchType === "team" && entry.teamName === suggestion.teamName && entry.league === suggestion.league;
+    };
+    const filtered = recentSearches.filter((entry) => !isMatch(entry));
+    const newEntry: RecentSearchEntry = suggestion.type === "league"
+      ? { league: suggestion.league, searchType: "league" }
+      : { teamName: suggestion.teamName, league: suggestion.league, searchType: "team" };
+    const next = [newEntry, ...filtered].slice(0, 2);
     if (typeof window !== "undefined") {
       try { window.localStorage.setItem(RECENT_SEARCHES_STORAGE_KEY, JSON.stringify(next)); } catch {}
     }
@@ -153,7 +175,7 @@ export function useTeamSearch(allFixtures: Fixture[]) {
     searchQuery, setSearchQuery,
     filteredTeamSuggestions, filteredLeagueSuggestions,
     recentSuggestions, hasSuggestions, showRecent,
-    addRecentFromTeamSuggestion,
+    addRecentSearch,
   };
 }
 

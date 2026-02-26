@@ -88,6 +88,7 @@ export class MatchService {
   static getLeagueEmoji(league: string): string {
     const emojiMap: Record<string, string> = {
       'Premier League': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+      'Championship': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
       'La Liga': '🇪🇸',
       'Bundesliga': '🇩🇪',
       'Serie A': '🇮🇹',

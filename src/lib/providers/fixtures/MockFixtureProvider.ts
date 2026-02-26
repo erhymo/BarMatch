@@ -7,6 +7,8 @@ function competitionToLeagueKey(competition: string): LeagueKey | null {
   switch (competition) {
     case 'Premier League':
       return 'EPL';
+    case 'Championship':
+      return 'ENG_CHAMPIONSHIP';
     case 'Eliteserien':
       return 'NOR_ELITESERIEN';
     case 'Serie A':

@@ -20,7 +20,7 @@ import { useCandidateBars } from '@/lib/hooks/useCandidateBars';
 import { useFavoriteCity } from '@/lib/hooks/useFavoriteCity';
 
 			const DEFAULT_RANGE_DAYS = 14;
-			const LEAGUES: LeagueKey[] = ['EPL', 'NOR_ELITESERIEN', 'SERIE_A', 'UCL', 'UEL'];
+			const LEAGUES: LeagueKey[] = ['EPL', 'ENG_CHAMPIONSHIP', 'NOR_ELITESERIEN', 'SERIE_A', 'UCL', 'UEL'];
 
 			function createDefaultRange(days: number = DEFAULT_RANGE_DAYS): { from: string; to: string } {
 			  const from = new Date();

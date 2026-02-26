@@ -38,12 +38,12 @@ export default function KamperPage() {
     searchQuery, setSearchQuery,
     filteredTeamSuggestions, filteredLeagueSuggestions,
     recentSuggestions, hasSuggestions, showRecent,
-    addRecentFromTeamSuggestion,
+    addRecentSearch,
   } = useTeamSearch(allFixtures);
 
   function handleSelectSuggestion(suggestion: SearchSuggestion) {
+    addRecentSearch(suggestion);
     if (suggestion.type === "team") {
-      addRecentFromTeamSuggestion(suggestion);
       setSelectedLeague(suggestion.league);
       setSearchQuery(suggestion.teamName);
     } else {
