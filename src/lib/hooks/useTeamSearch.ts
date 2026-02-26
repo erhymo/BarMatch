@@ -13,6 +13,7 @@ export const LEAGUE_LABEL_BY_KEY: Record<LeagueKey, string> = {
   NOR_ELITESERIEN: "Eliteserien",
   COPA_DEL_REY: "Copa del Rey",
   BUNDESLIGA: "Bundesliga",
+  LIGUE_1: "Ligue 1",
   SERIE_A: "Serie A",
   UCL: "UEFA Champions League",
   UEL: "UEFA Europa League",

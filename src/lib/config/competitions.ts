@@ -66,6 +66,13 @@ export const COMPETITIONS: Competition[] = [
     defaultSeason: 2025,
   },
   {
+    key: 'LIGUE_1',
+    label: 'Ligue 1',
+    type: 'league',
+    apiFootballLeagueId: 61,
+    defaultSeason: 2025,
+  },
+  {
     key: 'UCL',
     label: 'UEFA Champions League',
     type: 'tournament',

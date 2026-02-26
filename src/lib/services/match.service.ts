@@ -94,6 +94,7 @@ export class MatchService {
       'Copa del Rey': '🇪🇸',
       'La Liga': '🇪🇸',
       'Bundesliga': '🇩🇪',
+      'Ligue 1': '🇫🇷',
       'Serie A': '🇮🇹',
       'Eliteserien': '🇳🇴',
       'Champions League': '🏆',

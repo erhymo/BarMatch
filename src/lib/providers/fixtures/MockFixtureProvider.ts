@@ -17,6 +17,8 @@ function competitionToLeagueKey(competition: string): LeagueKey | null {
       return 'COPA_DEL_REY';
     case 'Bundesliga':
       return 'BUNDESLIGA';
+    case 'Ligue 1':
+      return 'LIGUE_1';
     case 'Eliteserien':
       return 'NOR_ELITESERIEN';
     case 'Serie A':
