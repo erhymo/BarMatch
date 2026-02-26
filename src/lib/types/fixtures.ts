@@ -1,4 +1,4 @@
-export type LeagueKey = "NOR_ELITESERIEN" | "NOR_1_DIVISION" | "EPL" | "ENG_CHAMPIONSHIP" | "FA_CUP" | "EFL_TROPHY" | "SERIE_A" | "COPA_DEL_REY" | "BUNDESLIGA" | "LIGUE_1" | "UCL" | "UEL" | "FIFA_CWC";
+export type LeagueKey = "NOR_ELITESERIEN" | "NOR_1_DIVISION" | "EPL" | "ENG_CHAMPIONSHIP" | "FA_CUP" | "EFL_TROPHY" | "SERIE_A" | "COPA_DEL_REY" | "BUNDESLIGA" | "LIGUE_1" | "UCL" | "UEL" | "FIFA_CWC" | "FIFA_CWC_PLAYIN";
 
 export type Fixture = {
   id: string;

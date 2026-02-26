@@ -100,6 +100,13 @@ export const COMPETITIONS: Competition[] = [
     apiFootballLeagueId: 15,
     defaultSeason: 2025,
   },
+  {
+    key: 'FIFA_CWC_PLAYIN',
+    label: 'FIFA Club World Cup - Play-In',
+    type: 'tournament',
+    apiFootballLeagueId: 7283,
+    defaultSeason: 2025,
+  },
 ];
 
 export function getCompetitionByKey(key: LeagueKey): Competition {

@@ -100,6 +100,7 @@ export class MatchService {
       'OBOS-ligaen': '🇳🇴',
       'Champions League': '🏆',
       'FIFA Club World Cup': '🌍',
+      'FIFA Club World Cup - Play-In': '🌍',
     };
     return emojiMap[league] || '⚽';
   }
