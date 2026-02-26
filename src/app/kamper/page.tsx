@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { LeagueKey } from "@/lib/types/fixtures";
 import { useKamperFixtures, useTeamSearch, LEAGUE_LABEL_BY_KEY } from "@/lib/hooks";
-import type { SearchSuggestion } from "@/lib/hooks/useTeamSearch";
+import type { TeamSuggestion } from "@/lib/hooks/useTeamSearch";
 import FixtureCard from "@/components/kamper/FixtureCard";
 import LeagueFilter from "@/components/kamper/LeagueFilter";
 import TeamSearchInput from "@/components/kamper/TeamSearchInput";
@@ -36,20 +36,15 @@ export default function KamperPage() {
   const { allFixtures, isLoading, loadError } = useKamperFixtures();
   const {
     searchQuery, setSearchQuery,
-    filteredTeamSuggestions, filteredLeagueSuggestions,
+    filteredTeamSuggestions,
     recentSuggestions, hasSuggestions, showRecent,
     addRecentSearch,
   } = useTeamSearch(allFixtures);
 
-  function handleSelectSuggestion(suggestion: SearchSuggestion) {
+  function handleSelectSuggestion(suggestion: TeamSuggestion) {
     addRecentSearch(suggestion);
-    if (suggestion.type === "team") {
-      setSelectedLeague(suggestion.league);
-      setSearchQuery(suggestion.teamName);
-    } else {
-      setSelectedLeague(suggestion.league);
-      setSearchQuery("");
-    }
+    setSelectedLeague(suggestion.league);
+    setSearchQuery(suggestion.teamName);
   }
 
   const filteredFixtures = useMemo(() => {
@@ -61,15 +56,10 @@ export default function KamperPage() {
 
     const q = searchQuery.trim().toLowerCase();
     if (q) {
-      fixtures = fixtures.filter((fixture) => {
-        const leagueLabel =
-          LEAGUE_LABEL_BY_KEY[fixture.league] ?? String(fixture.league);
-        return (
-          fixture.homeTeam.toLowerCase().includes(q) ||
-          fixture.awayTeam.toLowerCase().includes(q) ||
-          leagueLabel.toLowerCase().includes(q)
-        );
-      });
+      fixtures = fixtures.filter((fixture) =>
+        fixture.homeTeam.toLowerCase().includes(q) ||
+        fixture.awayTeam.toLowerCase().includes(q)
+      );
     }
 
     return fixtures;
@@ -181,7 +171,6 @@ export default function KamperPage() {
                 searchQuery={searchQuery}
                 onSearchQueryChange={setSearchQuery}
                 filteredTeamSuggestions={filteredTeamSuggestions}
-                filteredLeagueSuggestions={filteredLeagueSuggestions}
                 recentSuggestions={recentSuggestions}
                 hasSuggestions={hasSuggestions}
                 showRecent={showRecent}

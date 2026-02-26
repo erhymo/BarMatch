@@ -31,20 +31,11 @@ export type TeamSuggestion = {
   leagueLabel: string;
 };
 
-export type LeagueSuggestion = {
-  type: "league";
-  league: LeagueKey;
-  label: string;
-};
-
-export type SearchSuggestion = TeamSuggestion | LeagueSuggestion;
+export type SearchSuggestion = TeamSuggestion;
 
 type RecentSearchEntry = {
-  /** For team searches */
-  teamName?: string;
+  teamName: string;
   league: LeagueKey;
-  /** "team" or "league" */
-  searchType: "team" | "league";
 };
 
 /**
@@ -65,13 +56,8 @@ export function useTeamSearch(allFixtures: Fixture[]) {
       const cleaned: RecentSearchEntry[] = parsed
         .filter(
           (entry: any) =>
-            entry && typeof entry.league === "string" &&
-            (entry.searchType === "league" || typeof entry.teamName === "string"),
+            entry && typeof entry.league === "string" && typeof entry.teamName === "string",
         )
-        .map((entry: any) => ({
-          ...entry,
-          searchType: entry.searchType || "team",
-        }))
         .slice(0, 2);
       setRecentSearches(cleaned);
     } catch {
@@ -89,12 +75,10 @@ export function useTeamSearch(allFixtures: Fixture[]) {
     }
   }, [recentSearches]);
 
-  const { teamSuggestions, leagueSuggestions } = useMemo(() => {
+  const teamSuggestions = useMemo(() => {
     const teamMap = new Map<string, Set<LeagueKey>>();
-    const leagueSet = new Set<LeagueKey>();
 
     allFixtures.forEach((f) => {
-      leagueSet.add(f.league);
       for (const team of [f.homeTeam, f.awayTeam]) {
         let set = teamMap.get(team);
         if (!set) { set = new Set<LeagueKey>(); teamMap.set(team, set); }
@@ -102,78 +86,47 @@ export function useTeamSearch(allFixtures: Fixture[]) {
       }
     });
 
-    const leagueKeys: LeagueKey[] =
-      leagueSet.size > 0
-        ? Array.from(leagueSet)
-        : (["EPL", "NOR_ELITESERIEN", "SERIE_A", "UCL", "UEL"] as LeagueKey[]);
-
     const buildLabel = (league: LeagueKey) => LEAGUE_LABEL_BY_KEY[league] ?? league;
 
-    const teamSuggestions: TeamSuggestion[] = [];
+    const suggestions: TeamSuggestion[] = [];
     teamMap.forEach((leagues, teamName) => {
       leagues.forEach((league) => {
-        teamSuggestions.push({ type: "team", teamName, league, leagueLabel: buildLabel(league) });
+        suggestions.push({ type: "team", teamName, league, leagueLabel: buildLabel(league) });
       });
     });
 
-    const leagueSuggestions: LeagueSuggestion[] = leagueKeys.map((league) => ({
-      type: "league", league, label: buildLabel(league),
-    }));
+    suggestions.sort((a, b) => a.teamName.localeCompare(b.teamName, "nb") || a.leagueLabel.localeCompare(b.leagueLabel, "nb"));
 
-    teamSuggestions.sort((a, b) => a.teamName.localeCompare(b.teamName, "nb") || a.leagueLabel.localeCompare(b.leagueLabel, "nb"));
-    leagueSuggestions.sort((a, b) => a.label.localeCompare(b.label, "nb"));
-
-    return { teamSuggestions, leagueSuggestions };
+    return suggestions;
   }, [allFixtures]);
 
   const filteredTeamSuggestions = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return [];
     return teamSuggestions
-      .filter((s) => s.teamName.toLowerCase().includes(q) || s.leagueLabel.toLowerCase().includes(q))
+      .filter((s) => s.teamName.toLowerCase().includes(q))
       .slice(0, 20);
   }, [searchQuery, teamSuggestions]);
 
-  const filteredLeagueSuggestions = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return [];
-    return leagueSuggestions.filter((s) => s.label.toLowerCase().includes(q));
-  }, [searchQuery, leagueSuggestions]);
-
-  const recentSuggestions: SearchSuggestion[] = useMemo(
+  const recentSuggestions: TeamSuggestion[] = useMemo(
     () =>
-      recentSearches.map((entry): SearchSuggestion => {
-        if (entry.searchType === "league") {
-          return {
-            type: "league",
-            league: entry.league,
-            label: LEAGUE_LABEL_BY_KEY[entry.league] ?? (entry.league as string),
-          };
-        }
-        return {
-          type: "team",
-          teamName: entry.teamName ?? "",
-          league: entry.league,
-          leagueLabel: LEAGUE_LABEL_BY_KEY[entry.league] ?? (entry.league as string),
-        };
-      }),
+      recentSearches.map((entry): TeamSuggestion => ({
+        type: "team",
+        teamName: entry.teamName,
+        league: entry.league,
+        leagueLabel: LEAGUE_LABEL_BY_KEY[entry.league] ?? (entry.league as string),
+      })),
     [recentSearches],
   );
 
-  const hasSuggestions = filteredTeamSuggestions.length > 0 || filteredLeagueSuggestions.length > 0;
+  const hasSuggestions = filteredTeamSuggestions.length > 0;
   const showRecent = searchQuery.trim().length === 0 && recentSuggestions.length > 0;
 
-  function addRecentSearch(suggestion: SearchSuggestion) {
-    const isMatch = (entry: RecentSearchEntry) => {
-      if (suggestion.type === "league") {
-        return entry.searchType === "league" && entry.league === suggestion.league;
-      }
-      return entry.searchType === "team" && entry.teamName === suggestion.teamName && entry.league === suggestion.league;
-    };
-    const filtered = recentSearches.filter((entry) => !isMatch(entry));
-    const newEntry: RecentSearchEntry = suggestion.type === "league"
-      ? { league: suggestion.league, searchType: "league" }
-      : { teamName: suggestion.teamName, league: suggestion.league, searchType: "team" };
+  function addRecentSearch(suggestion: TeamSuggestion) {
+    const filtered = recentSearches.filter(
+      (entry) => !(entry.teamName === suggestion.teamName && entry.league === suggestion.league)
+    );
+    const newEntry: RecentSearchEntry = { teamName: suggestion.teamName, league: suggestion.league };
     const next = [newEntry, ...filtered].slice(0, 2);
     if (typeof window !== "undefined") {
       try { window.localStorage.setItem(RECENT_SEARCHES_STORAGE_KEY, JSON.stringify(next)); } catch {}
@@ -183,7 +136,7 @@ export function useTeamSearch(allFixtures: Fixture[]) {
 
   return {
     searchQuery, setSearchQuery,
-    filteredTeamSuggestions, filteredLeagueSuggestions,
+    filteredTeamSuggestions,
     recentSuggestions, hasSuggestions, showRecent,
     addRecentSearch,
   };
