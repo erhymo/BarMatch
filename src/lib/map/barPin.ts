@@ -19,11 +19,6 @@ export function getBarPinIcon(type: BarPinType): string {
           stroke-linejoin="round"
           d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
 
-    <!-- Inner circle -->
-    <path stroke-linecap="round"
-          stroke-linejoin="round"
-          d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-
     ${showStar ? `
       <path d="M11.48 6.5
                a.4.4 0 0 1 .74 0
@@ -46,7 +41,7 @@ export function getBarPinIcon(type: BarPinType): string {
                l3.1-.25
                a.4.4 0 0 0 .33-.24
                l1.2-2.9Z"
-            fill="#16a34a"
+            fill="#111111"
             stroke="none"/>
     ` : ''}
 
