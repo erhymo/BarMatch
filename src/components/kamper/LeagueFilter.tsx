@@ -5,22 +5,29 @@ import { MatchService } from "@/lib/services";
 import type { LeagueKey } from "@/lib/types/fixtures";
 
 const LEAGUES: { key: LeagueKey; label: string }[] = [
+  // England
   { key: "EPL", label: "Premier League" },
   { key: "ENG_CHAMPIONSHIP", label: "Championship" },
   { key: "FA_CUP", label: "FA Cup" },
   { key: "EFL_TROPHY", label: "EFL Trophy" },
+  // Italia
+  { key: "SERIE_A", label: "Serie A" },
+  // Spania
+  { key: "COPA_DEL_REY", label: "Copa del Rey" },
+  // Norge
   { key: "NOR_ELITESERIEN", label: "Eliteserien" },
   { key: "NOR_1_DIVISION", label: "OBOS-ligaen" },
-  { key: "COPA_DEL_REY", label: "Copa del Rey" },
+  // Tyskland
   { key: "BUNDESLIGA", label: "Bundesliga" },
+  // Frankrike
   { key: "LIGUE_1", label: "Ligue 1" },
-  { key: "FIFA_CWC", label: "FIFA Club World Cup" },
-  { key: "FIFA_CWC_PLAYIN", label: "FIFA CWC Play-In" },
-  { key: "UEFA_NL", label: "UEFA Nations League" },
-  { key: "FRIENDLIES", label: "Friendlies" },
-  { key: "SERIE_A", label: "Serie A" },
+  // Internasjonalt
   { key: "UCL", label: "UEFA Champions League" },
   { key: "UEL", label: "UEFA Europa League" },
+  { key: "UEFA_NL", label: "UEFA Nations League" },
+  { key: "FIFA_CWC", label: "FIFA Club World Cup" },
+  { key: "FIFA_CWC_PLAYIN", label: "FIFA CWC Play-In" },
+  { key: "FRIENDLIES", label: "Friendlies" },
 ];
 
 interface LeagueFilterProps {
