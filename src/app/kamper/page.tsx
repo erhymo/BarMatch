@@ -2,40 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useFavorites } from "@/contexts/FavoritesContext";
 import type { LeagueKey } from "@/lib/types/fixtures";
 import { useKamperFixtures, useTeamSearch, LEAGUE_LABEL_BY_KEY } from "@/lib/hooks";
 import type { SearchSuggestion } from "@/lib/hooks/useTeamSearch";
 import FixtureCard from "@/components/kamper/FixtureCard";
 import LeagueFilter from "@/components/kamper/LeagueFilter";
 import TeamSearchInput from "@/components/kamper/TeamSearchInput";
-
-// Mapping fra interne lag-ID-er (favoritter) til visningsnavn slik de kommer fra Fixture
-const TEAM_ID_TO_NAME: Record<string, string> = {
-  tot: "Tottenham",
-  che: "Chelsea",
-  liv: "Liverpool",
-  mci: "Manchester City",
-  ars: "Arsenal",
-  mun: "Manchester United",
-  bar: "Barcelona",
-  rma: "Real Madrid",
-  atm: "Atletico Madrid",
-  sev: "Sevilla",
-  bay: "Bayern Munich",
-  bvb: "Borussia Dortmund",
-  rb: "RB Leipzig",
-  rbk: "Rosenborg",
-  vif: "Vålerenga",
-  mol: "Molde",
-  bod: "Bodø/Glimt",
-  bra: "Brann",
-  juv: "Juventus",
-  int: "Inter Milan",
-  acm: "AC Milan",
-  nap: "Napoli",
-  rom: "Roma",
-};
 
 function getFixturesCountFromBody(body: unknown): number {
   if (!body || typeof body !== "object") return 0;
@@ -57,10 +29,7 @@ const IS_DEV = process.env.NODE_ENV !== "production";
 
 export default function KamperPage() {
   const router = useRouter();
-  const { favoriteTeams } = useFavorites();
-
   const [selectedLeague, setSelectedLeague] = useState<LeagueKey | "">("");
-  const [showOnlyFavorites, setShowOnlyFavorites] = useState<boolean>(false);
   const [selfTestResult, setSelfTestResult] = useState<string | null>(null);
   const [selfTestLoading, setSelfTestLoading] = useState(false);
 
@@ -71,19 +40,6 @@ export default function KamperPage() {
     recentSuggestions, hasSuggestions, showRecent,
     addRecentFromTeamSuggestion,
   } = useTeamSearch(allFixtures);
-
-  const favoriteTeamNames = useMemo(() => {
-    const names = favoriteTeams
-      .map((id) => TEAM_ID_TO_NAME[id])
-      .filter((name): name is string => Boolean(name));
-
-    return Array.from(new Set(names));
-  }, [favoriteTeams]);
-
-  const favoriteTeamNameSet = useMemo(
-    () => new Set(favoriteTeamNames),
-    [favoriteTeamNames],
-  );
 
   function handleSelectSuggestion(suggestion: SearchSuggestion) {
     if (suggestion.type === "team") {
@@ -103,15 +59,6 @@ export default function KamperPage() {
       fixtures = fixtures.filter((fixture) => fixture.league === selectedLeague);
     }
 
-    if (showOnlyFavorites && favoriteTeamNameSet.size > 0) {
-      fixtures = fixtures.filter((fixture) => {
-        const { homeTeam, awayTeam } = fixture;
-        return (
-          favoriteTeamNameSet.has(homeTeam) || favoriteTeamNameSet.has(awayTeam)
-        );
-      });
-    }
-
     const q = searchQuery.trim().toLowerCase();
     if (q) {
       fixtures = fixtures.filter((fixture) => {
@@ -129,8 +76,6 @@ export default function KamperPage() {
   }, [
     allFixtures,
     selectedLeague,
-    showOnlyFavorites,
-    favoriteTeamNameSet,
     searchQuery,
   ]);
 
@@ -193,7 +138,7 @@ export default function KamperPage() {
               Kamper
             </h1>
             <p className="text-lg text-zinc-600 dark:text-zinc-400">
-              Se kommende kamper, filtrer på liga og fokuser på dine favorittlag.
+              Se kommende kamper og filtrer på liga eller lag.
             </p>
 	            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
 	              Trykk på en kamp for å se hvilke barer som viser den på kartet.
@@ -245,41 +190,6 @@ export default function KamperPage() {
                 onSelectSuggestion={handleSelectSuggestion}
               />
 
-              {/* Favorites toggle */}
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/80 px-3 py-2.5">
-                <div>
-                  <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                    Favorittlag
-                  </p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {favoriteTeams.length > 0
-                      ? "Vis bare kamper der dine lag spiller"
-                      : "Legg til favorittlag på forsiden for å bruke dette filteret"}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowOnlyFavorites((prev) => !prev)}
-                  disabled={favoriteTeams.length === 0}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors ${
-                    showOnlyFavorites && favoriteTeams.length > 0
-                      ? "bg-blue-600 border-blue-600"
-                      : "bg-zinc-200 border-zinc-300 dark:bg-zinc-700 dark:border-zinc-600"
-                  } ${
-                    favoriteTeams.length === 0
-                      ? "opacity-40 cursor-not-allowed"
-                      : "cursor-pointer"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                      showOnlyFavorites && favoriteTeams.length > 0
-                        ? "translate-x-5"
-                        : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
             </div>
           </section>
 
@@ -305,7 +215,7 @@ export default function KamperPage() {
                   Ingen kommende kamper matcher filtrene dine ennå.
                 </p>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  Endre liga, skru av favorittfilteret eller sjekk igjen litt senere.
+                  Endre liga eller søk, eller sjekk igjen litt senere.
                 </p>
               </div>
             ) : (
@@ -314,15 +224,10 @@ export default function KamperPage() {
                 const currentDayKey = new Date(fixture.kickoffUtc).toISOString().slice(0, 10);
                 const prevDayKey = prev ? new Date(prev.kickoffUtc).toISOString().slice(0, 10) : null;
                 const isFirstOfDay = index === 0 || prevDayKey !== currentDayKey;
-                const isFavoriteMatch =
-                  favoriteTeamNameSet.has(fixture.homeTeam) || favoriteTeamNameSet.has(fixture.awayTeam);
-
                 return (
                   <FixtureCard
                     key={fixture.id}
                     fixture={fixture}
-                    isFavoriteMatch={isFavoriteMatch}
-                    favoriteTeamNameSet={favoriteTeamNameSet}
                     isFirstOfDay={isFirstOfDay}
                     onClick={() => handleMatchClick(fixture.id)}
                   />

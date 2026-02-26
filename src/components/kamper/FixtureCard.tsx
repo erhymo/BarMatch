@@ -11,16 +11,12 @@ function formatTimeFromUtc(kickoffUtc: string, locale: string = "nb-NO"): string
 
 interface FixtureCardProps {
   fixture: Fixture;
-  isFavoriteMatch: boolean;
-  favoriteTeamNameSet: Set<string>;
   isFirstOfDay: boolean;
   onClick: () => void;
 }
 
 export default function FixtureCard({
   fixture,
-  isFavoriteMatch,
-  favoriteTeamNameSet,
   isFirstOfDay,
   onClick,
 }: FixtureCardProps) {
@@ -54,7 +50,7 @@ export default function FixtureCard({
                   <img src={fixture.homeTeamLogoUrl} alt={fixture.homeTeam} loading="lazy" className="h-full w-full object-contain" />
                 </div>
               )}
-              <span className={favoriteTeamNameSet.has(fixture.homeTeam) ? "text-blue-600 dark:text-blue-400" : ""}>
+              <span>
                 {fixture.homeTeam}
               </span>
             </div>
@@ -65,21 +61,14 @@ export default function FixtureCard({
                   <img src={fixture.awayTeamLogoUrl} alt={fixture.awayTeam} loading="lazy" className="h-full w-full object-contain" />
                 </div>
               )}
-              <span className={favoriteTeamNameSet.has(fixture.awayTeam) ? "text-blue-600 dark:text-blue-400" : ""}>
+              <span>
                 {fixture.awayTeam}
               </span>
             </div>
           </div>
         </div>
 
-        {isFavoriteMatch && (
-          <div className="flex flex-col items-end gap-1 text-right">
-            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-900/30 px-2 py-1 text-[11px] font-medium text-blue-700 dark:text-blue-300">
-              <span>⭐</span>
-              <span>Favorittlag</span>
-            </span>
-          </div>
-        )}
+
       </button>
     </div>
   );
