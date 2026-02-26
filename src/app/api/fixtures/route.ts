@@ -9,6 +9,7 @@ import {
 const DEFAULT_RANGE_DAYS = 14;
 const API_BASE_URL = 'https://v3.football.api-sports.io/';
 const IN_MEMORY_TTL_MS = 5 * 60 * 1000; // 5 minutter dev-cache
+const IS_DEV = process.env.NODE_ENV !== 'production';
 
 type CacheEntry = {
   createdAt: number;
@@ -90,34 +91,36 @@ export async function GET(req: NextRequest) {
 
     // Debug-modus for produksjon: lar oss se `results`/`errors` uten å lekke nøkler.
     // Eksempel: /api/fixtures?...&debug=1
-    const debug = searchParams.get('debug') === '1';
-
-    // Logg env ved første kall slik at vi ser om nøkkelen faktisk er tilgjengelig
-    if (!hasLoggedEnv) {
-      const hasKey = Boolean(process.env.APISPORTS_KEY);
-      // NB: logger bare bool, ikke selve nøkkelen
-      console.log('[/api/fixtures] APISPORTS_KEY present:', hasKey);
-      if (!hasKey) {
-        console.error(
-          '[/api/fixtures] APISPORTS_KEY mangler. Sørg for at den er satt i .env.local og at dev-server er restartet etter endring.',
-        );
-      }
-      hasLoggedEnv = true;
-    }
+	    const debug = searchParams.get('debug') === '1';
+	
+	    // Logg env ved første kall – men kun i dev eller når debug=1
+	    if (!hasLoggedEnv && (IS_DEV || debug)) {
+	      const hasKey = Boolean(process.env.APISPORTS_KEY);
+	      // NB: logger bare bool, ikke selve nøkkelen
+	      console.log('[/api/fixtures] APISPORTS_KEY present:', hasKey);
+	      if (!hasKey) {
+	        console.error(
+	          '[/api/fixtures] APISPORTS_KEY mangler. Sørg for at den er satt i .env.local og at dev-server er restartet etter endring.',
+	        );
+	      }
+	      hasLoggedEnv = true;
+	    }
 
     // Støtt både nytt navn (leagueKey) og tidligere (league) for kompatibilitet
     const leagueParamRaw = searchParams.get('leagueKey') ?? searchParams.get('league');
 
-	    const fromParam = searchParams.get('from');
-	    const toParam = searchParams.get('to');
-	    const seasonParam = searchParams.get('season');
-	
-	    console.log('[/api/fixtures] Request params:', {
-	      leagueKey: leagueParamRaw,
-	      from: fromParam,
-	      to: toParam,
-	      season: seasonParam,
-	    });
+		    const fromParam = searchParams.get('from');
+		    const toParam = searchParams.get('to');
+		    const seasonParam = searchParams.get('season');
+		
+		    if (IS_DEV || debug) {
+		      console.log('[/api/fixtures] Request params:', {
+		        leagueKey: leagueParamRaw,
+		        from: fromParam,
+		        to: toParam,
+		        season: seasonParam,
+		      });
+		    }
 	
 	    if (!isLeagueKey(leagueParamRaw)) {
 	      console.error(
@@ -213,43 +216,47 @@ export async function GET(req: NextRequest) {
         : fromDateObj.getUTCFullYear();
     }
 
-    const cacheKey = buildCacheKey(leagueParam, fromDate, toDate, season);
-    const now = Date.now();
-    const cached = memoryCache.get(cacheKey);
+	    const cacheKey = buildCacheKey(leagueParam, fromDate, toDate, season);
+	    const now = Date.now();
+	    const cached = memoryCache.get(cacheKey);
+	
+	    if (cached && now - cached.createdAt < IN_MEMORY_TTL_MS) {
+	      if (IS_DEV || debug) {
+	        console.log('[/api/fixtures] Serving fixtures from in-memory cache for', {
+	          league: leagueParam,
+	          fromDate,
+	          toDate,
+	          season,
+	        });
+	      }
+	      return NextResponse.json({ fixtures: cached.fixtures }, {
+        headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300' },
+      });
+	    }
 
-    if (cached && now - cached.createdAt < IN_MEMORY_TTL_MS) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('[/api/fixtures] Serving fixtures from in-memory cache for', {
-          league: leagueParam,
-          fromDate,
-          toDate,
-          season,
-        });
-      }
-      return NextResponse.json({ fixtures: cached.fixtures });
-    }
-
-    const url = new URL(`${API_BASE_URL}fixtures`);
-    url.searchParams.set('league', String(leagueId));
-    url.searchParams.set('season', String(season));
-    url.searchParams.set('from', fromDate);
-    url.searchParams.set('to', toDate);
-
-    // Nyttig debug: eksakt URL, parametere og om nøkkelen er synlig
-    console.log('[/api/fixtures] url:', url.toString());
-    console.log(
-      '[/api/fixtures] leagueKey:',
-      leagueParam,
-      'leagueId:',
-      leagueId,
-      'season:',
-      season,
-      'from:',
-      fromDate,
-      'to:',
-      toDate,
-    );
-    console.log('[/api/fixtures] APISPORTS_KEY present:', Boolean(process.env.APISPORTS_KEY));
+	    const url = new URL(`${API_BASE_URL}fixtures`);
+	    url.searchParams.set('league', String(leagueId));
+	    url.searchParams.set('season', String(season));
+	    url.searchParams.set('from', fromDate);
+	    url.searchParams.set('to', toDate);
+	
+	    // Nyttig debug: eksakt URL, parametere og om nøkkelen er synlig
+	    if (IS_DEV || debug) {
+	      console.log('[/api/fixtures] url:', url.toString());
+	      console.log(
+	        '[/api/fixtures] leagueKey:',
+	        leagueParam,
+	        'leagueId:',
+	        leagueId,
+	        'season:',
+	        season,
+	        'from:',
+	        fromDate,
+	        'to:',
+	        toDate,
+	      );
+	      console.log('[/api/fixtures] APISPORTS_KEY present:', Boolean(process.env.APISPORTS_KEY));
+	    }
 
     const response = await fetch(url.toString(), {
       headers: {
@@ -344,7 +351,9 @@ export async function GET(req: NextRequest) {
 	      });
 	    }
 
-	    return NextResponse.json({ fixtures });
+	    return NextResponse.json({ fixtures }, {
+        headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300' },
+      });
   } catch (error) {
     const message =
       error instanceof Error && error.message

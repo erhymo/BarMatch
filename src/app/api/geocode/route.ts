@@ -1,13 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireFirebaseUser } from '@/lib/admin/serverAuth';
+import { asRecord } from '@/lib/utils/unknown';
 
 export const runtime = 'nodejs';
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
 function isAddressComponent(
   value: unknown,

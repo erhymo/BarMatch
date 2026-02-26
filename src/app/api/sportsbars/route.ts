@@ -1,13 +1,8 @@
 import { NextResponse } from 'next/server';
 import { fetchNearbySportsbarsFromPlaces } from '@/lib/googlePlacesSportsbars';
+import { asRecord } from '@/lib/utils/unknown';
 
 export const runtime = 'nodejs';
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
 export async function GET(request: Request) {
 	  try {
@@ -45,7 +40,9 @@ export async function GET(request: Request) {
 	      return NextResponse.json({ bars: [], status: status ?? 'NO_RESULTS' });
 	    }
 	
-	    return NextResponse.json({ bars });
+	    return NextResponse.json({ bars }, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
+    });
 	  } catch (e) {
 	    const msg = e instanceof Error ? e.message : 'Unknown error';
 	    return NextResponse.json({ error: msg, bars: [] }, { status: 500 });

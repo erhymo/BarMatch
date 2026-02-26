@@ -1,10 +1,5 @@
 import type { Bar } from '@/lib/models';
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+import { asRecord } from '@/lib/utils/unknown';
 
 export interface NearbySportsbarRequest {
   lat: number;

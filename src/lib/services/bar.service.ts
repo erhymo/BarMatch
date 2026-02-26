@@ -7,18 +7,6 @@ import { Bar } from '../models';
 
 export class BarService {
   /**
-   * Filter bars by team
-   * Returns bars that show matches for the specified team
-   */
-  static filterBarsByTeam(bars: Bar[], teamId: string | null): Bar[] {
-    // Vi har ikke lenger mock/demo-kobling mellom barer og kamper.
-    // Inntil vi har ekte bar->kamp data (backend), skal kartet alltid vise alle barer.
-    // (UI kan senere filtrere basert på ekte data.)
-    void teamId;
-    return bars;
-  }
-
-  /**
    * Returns the active selected fixture ids (selected minus cancelled).
    * Safe helper for both Firestore-backed bars and local/demo selections.
    */
@@ -72,17 +60,6 @@ export class BarService {
     );
   }
 
-	  /**
-	   * Filter bars by match
-	   * Returns bars that show the specified match
-	   */
-	  static filterBarsByMatch(bars: Bar[], matchId: string | null): Bar[] {
-	    // Vi har ikke lenger mock/demo-kobling mellom barer og kamper.
-	    // Inntil vi har ekte bar->kamp data (backend), skal kartet alltid vise alle barer.
-	    void matchId;
-	    return bars;
-	  }
-
   /**
    * Sort bars: favorites first, then by name
    */
@@ -107,15 +84,7 @@ export class BarService {
     return bar.openingHours?.[day] || 'Stengt';
   }
 
-  /**
-   * Get upcoming matches for a bar
-   */
-  static getUpcomingMatches(bar: Bar): NonNullable<typeof bar.matches> {
-    // Barer har ikke lenger innebygde mock-kamper.
-    // Kommende kamper for en bar krever ekte data fra backend.
-    void bar;
-    return [];
-  }
+
 
   /**
    * Calculate distance between two positions (Haversine formula)

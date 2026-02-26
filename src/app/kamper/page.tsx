@@ -1,96 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MatchService } from "@/lib/services";
 import { useFavorites } from "@/contexts/FavoritesContext";
-import type { Fixture, LeagueKey } from "@/lib/types/fixtures";
-import { getFixtureProvider } from "@/lib/providers/fixtures";
-
-function getErrorInfo(err: unknown): { message: string; details?: string } {
-  if (err && typeof err === "object") {
-    const maybe = err as Record<string, unknown>;
-
-    const message =
-      typeof maybe.message === "string" && maybe.message.length > 0
-        ? maybe.message
-        : "Kunne ikke laste kamper.";
-
-    const details =
-      typeof maybe.details === "string" && maybe.details.length > 0
-        ? maybe.details
-        : undefined;
-
-    return { message, details };
-  }
-
-  if (typeof err === "string" && err.length > 0) {
-    return { message: err };
-  }
-
-  return { message: "Kunne ikke laste kamper." };
-}
-
-function isRejected<T>(r: PromiseSettledResult<T>): r is PromiseRejectedResult {
-  return r.status === "rejected";
-}
-
-function getFixturesCountFromBody(body: unknown): number {
-  if (!body || typeof body !== "object") return 0;
-  const maybe = body as Record<string, unknown>;
-  const fixtures = maybe.fixtures;
-  return Array.isArray(fixtures) ? fixtures.length : 0;
-}
-
-function getApiErrorFromBody(body: unknown): { error?: string; details?: unknown } {
-  if (!body || typeof body !== "object") return {};
-  const maybe = body as Record<string, unknown>;
-  return {
-    error: typeof maybe.error === "string" ? maybe.error : undefined,
-    details: maybe.details,
-  };
-}
-
-const DEFAULT_RANGE_DAYS = 14;
-
-const LEAGUES: { key: LeagueKey; label: string }[] = [
-  { key: "EPL", label: "Premier League" },
-  { key: "NOR_ELITESERIEN", label: "Eliteserien" },
-  { key: "SERIE_A", label: "Serie A" },
-  { key: "UCL", label: "UEFA Champions League" },
-  { key: "UEL", label: "UEFA Europa League" },
-];
-
-const LEAGUE_LABEL_BY_KEY: Record<LeagueKey, string> = {
-  EPL: "Premier League",
-  NOR_ELITESERIEN: "Eliteserien",
-  SERIE_A: "Serie A",
-  UCL: "UEFA Champions League",
-  UEL: "UEFA Europa League",
-};
-
-type TeamSuggestion = {
-  type: "team";
-  teamName: string;
-  league: LeagueKey;
-  leagueLabel: string;
-};
-
-type LeagueSuggestion = {
-  type: "league";
-  league: LeagueKey;
-  label: string;
-};
-
-type SearchSuggestion = TeamSuggestion | LeagueSuggestion;
-
-type RecentSearchEntry = {
-  teamName: string;
-  league: LeagueKey;
-};
-
-const RECENT_SEARCHES_STORAGE_KEY = "bar_match_recent_team_searches_v1";
+import type { LeagueKey } from "@/lib/types/fixtures";
+import { useKamperFixtures, useTeamSearch, LEAGUE_LABEL_BY_KEY } from "@/lib/hooks";
+import type { SearchSuggestion } from "@/lib/hooks/useTeamSearch";
+import FixtureCard from "@/components/kamper/FixtureCard";
+import LeagueFilter from "@/components/kamper/LeagueFilter";
+import TeamSearchInput from "@/components/kamper/TeamSearchInput";
 
 // Mapping fra interne lag-ID-er (favoritter) til visningsnavn slik de kommer fra Fixture
 const TEAM_ID_TO_NAME: Record<string, string> = {
@@ -119,24 +37,20 @@ const TEAM_ID_TO_NAME: Record<string, string> = {
   rom: "Roma",
 };
 
-type DateRange = { from: string; to: string };
-
-function createDefaultRange(): DateRange {
-  const now = new Date();
-  const from = now.toISOString();
-  const toDate = new Date(
-    now.getTime() + DEFAULT_RANGE_DAYS * 24 * 60 * 60 * 1000,
-  );
-  const to = toDate.toISOString();
-  return { from, to };
+function getFixturesCountFromBody(body: unknown): number {
+  if (!body || typeof body !== "object") return 0;
+  const maybe = body as Record<string, unknown>;
+  const fixtures = maybe.fixtures;
+  return Array.isArray(fixtures) ? fixtures.length : 0;
 }
 
-function formatTimeFromUtc(kickoffUtc: string, locale: string = "nb-NO"): string {
-  const date = new Date(kickoffUtc);
-  return date.toLocaleTimeString(locale, {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function getApiErrorFromBody(body: unknown): { error?: string; details?: unknown } {
+  if (!body || typeof body !== "object") return {};
+  const maybe = body as Record<string, unknown>;
+  return {
+    error: typeof maybe.error === "string" ? maybe.error : undefined,
+    details: maybe.details,
+  };
 }
 
 const IS_DEV = process.env.NODE_ENV !== "production";
@@ -147,199 +61,16 @@ export default function KamperPage() {
 
   const [selectedLeague, setSelectedLeague] = useState<LeagueKey | "">("");
   const [showOnlyFavorites, setShowOnlyFavorites] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [recentSearches, setRecentSearches] = useState<RecentSearchEntry[]>([]);
-  const [range] = useState<DateRange>(() => createDefaultRange());
-  const [fixturesByLeague, setFixturesByLeague] = useState<
-    Record<LeagueKey, Fixture[]>
-  >({
-    EPL: [],
-    NOR_ELITESERIEN: [],
-		    SERIE_A: [],
-		    UCL: [],
-		    UEL: [],
-  });
-	  const [isLoading, setIsLoading] = useState(false);
-	  const [loadError, setLoadError] = useState<string | null>(null);
-	  const [selfTestResult, setSelfTestResult] = useState<string | null>(null);
-	  const [selfTestLoading, setSelfTestLoading] = useState(false);
+  const [selfTestResult, setSelfTestResult] = useState<string | null>(null);
+  const [selfTestLoading, setSelfTestLoading] = useState(false);
 
-	  // Enkel klient-cache per league+range for å unngå unødvendige kall
-	  const cacheRef = useRef<Map<string, Fixture[]>>(new Map());
-
-		  const fixtureProvider = useMemo(() => getFixtureProvider(), []);
-
-	  useEffect(() => {
-	    let isCancelled = false;
-
-	    async function fetchFixturesForLeague(league: LeagueKey): Promise<Fixture[]> {
-	      const cacheKey = `${league}|${range.from}|${range.to}`;
-	      const cached = cacheRef.current.get(cacheKey);
-	      if (cached) {
-	        return cached;
-	      }
-
-	      const fixtures = await fixtureProvider.getUpcomingFixtures(
-	        league,
-	        range.from,
-	        range.to,
-	      );
-
-		      if (IS_DEV) {
-	        console.log(
-	          "[Fixtures]",
-	          league,
-	          "from",
-	          range.from,
-	          "to",
-	          range.to,
-	          "- count:",
-	          fixtures.length,
-	        );
-	      }
-
-	      cacheRef.current.set(cacheKey, fixtures);
-	      return fixtures;
-	    }
-
-	    async function loadAllLeagues() {
-	      setIsLoading(true);
-	      setLoadError(null);
-	  
-		    try {
-	        const results = await Promise.allSettled(
-	          LEAGUES.map(({ key }) => fetchFixturesForLeague(key)),
-	        );
-	      
-	        if (isCancelled) return;
-	      
-		        const [
-		          eplResult,
-		          norEliteserienResult,
-		          serieAResult,
-		          uclResult,
-		          uelResult,
-		        ] = results;
-	      
-	        const epl: Fixture[] =
-	          eplResult.status === "fulfilled"
-	            ? eplResult.value
-	            : (console.error(
-	                "[Fixtures] Feil ved henting av EPL-kamper:",
-	                eplResult.reason,
-	              ),
-	              []);
-	      
-	        const norEliteserien: Fixture[] =
-	          norEliteserienResult.status === "fulfilled"
-	            ? norEliteserienResult.value
-	            : (console.error(
-	                "[Fixtures] Feil ved henting av Eliteserien-kamper:",
-	                norEliteserienResult.reason,
-	              ),
-	              []);
-	      
-	        const serieA: Fixture[] =
-	          serieAResult.status === "fulfilled"
-	            ? serieAResult.value
-	            : (console.error(
-	                "[Fixtures] Feil ved henting av Serie A-kamper:",
-	                serieAResult.reason,
-	              ),
-	              []);
-	      
-	        const ucl: Fixture[] =
-	          uclResult && uclResult.status === "fulfilled"
-	            ? uclResult.value
-	            : (console.error(
-	                "[Fixtures] Feil ved henting av Champions League-kamper:",
-	                (uclResult as PromiseRejectedResult | undefined)?.reason,
-	              ),
-	              []);
-		      
-		        const uel: Fixture[] =
-		          uelResult && uelResult.status === "fulfilled"
-		            ? uelResult.value
-		            : (console.error(
-		                "[Fixtures] Feil ved henting av Europa League-kamper:",
-		                (uelResult as PromiseRejectedResult | undefined)?.reason,
-		              ),
-		              []);
-	      
-	        const allRejected =
-	          eplResult.status === "rejected" &&
-	          norEliteserienResult.status === "rejected" &&
-	          serieAResult.status === "rejected" &&
-		          uclResult?.status === "rejected" &&
-		          uelResult?.status === "rejected";
-	      
-			        if (allRejected) {
-			          const rejectedResults = [
-			            eplResult,
-			            norEliteserienResult,
-			            serieAResult,
-			            uclResult,
-			            uelResult,
-			          ].filter(isRejected);
-	
-		          const firstReason = rejectedResults[0]?.reason;
-		          const { message, details } = getErrorInfo(firstReason);
-	
-			          const combinedMessage =
-			            IS_DEV && details && (details as string).length > 0
-		              ? `${message} Detaljer: ${(details as string).slice(0, 200)}`
-		              : message;
-	
-		          setLoadError(combinedMessage);
-		        }
-	      
-		        setFixturesByLeague({
-		          EPL: epl,
-		          NOR_ELITESERIEN: norEliteserien,
-		          SERIE_A: serieA,
-		          UCL: ucl,
-		          UEL: uel,
-		        });
-	      } catch (error) {
-	        if (isCancelled) return;
-	        console.error("[Fixtures] Uventet feil ved lasting av kamper:", error);
-
-		        const { message: baseMessage, details } = getErrorInfo(error);
-			        const combinedMessage =
-			          IS_DEV && details && details.length > 0
-		            ? `${baseMessage} Detaljer: ${details.slice(0, 200)}`
-		            : baseMessage;
-
-		        setLoadError(combinedMessage);
-	      } finally {
-	        if (!isCancelled) {
-	          setIsLoading(false);
-	        }
-	      }
-	    }
-
-	    loadAllLeagues();
-	
-	    return () => {
-	      isCancelled = true;
-	    };
-		  }, [fixtureProvider, range.from, range.to]);
-
-  const allFixtures = useMemo(() => {
-    const all = [
-      ...fixturesByLeague.EPL,
-      ...fixturesByLeague.NOR_ELITESERIEN,
-		      ...fixturesByLeague.SERIE_A,
-		      ...fixturesByLeague.UCL,
-		      ...fixturesByLeague.UEL,
-    ];
-
-    return all.sort((a, b) => {
-      return (
-        new Date(a.kickoffUtc).getTime() - new Date(b.kickoffUtc).getTime()
-      );
-    });
-  }, [fixturesByLeague]);
+  const { allFixtures, isLoading, loadError } = useKamperFixtures();
+  const {
+    searchQuery, setSearchQuery,
+    filteredTeamSuggestions, filteredLeagueSuggestions,
+    recentSuggestions, hasSuggestions, showRecent,
+    addRecentFromTeamSuggestion,
+  } = useTeamSearch(allFixtures);
 
   const favoriteTeamNames = useMemo(() => {
     const names = favoriteTeams
@@ -353,173 +84,6 @@ export default function KamperPage() {
     () => new Set(favoriteTeamNames),
     [favoriteTeamNames],
   );
-
-  // Last inn nylige søk (lag+liga) fra localStorage
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(RECENT_SEARCHES_STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return;
-      const cleaned: RecentSearchEntry[] = parsed
-        .filter(
-          (entry: any) =>
-            entry &&
-            typeof entry.teamName === "string" &&
-            typeof entry.league === "string",
-        )
-        .slice(0, 6);
-      setRecentSearches(cleaned);
-    } catch {
-      // Ignorer korrupt lagret data
-    }
-  }, []);
-
-  // Best-effort: hold localStorage i sync hvis noe annet endrer state
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(
-        RECENT_SEARCHES_STORAGE_KEY,
-        JSON.stringify(recentSearches),
-      );
-    } catch {
-      // Best effort – ignorer hvis lagring feiler
-    }
-  }, [recentSearches]);
-
-  const { teamSuggestions, leagueSuggestions } = useMemo(() => {
-    const teamMap = new Map<string, Set<LeagueKey>>();
-    const leagueSet = new Set<LeagueKey>();
-
-    allFixtures.forEach((f) => {
-      leagueSet.add(f.league);
-
-      let set = teamMap.get(f.homeTeam);
-      if (!set) {
-        set = new Set<LeagueKey>();
-        teamMap.set(f.homeTeam, set);
-      }
-      set.add(f.league);
-
-      set = teamMap.get(f.awayTeam);
-      if (!set) {
-        set = new Set<LeagueKey>();
-        teamMap.set(f.awayTeam, set);
-      }
-      set.add(f.league);
-    });
-
-    const leagueKeys: LeagueKey[] =
-      leagueSet.size > 0
-        ? Array.from(leagueSet)
-        : LEAGUES.map((l) => l.key);
-
-    const buildLeagueLabel = (league: LeagueKey) =>
-      LEAGUE_LABEL_BY_KEY[league] ?? league;
-
-    const teamSuggestions: TeamSuggestion[] = [];
-    teamMap.forEach((leagueSetForTeam, teamName) => {
-      leagueSetForTeam.forEach((league) => {
-        teamSuggestions.push({
-          type: "team",
-          teamName,
-          league,
-          leagueLabel: buildLeagueLabel(league),
-        });
-      });
-    });
-
-    const leagueSuggestions: LeagueSuggestion[] = leagueKeys.map((league) => ({
-      type: "league",
-      league,
-      label: buildLeagueLabel(league),
-    }));
-
-    teamSuggestions.sort((a, b) => {
-      const nameCompare = a.teamName.localeCompare(b.teamName, "nb");
-      if (nameCompare !== 0) return nameCompare;
-      return a.leagueLabel.localeCompare(b.leagueLabel, "nb");
-    });
-
-    leagueSuggestions.sort((a, b) => a.label.localeCompare(b.label, "nb"));
-
-    return { teamSuggestions, leagueSuggestions };
-  }, [allFixtures]);
-
-  const filteredTeamSuggestions = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) {
-      // Når søket er tomt viser vi heller nylige søk enn generelle forslag
-      return [];
-    }
-    return teamSuggestions
-      .filter(
-        (s) =>
-          s.teamName.toLowerCase().includes(q) ||
-          s.leagueLabel.toLowerCase().includes(q),
-      )
-      .slice(0, 20);
-  }, [searchQuery, teamSuggestions]);
-
-  const filteredLeagueSuggestions = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) {
-      // Når søket er tomt viser vi heller nylige søk enn generelle forslag
-      return [];
-    }
-    return leagueSuggestions.filter((s) =>
-      s.label.toLowerCase().includes(q),
-    );
-  }, [searchQuery, leagueSuggestions]);
-
-  const recentSuggestions: TeamSuggestion[] = useMemo(
-    () =>
-      recentSearches.map((entry) => ({
-        type: "team" as const,
-        teamName: entry.teamName,
-        league: entry.league,
-        leagueLabel:
-          LEAGUE_LABEL_BY_KEY[entry.league] ?? (entry.league as string),
-      })),
-    [recentSearches],
-  );
-
-  const hasSuggestions =
-    filteredTeamSuggestions.length > 0 ||
-    filteredLeagueSuggestions.length > 0;
-
-  const showRecent =
-    searchQuery.trim().length === 0 && recentSuggestions.length > 0;
-
-  function addRecentFromTeamSuggestion(suggestion: TeamSuggestion) {
-    const filtered = recentSearches.filter(
-      (entry) =>
-        !(
-          entry.teamName === suggestion.teamName &&
-          entry.league === suggestion.league
-        ),
-    );
-
-    const next: RecentSearchEntry[] = [
-      { teamName: suggestion.teamName, league: suggestion.league },
-      ...filtered,
-    ].slice(0, 6);
-
-    if (typeof window !== "undefined") {
-      try {
-        window.localStorage.setItem(
-          RECENT_SEARCHES_STORAGE_KEY,
-          JSON.stringify(next),
-        );
-      } catch {
-        // Ignorer hvis lagring feiler
-      }
-    }
-
-    setRecentSearches(next);
-  }
 
   function handleSelectSuggestion(suggestion: SearchSuggestion) {
     if (suggestion.type === "team") {
@@ -666,134 +230,20 @@ export default function KamperPage() {
           {/* Filters */}
           <section className="bg-white dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-sm p-4 sm:p-5">
             <div className="flex flex-col gap-4">
-              {/* League filter */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">
-                    Liga
-                  </h2>
-                  {selectedLeague && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedLeague("")}
-                      className="text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
-                    >
-                      Nullstill
-                    </button>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {LEAGUES.map(({ key, label }) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() =>
-                        setSelectedLeague((prev) => (prev === key ? "" : key))
-                      }
-                      className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors border ${
-                        selectedLeague === key
-                          ? "bg-blue-600 text-white border-blue-600"
-                          : "bg-zinc-50 text-zinc-700 border-zinc-200 hover:bg-zinc-100 dark:bg-zinc-800 dark:text-zinc-200 dark:border-zinc-700 dark:hover:bg-zinc-700"
-                      }`}
-                    >
-                      <span className="mr-1 text-base">
-                        {MatchService.getLeagueEmoji(label)}
-                      </span>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <LeagueFilter selectedLeague={selectedLeague} onSelectLeague={setSelectedLeague} />
 
-              {/* Search by team or league */}
-              <div>
-                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                  Søk etter lag eller liga
-                </label>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="F.eks. Rosenborg eller Premier League"
-                  className="w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
-                />
-                {searchQuery.trim().length > 0 && (
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                    Viser bare kamper som matcher søket ditt.
-                  </p>
-                )}
-
-                {/* Suggestions / recent searches */}
-                <div className="mt-2 space-y-2">
-                  {showRecent ? (
-                    <div className="space-y-1">
-                      {recentSuggestions.map((s) => (
-                        <button
-                          key={`recent-${s.teamName}-${s.league}`}
-                          type="button"
-                          onClick={() => handleSelectSuggestion(s)}
-                          className="w-full flex items-center justify-between rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800/70 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-left text-sm text-zinc-900 dark:text-zinc-100 transition-colors"
-                        >
-                          <span className="font-medium">{s.teamName}</span>
-                          <span className="ml-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-                            {s.leagueLabel}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  ) : hasSuggestions ? (
-                    <div className="space-y-3">
-                      {filteredTeamSuggestions.length > 0 && (
-                        <div>
-                          <p className="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-1">
-                            Lag
-                          </p>
-                          <div className="space-y-1">
-                            {filteredTeamSuggestions.map((s) => (
-                              <button
-                                key={`team-${s.teamName}-${s.league}`}
-                                type="button"
-                                onClick={() => handleSelectSuggestion(s)}
-                                className="w-full flex items-center justify-between rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800/70 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-left text-sm text-zinc-900 dark:text-zinc-100 transition-colors"
-                              >
-                                <span className="font-medium">{s.teamName}</span>
-                                <span className="ml-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-                                  {s.leagueLabel}
-                                </span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {filteredLeagueSuggestions.length > 0 && (
-                        <div>
-                          <p className="text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400 mb-1">
-                            Ligaer
-                          </p>
-                          <div className="space-y-1">
-                            {filteredLeagueSuggestions.map((s) => (
-                              <button
-                                key={`league-${s.league}`}
-                                type="button"
-                                onClick={() => handleSelectSuggestion(s)}
-                                className="w-full flex items-center justify-between rounded-xl bg-zinc-50 hover:bg-zinc-100 dark:bg-zinc-800/70 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-left text-sm text-zinc-900 dark:text-zinc-100 transition-colors"
-                              >
-                                <span className="font-medium">{s.label}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : !isLoading && allFixtures.length > 0 &&
-                    searchQuery.trim().length > 0 ? (
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      Ingen treff. Prøv et annet lag eller en annen liga.
-                    </p>
-                  ) : null}
-                </div>
-              </div>
+              <TeamSearchInput
+                searchQuery={searchQuery}
+                onSearchQueryChange={setSearchQuery}
+                filteredTeamSuggestions={filteredTeamSuggestions}
+                filteredLeagueSuggestions={filteredLeagueSuggestions}
+                recentSuggestions={recentSuggestions}
+                hasSuggestions={hasSuggestions}
+                showRecent={showRecent}
+                isLoading={isLoading}
+                hasFixtures={allFixtures.length > 0}
+                onSelectSuggestion={handleSelectSuggestion}
+              />
 
               {/* Favorites toggle */}
               <div className="flex items-center justify-between gap-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/80 px-3 py-2.5">
@@ -861,100 +311,21 @@ export default function KamperPage() {
             ) : (
               filteredFixtures.map((fixture, index) => {
                 const prev = filteredFixtures[index - 1];
-                const currentDayKey = new Date(
-                  fixture.kickoffUtc,
-                )
-                  .toISOString()
-                  .slice(0, 10);
-                const prevDayKey = prev
-                  ? new Date(prev.kickoffUtc).toISOString().slice(0, 10)
-                  : null;
+                const currentDayKey = new Date(fixture.kickoffUtc).toISOString().slice(0, 10);
+                const prevDayKey = prev ? new Date(prev.kickoffUtc).toISOString().slice(0, 10) : null;
                 const isFirstOfDay = index === 0 || prevDayKey !== currentDayKey;
-
                 const isFavoriteMatch =
-                  favoriteTeamNameSet.has(fixture.homeTeam) ||
-                  favoriteTeamNameSet.has(fixture.awayTeam);
-
-                const leagueLabel = LEAGUE_LABEL_BY_KEY[fixture.league];
+                  favoriteTeamNameSet.has(fixture.homeTeam) || favoriteTeamNameSet.has(fixture.awayTeam);
 
                 return (
-                  <div key={fixture.id} className="space-y-2">
-                    {isFirstOfDay && (
-                      <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                        {MatchService.formatDate(fixture.kickoffUtc)}
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleMatchClick(fixture.id)}
-                      className="w-full rounded-2xl bg-white dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-700 shadow-sm px-4 py-3 flex items-center justify-between gap-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-                    >
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-                          <span className="font-semibold text-zinc-800 dark:text-zinc-100">
-                            {formatTimeFromUtc(fixture.kickoffUtc)}
-                          </span>
-                          <span>
-                            {MatchService.getLeagueEmoji(leagueLabel)} {leagueLabel}
-                          </span>
-                        </div>
-	                        <div className="flex items-center gap-3 text-sm sm:text-base font-medium text-zinc-900 dark:text-zinc-50">
-	                          <div className="flex items-center gap-1.5">
-	                            {fixture.homeTeamLogoUrl && (
-	                              <div className="h-5 w-5 sm:h-6 sm:w-6 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-	                                <img
-	                                  src={fixture.homeTeamLogoUrl}
-	                                  alt={fixture.homeTeam}
-	                                  loading="lazy"
-	                                  className="h-full w-full object-contain"
-	                                />
-	                              </div>
-	                            )}
-	                            <span
-	                              className={
-	                                favoriteTeamNameSet.has(fixture.homeTeam)
-	                                  ? "text-blue-600 dark:text-blue-400"
-	                                  : ""
-	                              }
-	                            >
-	                              {fixture.homeTeam}
-	                            </span>
-	                          </div>
-	                          <span className="mx-1 text-zinc-400">vs</span>
-	                          <div className="flex items-center gap-1.5">
-	                            {fixture.awayTeamLogoUrl && (
-	                              <div className="h-5 w-5 sm:h-6 sm:w-6 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-	                                <img
-	                                  src={fixture.awayTeamLogoUrl}
-	                                  alt={fixture.awayTeam}
-	                                  loading="lazy"
-	                                  className="h-full w-full object-contain"
-	                                />
-	                              </div>
-	                            )}
-	                            <span
-	                              className={
-	                                favoriteTeamNameSet.has(fixture.awayTeam)
-	                                  ? "text-blue-600 dark:text-blue-400"
-	                                  : ""
-	                              }
-	                            >
-	                              {fixture.awayTeam}
-	                            </span>
-	                          </div>
-	                        </div>
-                      </div>
-
-                      {isFavoriteMatch && (
-                        <div className="flex flex-col items-end gap-1 text-right">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-900/30 px-2 py-1 text-[11px] font-medium text-blue-700 dark:text-blue-300">
-                            <span>⭐</span>
-                            <span>Favorittlag</span>
-                          </span>
-                        </div>
-                      )}
-                    </button>
-                  </div>
+                  <FixtureCard
+                    key={fixture.id}
+                    fixture={fixture}
+                    isFavoriteMatch={isFavoriteMatch}
+                    favoriteTeamNameSet={favoriteTeamNameSet}
+                    isFirstOfDay={isFirstOfDay}
+                    onClick={() => handleMatchClick(fixture.id)}
+                  />
                 );
               })
             )}

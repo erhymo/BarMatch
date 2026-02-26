@@ -4,29 +4,8 @@ import { getFirebaseAdminDb } from '@/lib/firebase/admin';
 import { requireRole } from '@/lib/admin/serverAuth';
 import { getFirebaseAdminAuth } from '@/lib/firebase/admin';
 import { logAdminAction } from '@/lib/admin/audit';
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function toMillisMaybe(value: unknown): number | null {
-  if (!value) return null;
-
-  const rec = asRecord(value);
-  const fn = rec?.toMillis;
-  if (typeof fn === 'function') {
-    try {
-      const ms = (fn as (this: unknown) => number).call(value);
-      return typeof ms === 'number' && Number.isFinite(ms) ? ms : null;
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
-}
+import { asRecord } from '@/lib/utils/unknown';
+import { tsToMs } from '@/lib/utils/time';
 
 const MAX_FIXTURE_IDS = 500;
 
@@ -143,7 +122,7 @@ export async function PATCH(
 
       const nextVisible = body.isVisible;
       const billingStatus = typeof barData.billingStatus === 'string' ? barData.billingStatus : 'unknown';
-      const graceEndsMs = toMillisMaybe((barData.stripe as Record<string, unknown> | undefined)?.gracePeriodEndsAt);
+      const graceEndsMs = tsToMs((barData.stripe as Record<string, unknown> | undefined)?.gracePeriodEndsAt);
 
 	      // Bar-owner rules (superadmin can override from superadmin page)
 	      if (me.role === 'bar_owner' && nextVisible) {

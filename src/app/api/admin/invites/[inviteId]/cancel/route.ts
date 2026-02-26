@@ -2,12 +2,7 @@ import { NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { getFirebaseAdminDb } from '@/lib/firebase/admin';
 import { requireRole } from '@/lib/admin/serverAuth';
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+import { asRecord } from '@/lib/utils/unknown';
 
 export async function POST(
   request: Request,

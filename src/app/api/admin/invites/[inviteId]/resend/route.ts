@@ -4,42 +4,8 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getFirebaseAdminDb } from '@/lib/firebase/admin';
 import { requireRole } from '@/lib/admin/serverAuth';
 import { sendInviteEmail } from '@/lib/email/mailer';
-
-function formatDateForEmail(d: Date) {
-  try {
-    return d.toLocaleDateString('nb-NO', { year: 'numeric', month: '2-digit', day: '2-digit' });
-  } catch {
-    return d.toISOString().slice(0, 10);
-  }
-}
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function toMillisMaybe(value: unknown): number | null {
-  if (!value) return null;
-  if (value instanceof Timestamp) return value.toMillis();
-
-  const rec = asRecord(value);
-  const fn = rec?.toMillis;
-  if (typeof fn === 'function') {
-    try {
-      const ms = (fn as (this: unknown) => number).call(value);
-      return typeof ms === 'number' && Number.isFinite(ms) ? ms : null;
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
-
-function isExpired(expiresAt: unknown) {
-  const ms = toMillisMaybe(expiresAt);
-  return typeof ms === 'number' ? ms <= Date.now() : false;
-}
+import { asRecord } from '@/lib/utils/unknown';
+import { tsToMs, isExpired, formatDateForEmail } from '@/lib/utils/time';
 
 export async function POST(
   request: Request,

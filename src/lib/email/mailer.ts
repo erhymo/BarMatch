@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { escapeHtml } from '@/lib/utils/time';
 
 let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
 
@@ -45,9 +46,9 @@ export async function sendStartSubscriptionEmail(params: {
   const html = `
     <div style="font-family: ui-sans-serif, system-ui; line-height: 1.5">
       <h2 style="margin: 0 0 12px">where2watch</h2>
-      <p>Hei ${barName},</p>
+      <p>Hei ${escapeHtml(barName)},</p>
       <p>Her er lenken for å starte abonnementet ditt:</p>
-      <p><a href="${checkoutUrl}">${checkoutUrl}</a></p>
+      <p><a href="${escapeHtml(checkoutUrl)}">${escapeHtml(checkoutUrl)}</a></p>
       <p style="margin-top: 20px; color: #52525b">Hilsen where2watch</p>
     </div>
   `;
@@ -138,16 +139,16 @@ export async function sendBarContactMessageEmail(params: {
   const html = `
     <div style="font-family: ui-sans-serif, system-ui; line-height: 1.5">
       <h2 style="margin: 0 0 12px">where2watch</h2>
-      <p>Hei ${safeBarName}.</p>
+      <p>Hei ${escapeHtml(safeBarName)}.</p>
       <p>Du har fått en ny melding fra en kunde via where2watch:</p>
       <ul>
-        <li><strong>Navn:</strong> ${safeCustomerName}</li>
-        <li><strong>E-post:</strong> ${customerEmail}</li>
-        <li><strong>Telefon:</strong> ${safePhone}</li>
-	        <li><strong>Type henvendelse:</strong> ${categoryLabel}</li>
+        <li><strong>Navn:</strong> ${escapeHtml(safeCustomerName)}</li>
+        <li><strong>E-post:</strong> ${escapeHtml(customerEmail)}</li>
+        <li><strong>Telefon:</strong> ${escapeHtml(safePhone)}</li>
+	        <li><strong>Type henvendelse:</strong> ${escapeHtml(categoryLabel)}</li>
       </ul>
       <p><strong>Melding:</strong></p>
-      <p style="white-space: pre-wrap; border-left: 3px solid #e4e4e7; padding-left: 12px; margin: 8px 0 16px;">${message}</p>
+      <p style="white-space: pre-wrap; border-left: 3px solid #e4e4e7; padding-left: 12px; margin: 8px 0 16px;">${escapeHtml(message)}</p>
       <p>Du kan svare kunden ved å svare direkte på denne e-posten.</p>
       <p style="margin-top: 20px; color: #52525b">Hilsen where2watch</p>
     </div>

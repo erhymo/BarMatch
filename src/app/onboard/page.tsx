@@ -5,14 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification, type User } from 'firebase/auth';
 import { getFirebaseAuthClient } from '@/lib/firebase/client';
 import DraggablePinMap from '@/components/onboard/DraggablePinMap';
+import { asRecord } from '@/lib/utils/unknown';
 
 type Step = 'account' | 'bar' | 'payment';
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
 function validPassword(pw: string) {
   return pw.length >= 8 && /[A-Z]/.test(pw) && /[0-9]/.test(pw);

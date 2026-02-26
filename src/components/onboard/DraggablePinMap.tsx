@@ -2,14 +2,9 @@
 
 import { useCallback, useState } from 'react';
 import { GoogleMap as GoogleMapComponent, LoadScriptNext, Marker } from '@react-google-maps/api';
+import { asRecord } from '@/lib/utils/unknown';
 
 type LatLng = { lat: number; lng: number };
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
 export default function DraggablePinMap(props: {
   apiKey: string;

@@ -2,14 +2,9 @@ import { NextResponse } from 'next/server';
 
 import type { Bar, BarFacilities } from '@/lib/models';
 import { getFirebaseAdminDb } from '@/lib/firebase/admin';
+import { asRecord } from '@/lib/utils/unknown';
 
 export const runtime = 'nodejs';
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
 function parseStringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined;
@@ -119,7 +114,9 @@ export async function GET() {
     }
 
     bars.sort((a, b) => a.name.localeCompare(b.name));
-    return NextResponse.json({ bars });
+    return NextResponse.json({ bars }, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+    });
   } catch (e) {
     console.error('GET /api/bars failed', e);
     return NextResponse.json({ error: 'Failed to load bars' }, { status: 500 });

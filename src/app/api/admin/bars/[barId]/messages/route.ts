@@ -2,29 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { getFirebaseAdminDb } from '@/lib/firebase/admin';
 import { requireRole } from '@/lib/admin/serverAuth';
-
-function toIsoMaybe(value: unknown): string | null {
-  if (!value) return null;
-  if (typeof value === 'string') return value;
-
-  const rec = value as { toDate?: () => Date; toMillis?: () => number } | null;
-  if (rec && typeof rec.toDate === 'function') {
-    try {
-      return rec.toDate().toISOString();
-    } catch {
-      return null;
-    }
-  }
-  if (rec && typeof rec.toMillis === 'function') {
-    try {
-      const ms = rec.toMillis();
-      return typeof ms === 'number' && Number.isFinite(ms) ? new Date(ms).toISOString() : null;
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
+import { tsToIso } from '@/lib/utils/time';
 
 export async function GET(
   request: Request,
@@ -52,7 +30,7 @@ export async function GET(
 	        const phone = typeof data.phone === 'string' ? data.phone : null;
 	        const message = typeof data.message === 'string' ? data.message : '';
 	        const readByBar = Boolean(data.readByBar);
-	        const createdAt = toIsoMaybe(data.createdAt);
+	        const createdAt = tsToIso(data.createdAt);
 		        const category = typeof data.category === 'string' ? data.category : null;
 
 	        return {

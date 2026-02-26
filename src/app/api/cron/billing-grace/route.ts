@@ -2,30 +2,9 @@ import { NextResponse } from 'next/server';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getFirebaseAdminDb } from '@/lib/firebase/admin';
 import { sendHiddenDay14, sendPaymentReminderDay7 } from '@/lib/email/mailer';
+import { tsToMs } from '@/lib/utils/time';
 
 export const runtime = 'nodejs';
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function toMillis(ts: unknown): number | null {
-  if (!ts) return null;
-  if (ts instanceof Timestamp) return ts.toMillis();
-  const rec = asRecord(ts);
-  const fn = rec?.toMillis;
-  if (typeof fn === 'function') {
-    try {
-      const ms = (fn as (this: unknown) => number).call(ts);
-      return typeof ms === 'number' && Number.isFinite(ms) ? ms : null;
-    } catch {
-      return null;
-    }
-  }
-  return null;
-}
 
 function isCronAuthorized(request: Request) {
   if (request.headers.get('x-vercel-cron') === '1') return true;
@@ -63,11 +42,11 @@ export async function GET(request: Request) {
     const name = typeof bar.name === 'string' ? bar.name : undefined;
     const isVisible = Boolean(bar.isVisible);
 
-		const lastFailedMs = toMillis(stripe?.lastPaymentFailedAt);
+		const lastFailedMs = tsToMs(stripe?.lastPaymentFailedAt);
     const graceEndsMs =
-			toMillis(stripe?.gracePeriodEndsAt) ??
+			tsToMs(stripe?.gracePeriodEndsAt) ??
 			(typeof lastFailedMs === 'number' ? lastFailedMs + 14 * dayMs : null);
-		const day7SentMs = toMillis(reminders?.day7SentAt);
+		const day7SentMs = tsToMs(reminders?.day7SentAt);
 
     // Day 7 reminder
     if (
