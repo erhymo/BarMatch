@@ -11,6 +11,7 @@ const LEAGUES: { key: LeagueKey; label: string }[] = [
   { key: "EFL_TROPHY", label: "EFL Trophy" },
   { key: "NOR_ELITESERIEN", label: "Eliteserien" },
   { key: "COPA_DEL_REY", label: "Copa del Rey" },
+  { key: "BUNDESLIGA", label: "Bundesliga" },
   { key: "SERIE_A", label: "Serie A" },
   { key: "UCL", label: "UEFA Champions League" },
   { key: "UEL", label: "UEFA Europa League" },
