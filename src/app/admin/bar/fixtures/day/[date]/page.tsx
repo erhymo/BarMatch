@@ -7,10 +7,10 @@ import { useRequireAdminRole } from '@/lib/admin/useRequireAdminRole';
 import { useToast } from '@/contexts/ToastContext';
 import type { Fixture, LeagueKey } from '@/lib/types/fixtures';
 import { getFixtureProvider } from '@/lib/providers/fixtures';
-import { getCompetitionByKey } from '@/lib/config/competitions';
+import { ALL_LEAGUE_KEYS, getCompetitionByKey } from '@/lib/config/competitions';
 
 const DEFAULT_RANGE_DAYS = 30;
-const LEAGUES: LeagueKey[] = ['EPL', 'NOR_ELITESERIEN', 'SERIE_A', 'UCL', 'UEL'];
+const LEAGUES = ALL_LEAGUE_KEYS;
 
 type BarDoc = {
 	id: string;

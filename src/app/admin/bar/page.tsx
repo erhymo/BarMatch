@@ -10,9 +10,10 @@ import { getBillingText } from '@/lib/admin/statusText';
 import { daysRemaining, tsToMs } from '@/lib/utils/time';
 import type { Fixture, LeagueKey } from '@/lib/types/fixtures';
 import { getFixtureProvider } from '@/lib/providers/fixtures';
+import { ALL_LEAGUE_KEYS } from '@/lib/config/competitions';
 
 const CALENDAR_RANGE_DAYS = 14;
-const LEAGUES: LeagueKey[] = ['EPL', 'NOR_ELITESERIEN', 'SERIE_A', 'UCL', 'UEL'];
+const LEAGUES = ALL_LEAGUE_KEYS;
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 

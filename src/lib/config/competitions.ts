@@ -123,6 +123,9 @@ export const COMPETITIONS: Competition[] = [
   },
 ];
 
+/** All league keys derived from COMPETITIONS – single source of truth. */
+export const ALL_LEAGUE_KEYS: LeagueKey[] = COMPETITIONS.map((c) => c.key);
+
 export function getCompetitionByKey(key: LeagueKey): Competition {
   const competition = COMPETITIONS.find((c) => c.key === key);
 
