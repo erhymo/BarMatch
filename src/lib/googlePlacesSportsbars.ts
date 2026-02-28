@@ -33,7 +33,7 @@ export async function fetchNearbySportsbarsFromPlaces(
   placesUrl.searchParams.set('keyword', 'sports bar football soccer');
   placesUrl.searchParams.set('key', apiKey);
 
-  const res = await fetch(placesUrl.toString(), { method: 'GET', cache: 'no-store' });
+  const res = await fetch(placesUrl.toString(), { method: 'GET' });
   const rawJson: unknown = await res.json().catch(() => null);
   const json = asRecord(rawJson) ?? {};
 

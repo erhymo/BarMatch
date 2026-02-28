@@ -43,6 +43,7 @@ function HomeContent() {
   const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [mapFocusPosition, setMapFocusPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [mapViewportCenter, setMapViewportCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapZoom, setMapZoom] = useState(13);
   const [isCityPanelOpen, setIsCityPanelOpen] = useState(false);
   const [isFavoritesPanelOpen, setIsFavoritesPanelOpen] = useState(false);
   const [isNearestListOpen, setIsNearestListOpen] = useState(false);
@@ -122,7 +123,7 @@ function HomeContent() {
 
   // Public bars fetching and localStorage persistence are now handled by usePublicBars and useFavoriteCity hooks.
   // Candidate bars (hvite baller) are loaded via useCandidateBars hook.
-  const candidateBars = useCandidateBars(mapViewportCenter);
+  const candidateBars = useCandidateBars(mapViewportCenter, mapZoom);
 
 			  // Nullstill lag- og kampfiltre når "Hjem" klikkes på nytt mens vi allerede er på forsiden
 			  useEffect(() => {
@@ -349,8 +350,9 @@ function HomeContent() {
 					    setIsNearestListOpen(true);
 					  }, [closePanels]);
 				
-				  const handleMapViewportChange = useCallback((center: { lat: number; lng: number }) => {
+				  const handleMapViewportChange = useCallback((center: { lat: number; lng: number }, z?: number) => {
 				    setMapViewportCenter(center);
+				    if (typeof z === 'number') setMapZoom(z);
 				  }, []);
 
 		  const mapCenter = favoriteCity ? CITY_COORDINATES[favoriteCity] : undefined;
