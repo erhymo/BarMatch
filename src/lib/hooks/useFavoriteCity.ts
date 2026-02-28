@@ -6,13 +6,13 @@ import type { CityId } from '@/lib/data/cities';
 const STORAGE_KEY = 'where2watch.favoriteCity';
 const LEGACY_KEY = 'matchbar.favoriteCity';
 
+const VALID_CITY_IDS: ReadonlySet<string> = new Set<CityId>([
+  'oslo', 'bergen', 'forde', 'trondheim',
+  'stavanger', 'kristiansand', 'molde', 'bodo', 'tromso',
+]);
+
 function isValidCityId(value: unknown): value is CityId {
-  return (
-    value === 'oslo' ||
-    value === 'bergen' ||
-    value === 'forde' ||
-    value === 'trondheim'
-  );
+  return typeof value === 'string' && VALID_CITY_IDS.has(value);
 }
 
 /**

@@ -1,4 +1,4 @@
-export type CityId = 'oslo' | 'bergen' | 'forde' | 'trondheim';
+export type CityId = 'oslo' | 'bergen' | 'forde' | 'trondheim' | 'stavanger' | 'kristiansand' | 'molde' | 'bodo' | 'tromso';
 
 export interface CityConfig {
   id: CityId;
@@ -36,11 +36,51 @@ export const CITIES: CityConfig[] = [
     },
   },
   {
+    id: 'stavanger',
+    name: 'Stavanger',
+    center: {
+      lat: 58.9700,
+      lng: 5.7331,
+    },
+  },
+  {
+    id: 'kristiansand',
+    name: 'Kristiansand',
+    center: {
+      lat: 58.1462,
+      lng: 7.9956,
+    },
+  },
+  {
     id: 'trondheim',
     name: 'Trondheim',
     center: {
       lat: 63.4305,
       lng: 10.3951,
+    },
+  },
+  {
+    id: 'molde',
+    name: 'Molde',
+    center: {
+      lat: 62.7375,
+      lng: 7.1591,
+    },
+  },
+  {
+    id: 'bodo',
+    name: 'Bodø',
+    center: {
+      lat: 67.2804,
+      lng: 14.4049,
+    },
+  },
+  {
+    id: 'tromso',
+    name: 'Tromsø',
+    center: {
+      lat: 69.6496,
+      lng: 18.9560,
     },
   },
 ];
