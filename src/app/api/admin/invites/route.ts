@@ -18,15 +18,22 @@ export async function GET(request: Request) {
 
     // Auto-expire any pending invites past expiresAt.
     const expiredRefs: FirebaseFirestore.DocumentReference[] = [];
-    const invites = snap.docs.map((d) => {
-      const data = d.data() as Record<string, unknown>;
-      const status = typeof data.status === 'string' ? data.status : null;
-      if (status === 'pending' && isExpired(data.expiresAt)) {
-        expiredRefs.push(d.ref);
-        return { id: d.id, ...data, status: 'expired' };
-      }
-      return { id: d.id, ...data };
-    });
+    const invites = snap.docs
+      .map((d) => {
+        const data = d.data() as Record<string, unknown>;
+        const status = typeof data.status === 'string' ? data.status : null;
+        if (status === 'pending' && isExpired(data.expiresAt)) {
+          expiredRefs.push(d.ref);
+          return { id: d.id, ...data, status: 'expired' };
+        }
+        return { id: d.id, ...data };
+      })
+      // Hide invites that have been used (customer completed onboarding)
+      // or cancelled (superseded by a resend).
+      .filter((inv) => {
+        const s = typeof (inv as Record<string, unknown>).status === 'string' ? (inv as Record<string, unknown>).status : null;
+        return s !== 'used' && s !== 'cancelled';
+      });
 
     if (expiredRefs.length) {
       const batch = db.batch();

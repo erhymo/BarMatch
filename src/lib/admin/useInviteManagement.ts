@@ -32,7 +32,7 @@ export function fmtInviteStatus(status: unknown): string {
   if (s === 'pending') return 'Venter';
   if (s === 'expired') return 'Utløpt';
   if (s === 'cancelled') return 'Avbrutt';
-  if (s === 'completed') return 'Brukt';
+  if (s === 'used' || s === 'completed') return 'Brukt';
   return s;
 }
 
