@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import type { Fixture } from '@/lib/types/fixtures';
 import { formatCalendarDate } from '@/lib/admin/bar/types';
+import { getCompetitionByKey } from '@/lib/config/competitions';
 
 interface BarCalendarSectionProps {
   calendarRangeDays: number;
@@ -88,23 +89,40 @@ export function BarCalendarSection({
               const maxVisible = 2;
               const visible = dayFixtures.slice(0, maxVisible);
               const remaining = dayFixtures.length - visible.length;
+              const hasTopTier = dayFixtures.some((f) => getCompetitionByKey(f.league).tier === 'top');
+              const hasHighTier = !hasTopTier && dayFixtures.some((f) => getCompetitionByKey(f.league).tier === 'high');
               return (
                 <Link key={key} href={`/admin/bar/fixtures/day/${key}`}
-                  className="group flex flex-col rounded-2xl border border-zinc-200 bg-white p-3.5 text-sm text-zinc-800 transition-all duration-150 hover:border-emerald-400 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:hover:border-emerald-500">
+                  className={`group flex flex-col rounded-2xl border p-3.5 text-sm text-zinc-800 transition-all duration-150 hover:shadow-md dark:text-zinc-100 ${
+                    hasTopTier
+                      ? 'border-amber-300 bg-amber-50/50 hover:border-amber-400 dark:border-amber-600/50 dark:bg-amber-950/20 dark:hover:border-amber-500'
+                      : 'border-zinc-200 bg-white hover:border-emerald-400 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-emerald-500'
+                  }`}>
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="font-semibold text-zinc-800 dark:text-zinc-100">{formatCalendarDate(date)}</span>
-                    {isToday ? <TodayBadge /> : (
-                      <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
-                        {dayFixtures.length}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {hasTopTier && <span className="text-sm" title="Storkamp">⭐</span>}
+                      {hasHighTier && <span className="text-sm" title="Stor liga">🔥</span>}
+                      {isToday ? <TodayBadge /> : (
+                        <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
+                          {dayFixtures.length}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="mt-2 space-y-1.5">
-                    {visible.map((f) => (
-                      <div key={f.id} className="rounded-lg bg-zinc-100 px-2.5 py-1.5 text-[12px] font-medium leading-snug dark:bg-zinc-800/80">
-                        {f.homeTeam} – {f.awayTeam}
-                      </div>
-                    ))}
+                    {visible.map((f) => {
+                      const tier = getCompetitionByKey(f.league).tier;
+                      return (
+                        <div key={f.id} className={`rounded-lg px-2.5 py-1.5 text-[12px] font-medium leading-snug ${
+                          tier === 'top'
+                            ? 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-100'
+                            : 'bg-zinc-100 dark:bg-zinc-800/80'
+                        }`}>
+                          {f.homeTeam} – {f.awayTeam}
+                        </div>
+                      );
+                    })}
                     {remaining > 0 && (
                       <div className="text-[11px] text-zinc-500 dark:text-zinc-400">+{remaining} til</div>
                     )}

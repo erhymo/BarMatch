@@ -13,12 +13,30 @@ type FixturesError = Error & {
   details?: string;
 };
 
+/** TTL-based in-memory cache — survives client-side navigation. */
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const fixtureCache = new Map<string, { data: Fixture[]; ts: number }>();
+
+function cacheKey(params: Record<string, string>): string {
+  return Object.entries(params).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${k}=${v}`).join('&');
+}
+
 export class ApiFootballFixtureProvider implements FixtureProvider {
   private readonly basePath = '/api/fixtures';
 
   private async fetchFixtures(
     params: Record<string, string>,
   ): Promise<Fixture[]> {
+    // Check cache first
+    const ck = cacheKey(params);
+    const cached = fixtureCache.get(ck);
+    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[ApiFootballFixtureProvider] Cache hit for', ck);
+      }
+      return cached.data;
+    }
+
     const searchParams = new URLSearchParams(params);
     const url = `${this.basePath}?${searchParams.toString()}`;
 
@@ -93,6 +111,8 @@ export class ApiFootballFixtureProvider implements FixtureProvider {
 	      throw err;
 	    }
 
+    // Store in cache
+    fixtureCache.set(ck, { data: data.fixtures, ts: Date.now() });
     return data.fixtures;
   }
 

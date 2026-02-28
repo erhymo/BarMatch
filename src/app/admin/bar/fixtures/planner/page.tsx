@@ -397,7 +397,7 @@ function BarFixturesPlannerPageInner() {
                     : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-900'
                 }`}
               >
-                {comp.label}
+                {comp.tier === 'top' && '⭐ '}{comp.label}
               </button>
             );
           })}
@@ -439,6 +439,7 @@ function BarFixturesPlannerPageInner() {
               const hasSelectedForDay = selectedForDay.length > 0;
               const isToday = key === todayKey;
               const isActive = key === selectedDateKey;
+              const hasTopTier = dayFixtures.some((f) => getCompetitionByKey(f.league).tier === 'top');
 
               return (
                 <button
@@ -450,12 +451,14 @@ function BarFixturesPlannerPageInner() {
                   className={`flex flex-col rounded-xl border p-3 text-left text-xs transition-colors ${
                     isActive
                       ? 'border-emerald-600 bg-emerald-50 dark:border-emerald-500 dark:bg-emerald-900/30'
+                      : hasTopTier
+                      ? 'border-amber-300 bg-amber-50/40 hover:bg-amber-50 dark:border-amber-600/40 dark:bg-amber-950/20 dark:hover:bg-amber-950/30'
                       : 'border-zinc-200 bg-white hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:bg-zinc-900'
                   }`}
                 >
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="font-medium text-zinc-900 dark:text-zinc-50">
-                      {formatCalendarDate(date)}
+                      {hasTopTier && '⭐ '}{formatCalendarDate(date)}
                     </span>
                     {isToday && (
                       <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-100">
@@ -521,8 +524,14 @@ function BarFixturesPlannerPageInner() {
                   >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-                          {comp.label}
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          comp.tier === 'top'
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
+                            : comp.tier === 'high'
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'
+                            : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300'
+                        }`}>
+                          {comp.tier === 'top' && '⭐ '}{comp.label}
                         </span>
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">
                           {formatKickoff(f.kickoffUtc)}

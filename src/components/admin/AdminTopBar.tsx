@@ -2,6 +2,7 @@
 
 	import { useEffect, useState } from 'react';
 	import { signOut } from 'firebase/auth';
+	import Image from 'next/image';
 	import Link from 'next/link';
 	import { useRouter } from 'next/navigation';
 	import { getFirebaseAuthClient } from '@/lib/firebase/client';
@@ -50,8 +51,17 @@
     <header className="border-b border-zinc-200 bg-white/90 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
 	        <div className="flex items-center gap-3">
-          <Link href="/admin" className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            where2watch
+          <Link href="/admin" className="flex items-center gap-2">
+            <Image
+              src="/icons/icon-192.png"
+              alt="where2watch"
+              width={28}
+              height={28}
+              className="rounded-lg"
+            />
+            <span className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              where2watch
+            </span>
           </Link>
           <span className="text-xs rounded-full bg-zinc-100 px-2 py-1 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
             Admin
