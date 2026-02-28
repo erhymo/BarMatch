@@ -18,10 +18,13 @@ export function BarProfilePreview({
   previewScreensLabel, previewFoodLabel, previewFacilityBadges, previewCapacityLabel,
 }: BarProfilePreviewProps) {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-      <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Forhåndsvisning for brukere</h2>
-      <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-        Slik vil baren din se ut i kartet og detaljvisningen for supportere.
+    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition-all duration-150 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex items-center gap-2">
+        <span className="text-lg">👁️</span>
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Live forhåndsvisning</h2>
+      </div>
+      <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+        Slik ser baren ut for supportere i appen.
       </p>
       {!profile ? (
         <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">Laster forhåndsvisning…</p>

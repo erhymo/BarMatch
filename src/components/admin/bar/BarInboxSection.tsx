@@ -67,43 +67,49 @@ export function BarInboxSection({
   barName, messages, messagesLoading, messagesError, messagesOpen,
   unreadMessages, readMessages, unreadMessageCount, onToggle,
 }: BarInboxSectionProps) {
+  const hasUnread = unreadMessageCount > 0;
   return (
-    <section className="mb-8">
-      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Innboks</div>
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-        <button type="button" onClick={onToggle} className="flex w-full items-center justify-between gap-3 text-left">
+    <section>
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-lg">📨</span>
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Innboks</h2>
+        {hasUnread && (
+          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold tabular-nums text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-100">
+            {unreadMessageCount}
+          </span>
+        )}
+      </div>
+      <div className={`rounded-2xl border bg-white p-5 shadow-sm transition-all duration-150 dark:bg-zinc-950 ${hasUnread ? 'border-emerald-200 dark:border-emerald-900/40' : 'border-zinc-200 dark:border-zinc-800'}`}>
+        <button type="button" onClick={onToggle} className="flex w-full items-center justify-between gap-3 text-left group">
           <div>
             <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Meldinger fra kunder</div>
-            <div className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
-              {messagesLoading ? 'Laster meldinger...'
-                : unreadMessageCount > 0 ? `${unreadMessageCount} ulest${unreadMessageCount === 1 ? '' : 'e'} melding${unreadMessageCount === 1 ? '' : 'er'}`
+            <div className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+              {messagesLoading ? 'Laster meldinger…'
+                : hasUnread ? `${unreadMessageCount} ulest${unreadMessageCount === 1 ? '' : 'e'} melding${unreadMessageCount === 1 ? '' : 'er'}`
                 : messages.length > 0 ? 'Ingen uleste meldinger'
                 : 'Ingen meldinger ennå'}
             </div>
             {messagesError && <div className="mt-1 text-xs text-red-600 dark:text-red-400">{messagesError}</div>}
           </div>
-          <div className="flex items-center gap-2">
-            {unreadMessageCount > 0 && (
-              <span className="inline-flex items-center justify-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-100">{unreadMessageCount}</span>
-            )}
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">{messagesOpen ? 'Skjul' : 'Vis'}</span>
-          </div>
+          <span className="text-xs font-medium text-zinc-400 transition-colors group-hover:text-zinc-600 dark:text-zinc-500 dark:group-hover:text-zinc-300">
+            {messagesOpen ? '▲ Skjul' : '▼ Vis'}
+          </span>
         </button>
         {messagesOpen && (
-          <div className="mt-3 max-h-80 space-y-2 overflow-y-auto text-xs">
+          <div className="mt-4 max-h-80 space-y-2 overflow-y-auto text-xs">
             {messages.length === 0 ? (
-              <p className="text-zinc-600 dark:text-zinc-400">Ingen meldinger ennå.</p>
+              <p className="text-zinc-500 dark:text-zinc-400">Ingen meldinger ennå.</p>
             ) : (
               <>
                 {unreadMessages.length > 0 && (
                   <div className="space-y-2">
-                    <div className="mb-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">Nye meldinger</div>
+                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">Nye meldinger</div>
                     {unreadMessages.map((m) => <MessageCard key={m.id} msg={m} barName={barName} />)}
                   </div>
                 )}
                 {readMessages.length > 0 && (
                   <div className="mt-3 space-y-2">
-                    <div className="mb-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">Tidligere meldinger</div>
+                    <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">Tidligere</div>
                     {readMessages.map((m) => <MessageCard key={m.id} msg={m} barName={barName} />)}
                   </div>
                 )}

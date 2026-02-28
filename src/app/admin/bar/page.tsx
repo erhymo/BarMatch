@@ -25,14 +25,33 @@ export default function BarOwnerDashboard() {
   });
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Bar-panel</h1>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Synlighet, betaling og barprofil.
-        </p>
+    <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
+      {/* ─── Page header with bar name + live status ─── */}
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
+            {data.bar?.name ?? 'Bar-panel'}
+          </h1>
+          <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">
+            Administrer kamper, synlighet og barprofil.
+          </p>
+        </div>
+        {data.bar && (
+          <div className="flex items-center gap-2 mt-2 sm:mt-0">
+            <span className="relative flex h-2.5 w-2.5">
+              {data.bar.isVisible && (
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              )}
+              <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${data.bar.isVisible ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600'}`} />
+            </span>
+            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              {data.bar.isVisible ? 'Synlig i appen' : 'Skjult'}
+            </span>
+          </div>
+        )}
       </div>
 
+      {/* ─── Calendar & fixtures ─── */}
       <BarCalendarSection
         calendarRangeDays={data.CALENDAR_RANGE_DAYS}
         fixturesError={data.fixturesError}
@@ -44,12 +63,14 @@ export default function BarOwnerDashboard() {
         todayKey={data.todayKey}
       />
 
+      {/* ─── Status KPIs ─── */}
       <BarStatusSection
         isVisible={data.bar?.isVisible}
         matchesNext7DaysCount={data.matchesNext7DaysCount}
         todayKey={data.todayKey}
       />
 
+      {/* ─── Inbox ─── */}
       <BarInboxSection
         barName={data.bar?.name}
         messages={data.messages}
@@ -62,6 +83,7 @@ export default function BarOwnerDashboard() {
         onToggle={data.handleToggleMessagesOpen}
       />
 
+      {/* ─── Billing & visibility ─── */}
       <BarBillingSection
         bar={data.bar}
         busy={data.busy}
@@ -75,7 +97,8 @@ export default function BarOwnerDashboard() {
         onUpdatePaymentCard={data.updatePaymentCard}
       />
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
+      {/* ─── Profile editor + preview ─── */}
+      <div className="grid gap-6 md:grid-cols-2">
         <BarProfileForm
           profile={data.profile}
           location={data.location}
