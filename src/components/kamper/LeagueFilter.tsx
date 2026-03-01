@@ -13,6 +13,7 @@ const LEAGUES: { key: LeagueKey; label: string }[] = [
   // Italia
   { key: "SERIE_A", label: "Serie A" },
   // Spania
+  { key: "LA_LIGA", label: "La Liga" },
   { key: "COPA_DEL_REY", label: "Copa del Rey" },
   // Norge
   { key: "NOR_ELITESERIEN", label: "Eliteserien" },

@@ -70,6 +70,14 @@ export const COMPETITIONS: Competition[] = [
     defaultSeason: 2025,
   },
   {
+    key: 'LA_LIGA',
+    label: 'La Liga',
+    type: 'league',
+    tier: 'top',
+    apiFootballLeagueId: 140,
+    defaultSeason: 2025,
+  },
+  {
     key: 'COPA_DEL_REY',
     label: 'Copa del Rey',
     type: 'tournament',
