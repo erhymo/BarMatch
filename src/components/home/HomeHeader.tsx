@@ -1,6 +1,10 @@
 'use client';
 
-import { useTranslation } from '@/lib/i18n';
+import { useEffect, useRef, useState } from 'react';
+import { useTranslation, LOCALE_FLAGS, LOCALE_LABELS } from '@/lib/i18n';
+import type { Locale } from '@/lib/i18n';
+
+const LOCALES: Locale[] = ['no', 'en'];
 
 interface HomeHeaderProps {
   matchId: string | null;
@@ -19,12 +23,59 @@ export default function HomeHeader({
   onToggleCityPanel,
   onClearMatchFilter,
 }: HomeHeaderProps) {
-  const { t } = useTranslation();
+  const { t, locale, setLocale } = useTranslation();
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
+
+  // Close language dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: Event) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <div className="flex-shrink-0 bg-white/90 dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-800">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between gap-3">
+          {/* Language switcher — left side, mirrors Lokasjon on the right */}
+          <div className="flex-shrink-0">
+            <div ref={langRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setLangOpen((prev) => !prev)}
+                className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300/70 dark:border-zinc-600/80 px-2 text-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                aria-label="Change language"
+              >
+                {LOCALE_FLAGS[locale]}
+              </button>
+              {langOpen && (
+                <div className="absolute left-0 top-full mt-1 z-50 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 shadow-lg overflow-hidden min-w-[140px]">
+                  {LOCALES.map((loc) => (
+                    <button
+                      key={loc}
+                      type="button"
+                      onClick={() => { setLocale(loc); setLangOpen(false); }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm transition-colors ${
+                        locale === loc
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-semibold'
+                          : 'text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-700'
+                      }`}
+                    >
+                      <span className="text-base">{LOCALE_FLAGS[loc]}</span>
+                      <span>{LOCALE_LABELS[loc]}</span>
+                      {locale === loc && <span className="ml-auto text-emerald-500">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="flex-1 text-center">
             {matchId ? (
               <div className="space-y-1">
