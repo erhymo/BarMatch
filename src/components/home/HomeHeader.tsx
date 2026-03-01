@@ -39,7 +39,7 @@ export default function HomeHeader({
   }, []);
 
   return (
-    <div className="flex-shrink-0 bg-white/90 dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-800">
+    <div className="flex-shrink-0 bg-white/90 dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-800 relative z-20">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between gap-3">
           {/* Language switcher — left side, mirrors Lokasjon on the right */}
