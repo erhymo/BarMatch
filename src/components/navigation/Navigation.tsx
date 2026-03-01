@@ -134,10 +134,21 @@ export default function Navigation() {
 	        </div>
 	      </nav>
 
+	      {/* Mobile top bar with flag + logo */}
+	      <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-800 shadow-md md:hidden">
+	        {langButton}
+	        <Link
+	          href="/"
+	          onClick={handleHomeClick}
+	          className="text-lg font-bold text-zinc-900 dark:text-zinc-50"
+	        >
+	          where2watch
+	        </Link>
+	      </div>
+
 	      {/* Bottom navigation (mobile) */}
 	      <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-zinc-200 bg-white/95 backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/95 md:hidden">
 	        <div className="max-w-xl mx-auto flex items-center justify-around h-16 px-4">
-	          {langButton}
 	          {navItems.map((item) => {
 	            const active = isActive(item.href);
 
