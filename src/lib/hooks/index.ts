@@ -9,3 +9,4 @@ export * from './useCandidateBars';
 export * from './useFavoriteCity';
 export * from './useKamperFixtures';
 export * from './useTeamSearch';
+export * from './usePushNotifications';

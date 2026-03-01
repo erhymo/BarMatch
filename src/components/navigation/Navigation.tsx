@@ -1,16 +1,32 @@
 'use client';
 
 import type { MouseEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const navItems = [
+const baseNavItems = [
 	  { name: 'Hjem', href: '/' },
 	  { name: 'Kamper', href: '/kamper' },
 	];
 
 export default function Navigation() {
 	  const pathname = usePathname();
+	  const [isIOSApp, setIsIOSApp] = useState(false);
+
+	  useEffect(() => {
+	    setIsIOSApp(
+	      !!(window as any).webkit?.messageHandlers?.['push-permission-request'],
+	    );
+	  }, []);
+
+	  const navItems = useMemo(
+	    () =>
+	      isIOSApp
+	        ? [...baseNavItems, { name: 'Varslinger', href: '/varslinger' }]
+	        : baseNavItems,
+	    [isIOSApp],
+	  );
 
 	  // Hide the public navigation inside admin/onboarding areas
 	  // (admin has its own layout/header)
