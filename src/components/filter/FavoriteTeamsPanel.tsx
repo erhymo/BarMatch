@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import type { Fixture } from '@/lib/types/fixtures';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useTranslation } from '@/lib/i18n';
 
 interface FavoriteTeamsPanelProps {
   fixtures: Fixture[];
@@ -18,6 +19,7 @@ export default function FavoriteTeamsPanel({
 }: FavoriteTeamsPanelProps) {
   const { favoriteTeams, toggleFavoriteTeam, isFavoriteTeam } = useFavorites();
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
 
   const allTeams = useMemo(() => {
@@ -26,7 +28,7 @@ export default function FavoriteTeamsPanel({
       if (fixture.homeTeam) set.add(fixture.homeTeam);
       if (fixture.awayTeam) set.add(fixture.awayTeam);
     });
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'nb-NO'));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, t('date_locale')));
   }, [fixtures]);
 
   const filteredTeams = useMemo(() => {
@@ -39,9 +41,8 @@ export default function FavoriteTeamsPanel({
     const alreadyFavorite = isFavoriteTeam(teamName);
     if (!alreadyFavorite && favoriteTeams.length >= MAX_FAVORITE_TEAMS) {
 	      showToast({
-	        title: 'Maks antall favoritter',
-	        description:
-	          'Du kan bare ha 6 favorittlag. Fjern ett lag før du legger til et nytt.',
+	        title: t('fav_max_title'),
+	        description: t('fav_max_desc'),
 	        variant: 'info',
 	      });
       return;
@@ -61,9 +62,9 @@ export default function FavoriteTeamsPanel({
             </span>
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white">Favorittlag</h2>
+            <h2 className="text-lg font-bold text-white">{t('fav_title')}</h2>
             <p className="text-xs text-zinc-400">
-              Velg opptil {MAX_FAVORITE_TEAMS} lag du vil følge ekstra nøye.
+              {t('fav_subtitle', { max: String(MAX_FAVORITE_TEAMS) })}
             </p>
           </div>
         </div>
@@ -73,7 +74,7 @@ export default function FavoriteTeamsPanel({
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] font-medium tracking-wide uppercase text-zinc-400">
-              Dine favoritter
+              {t('fav_your_favorites')}
             </p>
             <p className="text-[11px] text-zinc-400">
               {favoriteTeams.length}/{MAX_FAVORITE_TEAMS}
@@ -81,7 +82,7 @@ export default function FavoriteTeamsPanel({
           </div>
           {favoriteTeams.length === 0 ? (
             <p className="text-[11px] text-zinc-500">
-              Du har ingen favorittlag ennå. Søk etter lag under og legg dem til her.
+              {t('fav_no_favorites')}
             </p>
           ) : (
             <div className="flex flex-wrap gap-2">
@@ -104,31 +105,30 @@ export default function FavoriteTeamsPanel({
 
         <div className="space-y-2">
           <label className="block text-[11px] font-medium text-zinc-300">
-            Søk etter lag
+            {t('fav_search')}
           </label>
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="F.eks. Rosenborg, Liverpool eller Barcelona"
+            placeholder={t('fav_search_placeholder')}
             className="w-full rounded-lg border border-zinc-600/80 bg-zinc-900/60 px-3 py-2 text-xs text-zinc-100 placeholder:text-zinc-500 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
           />
         </div>
 
         <div className="space-y-2">
           <p className="text-[11px] font-medium tracking-wide uppercase text-zinc-400">
-            Foreslåtte lag
+            {t('fav_suggested')}
           </p>
 
           {!hasAnyTeams && (
             <p className="text-[11px] text-zinc-500">
-              Vi fant ingen lag akkurat nå. Prøv igjen senere, eller gå til «Kamper» for å laste inn
-              kamper.
+              {t('fav_no_teams')}
             </p>
           )}
 
           {hasAnyTeams && filteredTeams.length === 0 && (
-            <p className="text-[11px] text-zinc-500">Ingen lag matcher søket ditt.</p>
+            <p className="text-[11px] text-zinc-500">{t('fav_no_match')}</p>
           )}
 
           {hasAnyTeams && filteredTeams.length > 0 && (
@@ -147,7 +147,7 @@ export default function FavoriteTeamsPanel({
                     }`}
                   >
                     <span className="truncate">{team}</span>
-                    <span className="ml-2 text-[10px] font-medium">{isFav ? 'Fjern' : 'Legg til'}</span>
+                    <span className="ml-2 text-[10px] font-medium">{isFav ? t('fav_remove') : t('fav_add')}</span>
                   </button>
                 );
               })}
@@ -155,7 +155,7 @@ export default function FavoriteTeamsPanel({
           )}
 
           {isLoadingFixtures && (
-            <p className="text-[11px] text-zinc-500">Laster inn lag fra kommende kamper…</p>
+            <p className="text-[11px] text-zinc-500">{t('fav_loading')}</p>
           )}
         </div>
       </div>

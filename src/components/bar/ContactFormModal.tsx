@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useToast } from "@/contexts/ToastContext";
+import { useTranslation } from '@/lib/i18n';
 
 interface ContactFormModalProps {
   barId: string;
@@ -11,6 +12,7 @@ interface ContactFormModalProps {
 
 export default function ContactFormModal({ barId, barName, onClose }: ContactFormModalProps) {
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -26,7 +28,7 @@ export default function ContactFormModal({ barId, barName, onClose }: ContactFor
     const trimmedMessage = message.trim();
 
     if (!trimmedEmail || !trimmedMessage) {
-      setError("Fyll inn e-post og melding.");
+      setError(t('contact_fill_required'));
       return;
     }
 
@@ -56,22 +58,22 @@ export default function ContactFormModal({ barId, barName, onClose }: ContactFor
       if (!res.ok || data?.ok === false) {
         const msg = typeof data?.error === "string" && data.error.trim().length > 0
           ? data.error
-          : "Kunne ikke sende meldingen. Prøv igjen senere.";
+          : t('contact_send_error');
         throw new Error(msg);
       }
 
       showToast({
-        title: "Melding sendt",
-        description: `Meldingen din er sendt til ${barName ?? "baren"}. Baren får den både som e-post og i where2watch-innboksen sin.`,
+        title: t('contact_sent_title'),
+        description: t('contact_sent_desc', { name: barName ?? "bar" }),
         variant: "success",
       });
 
       onClose();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Ukjent feil ved sending av melding.";
+      const msg = e instanceof Error ? e.message : t('contact_unknown_error');
       setError(msg);
       showToast({
-        title: "Feil",
+        title: t('contact_error_title'),
         description: msg,
         variant: "error",
       });
@@ -87,17 +89,17 @@ export default function ContactFormModal({ barId, barName, onClose }: ContactFor
         <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
           <div>
             <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-50">
-              Kontakt {barName ?? "baren"}
+              {t('contact_title', { name: barName ?? "bar" })}
             </h2>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Meldingen sendes både som e-post til baren og inn i where2watch-innboksen deres. De svarer deg direkte på e-post.
+              {t('contact_subtitle')}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="rounded-lg p-2 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
-            aria-label="Lukk"
+            aria-label={t('close')}
           >
             <span className="text-2xl">✕</span>
           </button>
@@ -108,7 +110,7 @@ export default function ContactFormModal({ barId, barName, onClose }: ContactFor
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                Navn (valgfritt)
+                {t('contact_name')}
               </label>
               <input
                 type="text"
@@ -119,7 +121,7 @@ export default function ContactFormModal({ barId, barName, onClose }: ContactFor
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                E-post
+                {t('contact_email')}
               </label>
               <input
                 type="email"
@@ -133,7 +135,7 @@ export default function ContactFormModal({ barId, barName, onClose }: ContactFor
 
           <div>
             <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              Telefon (valgfritt)
+              {t('contact_phone')}
             </label>
             <input
               type="tel"
@@ -145,25 +147,25 @@ export default function ContactFormModal({ barId, barName, onClose }: ContactFor
 
           <div>
             <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              Hva gjelder henvendelsen?
+              {t('contact_category_label')}
             </label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
             >
-              <option value="booking">Bordreservasjon / større følge</option>
-              <option value="match_question">Spørsmål om en spesifikk kamp</option>
-              <option value="other">Annet</option>
+              <option value="booking">{t('contact_booking')}</option>
+              <option value="match_question">{t('contact_match_question')}</option>
+              <option value="other">{t('contact_other')}</option>
             </select>
             <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-              Dette hjelper baren å forstå hva du trenger.
+              {t('contact_category_help')}
             </p>
           </div>
 
           <div>
             <label className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              Melding
+              {t('contact_message')}
             </label>
             <textarea
               required
@@ -171,7 +173,7 @@ export default function ContactFormModal({ barId, barName, onClose }: ContactFor
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50"
-              placeholder="Hva lurer du på? For eksempel reservasjon, antall personer eller kamp du vil se."
+              placeholder={t('contact_placeholder')}
             />
           </div>
 
@@ -180,7 +182,7 @@ export default function ContactFormModal({ barId, barName, onClose }: ContactFor
           )}
 
           <div className="flex items-center justify-between pt-1 text-xs text-zinc-500 dark:text-zinc-400">
-            <span>Baren får meldingen både som e-post og i where2watch-innboksen sin. De fleste svarer i løpet av åpningstiden.</span>
+            <span>{t('contact_info')}</span>
           </div>
 
           <div className="mt-2 flex justify-end gap-2">
@@ -189,14 +191,14 @@ export default function ContactFormModal({ barId, barName, onClose }: ContactFor
               onClick={onClose}
               className="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:hover:bg-zinc-800"
             >
-              Avbryt
+              {t('contact_cancel')}
             </button>
             <button
               type="submit"
               disabled={submitting}
               className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-600"
             >
-              {submitting ? "Sender..." : "Send melding"}
+              {submitting ? t('contact_sending') : t('contact_send')}
             </button>
           </div>
         </form>

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ChatThread } from '@/lib/models';
 import { useChat } from '@/lib/hooks';
 import { useToast } from '@/contexts/ToastContext';
+import { useTranslation } from '@/lib/i18n';
 
 interface ChatPanelProps {
   barId: string;
@@ -14,13 +15,14 @@ interface ChatPanelProps {
 export default function ChatPanel({ barId, barName, onClose }: ChatPanelProps) {
   const { getOrCreateThread, sendMessage, markAsRead, getThread } = useChat();
 	  const { showToast } = useToast();
+  const { t } = useTranslation();
   const [messageText, setMessageText] = useState('');
   const [currentThread, setCurrentThread] = useState<ChatThread | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Mock user - in real app, this would come from auth context
   const mockUserId = 'user-1';
-  const mockUserName = 'Gjest';
+  const mockUserName = t('chat_guest');
 
   // Initialize or get existing thread
   useEffect(() => {
@@ -53,8 +55,8 @@ export default function ChatPanel({ barId, barName, onClose }: ChatPanelProps) {
     sendMessage(currentThread.id, 'user', mockUserName, messageText.trim());
     setMessageText('');
 	    showToast({
-	      title: 'Melding sendt',
-	      description: `Meldingen din er sendt til ${barName}.`,
+	      title: t('chat_message_sent'),
+	      description: t('chat_message_sent_desc').replace('{barName}', barName),
 	      variant: 'success',
 	    });
   };
@@ -84,13 +86,13 @@ export default function ChatPanel({ barId, barName, onClose }: ChatPanelProps) {
               {barName}
             </h2>
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Send melding eller book bord
+              {t('chat_subtitle')}
             </p>
           </div>
           <button
             onClick={onClose}
             className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-            aria-label="Lukk chat"
+            aria-label={t('chat_close')}
           >
             <span className="text-2xl">✕</span>
           </button>
@@ -101,10 +103,10 @@ export default function ChatPanel({ barId, barName, onClose }: ChatPanelProps) {
           {currentThread.messages.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-zinc-500 dark:text-zinc-400 mb-2">
-                Ingen meldinger ennå
+                {t('chat_no_messages')}
               </p>
               <p className="text-sm text-zinc-400 dark:text-zinc-500">
-                Send en melding for å starte samtalen
+                {t('chat_start_conversation')}
               </p>
             </div>
           ) : (
@@ -128,7 +130,7 @@ export default function ChatPanel({ barId, barName, onClose }: ChatPanelProps) {
                         : 'text-zinc-500 dark:text-zinc-400'
                     }`}
                   >
-                    {new Date(message.timestamp).toLocaleTimeString('no-NO', {
+                    {new Date(message.timestamp).toLocaleTimeString(t('date_locale'), {
                       hour: '2-digit',
                       minute: '2-digit',
                     })}
@@ -148,7 +150,7 @@ export default function ChatPanel({ barId, barName, onClose }: ChatPanelProps) {
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Skriv en melding..."
+              placeholder={t('chat_placeholder')}
               className="flex-1 px-4 py-3 rounded-xl border border-zinc-300 dark:border-zinc-700
                        bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50
                        placeholder:text-zinc-400 dark:placeholder:text-zinc-500
@@ -161,7 +163,7 @@ export default function ChatPanel({ barId, barName, onClose }: ChatPanelProps) {
                        hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed
                        transition-colors"
             >
-              Send
+              {t('chat_send')}
             </button>
           </div>
         </div>

@@ -11,6 +11,7 @@ import { Bar } from '@/lib/models';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useRatings } from '@/contexts/RatingsContext';
 import { getBarPinIcon, type BarPinType } from '@/lib/map/barPin';
+import { useTranslation } from '@/lib/i18n';
 
 const defaultContainerStyle = {
   width: '100%',
@@ -23,17 +24,17 @@ const defaultCenter = {
 	  lng: 10.7522,
 	};
 
-function buildCandidateOnboardingMailto(bar: Bar): string {
+function buildCandidateOnboardingMailto(bar: Bar, t: (key: string) => string): string {
 	  const name = bar.name || 'Bar';
 	  const subject = encodeURIComponent(`${name} – onboarding`);
 	  const bodyLines = [
-	    'Hei Where2Watch,',
+	    t('map_mailto_greeting'),
 	    '',
-	    `Vi eier eller drifter ${name} og ønsker å se på hvordan vi kan bli synlige i appen deres.`,
+	    t('map_mailto_body').replace('{name}', name),
 	    '',
-	    'Send oss gjerne litt informasjon om hvordan vi kommer i gang, og hva dere trenger fra oss.',
+	    t('map_mailto_interest'),
 	    '',
-	    'Vennlig hilsen',
+	    t('map_mailto_closing'),
 	    '[Navn]',
 	    '[Telefonnummer]',
 	  ];
@@ -108,6 +109,7 @@ interface GoogleMapProps {
 	  const [mapError, setMapError] = useState<string | null>(null);
 	  const { isFavoriteBar } = useFavorites();
 	  const { getBarRating } = useRatings();
+  const { t } = useTranslation();
 
 	  type GoogleMapsAuthWindow = Window & {
 	    gm_authFailure?: () => void;
@@ -128,7 +130,7 @@ interface GoogleMapProps {
 	    // Google Maps calls window.gm_authFailure() when auth fails.
 	    w.gm_authFailure = () => {
 	      setMapError(
-	        'Google Maps kunne ikke autentiseres. Sjekk at API-nokkelen er gyldig og at Maps JavaScript API er aktivert.'
+	        t('map_auth_error')
 	      );
 	    };
 
@@ -163,7 +165,7 @@ interface GoogleMapProps {
 	  if (!useGeolocation) return;
 
 	  if (!navigator.geolocation) {
-	    setLocationError('Geolocation er ikke støttet av din nettleser');
+	    setLocationError(t('map_geo_unsupported'));
 	    return;
 	  }
 
@@ -192,16 +194,16 @@ interface GoogleMapProps {
 		      onUserPositionChange?.(null);
 	      switch (error.code) {
 	        case error.PERMISSION_DENIED:
-	          setLocationError('Du må gi tillatelse til posisjonsdeling');
+	          setLocationError(t('map_geo_denied'));
 	          break;
 	        case error.POSITION_UNAVAILABLE:
-	          setLocationError('Posisjonsinformasjon er ikke tilgjengelig');
+	          setLocationError(t('map_geo_unavailable'));
 	          break;
 	        case error.TIMEOUT:
-	          setLocationError('Forespørsel om posisjon tok for lang tid');
+	          setLocationError(t('map_geo_timeout'));
 	          break;
 	        default:
-	          setLocationError('En ukjent feil oppstod');
+	          setLocationError(t('map_geo_unknown'));
 	          break;
 	      }
 	    },
@@ -312,10 +314,10 @@ interface GoogleMapProps {
 	      {mapError && (
 	        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
 	          <div className="pointer-events-auto max-w-md rounded-2xl bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 px-5 py-4 shadow-lg text-sm text-red-800 dark:text-red-100">
-	            <p className="font-medium mb-1">Kartet kunne ikke lastes</p>
+	            <p className="font-medium mb-1">{t('map_could_not_load')}</p>
 	            <p>{mapError}</p>
 	            <p className="mt-2 text-xs opacity-90">
-	              Tips: Sjekk API-nokkel-restriksjoner (HTTP referrers) og prov aa reloade siden.
+	              {t('map_tip_reload')}
 	            </p>
 	          </div>
 	        </div>
@@ -327,7 +329,7 @@ interface GoogleMapProps {
 	          googleMapsApiKey={apiKey}
 	          onError={() =>
 	            setMapError(
-	              'Kunne ikke laste Google Maps-skriptet (nettverk eller blokkert ressurs).'
+	              t('map_load_error')
 	            )
 	          }
 	          loadingElement={<div style={containerStyle} />}
@@ -452,7 +454,7 @@ interface GoogleMapProps {
 			              <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
 			                Eier du denne baren?{' '}
 			                <a
-			                  href={buildCandidateOnboardingMailto(selectedBar)}
+			                  href={buildCandidateOnboardingMailto(selectedBar, t)}
 			                  className="font-medium text-emerald-600 hover:text-emerald-700 underline"
 			                >
 			                  Klikk her for å sende oss en e-post om onboarding

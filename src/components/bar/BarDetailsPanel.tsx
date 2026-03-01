@@ -12,11 +12,12 @@ import ContactFormModal from '@/components/bar/ContactFormModal';
 import type { Fixture } from '@/lib/types/fixtures';
 import { getCompetitionByKey } from '@/lib/config/competitions';
 import { BarFixtureSelectionService, BarService } from '@/lib/services';
+import { useTranslation } from '@/lib/i18n';
 
-function formatFixtureDateTime(kickoffUtc: string): string {
+function formatFixtureDateTime(kickoffUtc: string, locale: string): string {
   const d = new Date(kickoffUtc);
-  const date = d.toLocaleDateString('nb-NO', { weekday: 'short', day: 'numeric', month: 'short' });
-  const time = d.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' });
+  const date = d.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
+  const time = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   return `${date} ${time}`;
 }
 
@@ -49,6 +50,7 @@ export default function BarDetailsPanel({
   const { getBarRating, getUserRatingForBar, rateBar, clearRatingForBar } = useRatings();
   const { showToast } = useToast();
   const { getCampaignsForBar } = useCampaigns();
+  const { t } = useTranslation();
 
   const [showChat, setShowChat] = useState(false);
   const [isFacilitiesOpen, setIsFacilitiesOpen] = useState(true);
@@ -155,31 +157,31 @@ export default function BarDetailsPanel({
 	  const screensLabel =
 	    typeof facilities?.screens === 'number' && Number.isFinite(facilities.screens)
 	      ? facilities.screens <= 2
-	        ? '1-2 skjermer'
+	        ? t('bar_screens_1_2')
 	        : facilities.screens <= 5
-	          ? '3-5 skjermer'
-	          : '6+ skjermer'
-	      : 'Ikke oppgitt';
+	          ? t('bar_screens_3_5')
+	          : t('bar_screens_6_plus')
+	      : t('bar_not_specified');
 
 	  const foodDetails: string[] = [];
-	  if (facilities?.servesWarmFood) foodDetails.push('Varm mat');
-	  if (facilities?.servesSnacks) foodDetails.push('Snacks / småretter');
-	  if (facilities?.hasVegetarianOptions) foodDetails.push('Vegetar/vegansk');
+	  if (facilities?.servesWarmFood) foodDetails.push(t('bar_warm_food'));
+	  if (facilities?.servesSnacks) foodDetails.push(t('bar_snacks'));
+	  if (facilities?.hasVegetarianOptions) foodDetails.push(t('bar_vegetarian'));
 	  const foodLabel =
 	    foodDetails.length > 0
 	      ? foodDetails.join(' • ')
 	      : facilities?.hasFood === true
-	        ? 'Serverer mat'
+	        ? t('bar_serves_food')
 	        : facilities?.hasFood === false
-	          ? 'Serverer ikke mat'
-	          : 'Ikke oppgitt';
+	          ? t('bar_no_food')
+	          : t('bar_not_specified');
 
 	  const facilityBadges: string[] = [];
-	  if (facilities?.hasOutdoorSeating) facilityBadges.push('🌤️ Uteservering');
-	  if (facilities?.hasWifi) facilityBadges.push('📶 Gratis WiFi');
-	  if (facilities?.familyFriendly) facilityBadges.push('👨‍👩‍👧 Familievennlig før kl. 21');
-	  if (facilities?.canReserveTable) facilityBadges.push('📅 Reservasjon til kamp');
-	  if (facilities?.hasProjector) facilityBadges.push('📽️ Projektor');
+	  if (facilities?.hasOutdoorSeating) facilityBadges.push(t('bar_outdoor_badge'));
+	  if (facilities?.hasWifi) facilityBadges.push(t('bar_wifi_badge'));
+	  if (facilities?.familyFriendly) facilityBadges.push(t('bar_family_badge'));
+	  if (facilities?.canReserveTable) facilityBadges.push(t('bar_reservation_badge'));
+	  if (facilities?.hasProjector) facilityBadges.push(t('bar_projector_badge'));
 
   return (
     <>
@@ -211,11 +213,11 @@ export default function BarDetailsPanel({
                 )}
               </div>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
-                📍 {bar.address ?? 'Adresse ikke tilgjengelig'}
+                📍 {bar.address ?? t('bar_address_unavailable')}
               </p>
               {distanceLabel && (
                 <p className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1 mt-1">
-                  🧭 {distanceLabel} unna
+                  🧭 {distanceLabel} {t('bar_distance_away')}
                 </p>
               )}
             </div>
@@ -231,7 +233,7 @@ export default function BarDetailsPanel({
                               ? 'bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-500'
                               : 'bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500'
                           }`}
-                title={isFavoriteBar(bar.id) ? 'Fjern fra favoritter' : 'Legg til i favoritter'}
+                title={isFavoriteBar(bar.id) ? t('bar_remove_favorite') : t('bar_add_favorite')}
               >
                 <span className="text-2xl">
                   {isFavoriteBar(bar.id) ? '❤️' : '🤍'}
@@ -256,14 +258,14 @@ export default function BarDetailsPanel({
                 className="px-4 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600
                          text-white font-medium rounded-lg transition-colors text-center text-sm"
               >
-                🗺️ Veibeskrivelse
+                🗺️ {t('bar_directions')}
               </a>
               <button
                 onClick={() => setShowChat(true)}
                 className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600
                          text-white font-medium rounded-lg transition-colors text-sm"
               >
-                💬 Send melding
+                💬 {t('bar_send_message')}
               </button>
             </div>
 
@@ -274,12 +276,12 @@ export default function BarDetailsPanel({
                   className="px-4 py-3 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700
                            text-zinc-900 dark:text-zinc-100 font-medium rounded-lg transition-colors text-center text-sm"
                 >
-                  📞 Ring
+                  📞 {t('bar_call')}
                 </a>
               ) : (
                 <div className="px-4 py-3 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-700
                                 text-zinc-500 dark:text-zinc-400 font-medium rounded-lg text-center text-sm">
-                  📞 Ingen telefon
+                  📞 {t('bar_no_phone')}
                 </div>
               )}
 
@@ -288,7 +290,7 @@ export default function BarDetailsPanel({
                 className="px-4 py-3 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:hover:bg-zinc-600
                          text-zinc-900 dark:text-zinc-100 font-medium rounded-lg transition-colors text-sm"
               >
-                Lukk
+                {t('close')}
               </button>
             </div>
           </div>
@@ -298,14 +300,14 @@ export default function BarDetailsPanel({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                  Vurdering
+                  {t('bar_rating')}
                 </h3>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
                   {displayTotalRatings
                     ? `${displayRatingValue.toFixed(1)} ★ (${displayTotalRatings})`
                     : displayRatingValue
                     ? `${displayRatingValue.toFixed(1)} ★`
-                    : 'Ingen vurderinger enda'}
+                    : t('bar_no_ratings')}
                 </p>
               </div>
               {userRating && (
@@ -314,14 +316,14 @@ export default function BarDetailsPanel({
                   onClick={() => {
                     clearRatingForBar(bar.id);
                     showToast({
-                      title: 'Vurdering fjernet',
-                      description: 'Din vurdering er fjernet.',
+                      title: t('bar_rating_removed'),
+                      description: t('bar_rating_removed_desc'),
                       variant: 'info',
                     });
                   }}
                   className="text-xs font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 underline"
                 >
-                  Fjern min vurdering
+                  {t('bar_remove_rating')}
                 </button>
               )}
             </div>
@@ -333,12 +335,12 @@ export default function BarDetailsPanel({
                 onChange={(rating) => {
                   rateBar(bar.id, rating);
                   showToast({
-                    title: 'Takk!',
-                    description: `Du ga ${bar.name} ${rating} stjerner.`,
+                    title: t('bar_thanks'),
+                    description: t('bar_rating_given', { name: bar.name, rating: String(rating) }),
                     variant: 'success',
                   });
                 }}
-                label={userRating ? `Din vurdering: ${userRating.rating}★` : 'Gi din vurdering'}
+                label={userRating ? t('bar_your_rating', { rating: String(userRating.rating) }) : t('bar_give_rating')}
                 size="md"
               />
             </div>
@@ -349,22 +351,22 @@ export default function BarDetailsPanel({
             <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                  Kamper hos denne baren
+                  {t('bar_matches_at_bar')}
                 </h3>
                 {!isLoadingFixtures && selectedFixtures.length > 0 && (
                   <span className="text-xs text-zinc-600 dark:text-zinc-400">
-                    I dag: {todayFixtures.length} · Kommende: {upcomingFixtures.length}
+                    {t('bar_today_count')}: {todayFixtures.length} · {t('bar_upcoming_count')}: {upcomingFixtures.length}
                   </span>
                 )}
               </div>
               <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
                 {isLoadingFixtures
-                  ? 'Laster kamper...'
+                  ? t('bar_loading_matches')
                   : activeSelectedFixtureIds.length === 0
-                    ? 'Denne baren har ikke satt opp kamper enda.'
+                    ? t('bar_no_matches_setup')
                     : selectedFixtures.length === 0
-                      ? 'Ingen kamper akkurat nå (eller de er passert 90-minutters cutoff).'
-                      : 'Se kamper lenger ned på siden.'}
+                      ? t('bar_no_matches_now')
+                      : t('bar_see_matches_below')}
               </p>
             </div>
           )}
@@ -372,21 +374,21 @@ export default function BarDetailsPanel({
           {/* Description */}
           <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
             <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
-              Om baren
+              {t('bar_about')}
             </h3>
 	            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-	              {bar.description ?? 'Ingen beskrivelse lagt til enda.'}
+	              {bar.description ?? t('bar_no_description')}
 	            </p>
 	            {bar.source === 'places_candidate' && (
 	              <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-	                Denne baren er foreløpig ikke aktiv kunde hos Where2Watch. Eier du baren?{' '}
+	                {t('bar_candidate_notice')}{' '}
 	                <a
 	                  href={`mailto:support@where2watch.com?subject=${encodeURIComponent(
 	                    `${bar.name} – onboarding`,
 	                  )}`}
 	                  className="font-medium text-emerald-600 hover:text-emerald-700 underline"
 	                >
-	                  Trykk her for å sende oss en e-post om onboarding
+	                  {t('bar_candidate_cta')}
 	                </a>
 	                .
 	              </p>
@@ -398,14 +400,14 @@ export default function BarDetailsPanel({
             <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                  Fasiliteter
+                  {t('bar_facilities')}
                 </h3>
                 <button
                   type="button"
                   onClick={() => setIsFacilitiesOpen((prev) => !prev)}
                   className="text-xs font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
                 >
-                  {isFacilitiesOpen ? 'Skjul' : 'Vis'}
+                  {isFacilitiesOpen ? t('bar_hide') : t('bar_show')}
                 </button>
               </div>
 
@@ -413,34 +415,34 @@ export default function BarDetailsPanel({
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">📺 Skjermer</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">📺 {t('bar_screens')}</p>
                       <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
                         {screensLabel}
                       </p>
                     </div>
                     <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">🍔 Mat</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">🍔 {t('bar_food')}</p>
                       <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
                         {foodLabel}
                       </p>
                     </div>
                     <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">🌤️ Uteservering</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">🌤️ {t('bar_outdoor')}</p>
                       <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                        {bar.facilities.hasOutdoorSeating ? 'Ja' : 'Nei'}
+                        {bar.facilities.hasOutdoorSeating ? t('bar_yes') : t('bar_no')}
                       </p>
                     </div>
                     <div className="rounded-xl bg-zinc-50 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 p-3">
-                      <p className="text-xs text-zinc-500 dark:text-zinc-400">📶 WiFi</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">📶 {t('bar_wifi')}</p>
                       <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-                        {bar.facilities.hasWifi ? 'Ja' : 'Nei'}
+                        {bar.facilities.hasWifi ? t('bar_yes') : t('bar_no')}
                       </p>
                     </div>
                   </div>
 
                   {typeof bar.facilities.capacity === 'number' && (
                     <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-                      👥 Kapasitet: {bar.facilities.capacity}
+                      👥 {t('bar_capacity')}: {bar.facilities.capacity}
                     </p>
                   )}
 
@@ -466,14 +468,14 @@ export default function BarDetailsPanel({
             <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-                  Åpningstider
+                  {t('bar_opening_hours')}
                 </h3>
                 <button
                   type="button"
                   onClick={() => setIsOpeningHoursOpen((prev) => !prev)}
                   className="text-xs font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
                 >
-                  {isOpeningHoursOpen ? 'Skjul' : 'Vis'}
+                  {isOpeningHoursOpen ? t('bar_hide') : t('bar_show')}
                 </button>
               </div>
 
@@ -481,13 +483,13 @@ export default function BarDetailsPanel({
                 <div className="space-y-2">
                   {(
                     [
-                      { key: 'monday', label: 'Mandag' },
-                      { key: 'tuesday', label: 'Tirsdag' },
-                      { key: 'wednesday', label: 'Onsdag' },
-                      { key: 'thursday', label: 'Torsdag' },
-                      { key: 'friday', label: 'Fredag' },
-                      { key: 'saturday', label: 'Lørdag' },
-                      { key: 'sunday', label: 'Søndag' },
+                      { key: 'monday', label: t('day_monday') },
+                      { key: 'tuesday', label: t('day_tuesday') },
+                      { key: 'wednesday', label: t('day_wednesday') },
+                      { key: 'thursday', label: t('day_thursday') },
+                      { key: 'friday', label: t('day_friday') },
+                      { key: 'saturday', label: t('day_saturday') },
+                      { key: 'sunday', label: t('day_sunday') },
                     ] as const
                   ).map(({ key, label }) => {
                     const value = bar.openingHours?.[key] ?? '—';
@@ -516,15 +518,15 @@ export default function BarDetailsPanel({
 	          {/* Contact */}
 	          <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
 	            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
-	              Kontakt
+	              {t('bar_contact')}
 	            </h3>
 	            {bar.phone ? (
 	              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-	                Telefon: <span className="font-medium">{bar.phone}</span>
+	                {t('bar_phone_label')}: <span className="font-medium">{bar.phone}</span>
 	              </p>
 	            ) : (
 	              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-	                Ingen telefonnummer registrert.
+	                {t('bar_no_phone_registered')}
 	              </p>
 	            )}
 	          </div>
@@ -532,12 +534,12 @@ export default function BarDetailsPanel({
 	          {/* Campaigns & bar offers */}
 	          <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
 	            <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-2">
-	              Kampanjer & tilbud
+	              {t('bar_campaigns')}
 	            </h3>
 	            {hasSpecialOffers && (
 	              <div className="mb-3 rounded-xl border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 p-4">
 	                <p className="text-xs font-medium text-emerald-700 dark:text-emerald-200 mb-1">
-	                  Fast fra baren
+	                  {t('bar_permanent_offer')}
 	                </p>
 	                <p className="text-sm text-emerald-900 dark:text-emerald-50 whitespace-pre-line">
 	                  {bar.specialOffers}
@@ -546,7 +548,7 @@ export default function BarDetailsPanel({
 	            )}
 	            {activeCampaigns.length === 0 && !hasSpecialOffers ? (
 	              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-	                Ingen kampanjer eller tilbud er registrert enda.
+	                {t('bar_no_campaigns')}
 	              </p>
 	            ) : activeCampaigns.length > 0 ? (
 	              <div className="space-y-3">
@@ -580,23 +582,22 @@ export default function BarDetailsPanel({
 	          <div className="mt-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-5">
 	            <div className="flex items-start justify-between gap-4 mb-2">
 	              <div>
-	                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Kamper</h3>
+	                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{t('bar_matches')}</h3>
 	                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-		                  Vises basert på hva baren har registrert at de viser.
+		                  {t('bar_matches_based_on')}
 	                </p>
 	              </div>
 	              <Link
 	                href="/kamper"
 	                className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
 	              >
-	                Se alle
+	                {t('bar_see_all')}
 	              </Link>
 	            </div>
 
 			            {matchesThisWeekCount > 0 && (
 			              <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
-			                Baren viser {matchesThisWeekCount} kamp
-			                {matchesThisWeekCount === 1 ? '' : 'er'} denne uken.
+			                {matchesThisWeekCount === 1 ? t('bar_matches_this_week', { count: String(matchesThisWeekCount) }) : t('bar_matches_this_week_plural', { count: String(matchesThisWeekCount) })}
 			              </p>
 			            )}
 
@@ -604,10 +605,10 @@ export default function BarDetailsPanel({
 			              <div className="mt-4 rounded-2xl border border-emerald-300 bg-emerald-50/80 p-4 dark:border-emerald-700 dark:bg-emerald-900/30">
 			                <div className="mb-2 flex items-center justify-between gap-2">
 			                  <h4 className="text-sm font-semibold text-emerald-900 dark:text-emerald-50">
-			                    Neste kamp{nextHighlightedFixtures.length > 1 ? 'er' : ''}
+			                    {nextHighlightedFixtures.length > 1 ? t('bar_next_matches') : t('bar_next_match')}
 			                  </h4>
 			                  <span className="text-[11px] text-emerald-800/80 dark:text-emerald-100/80">
-			                    Starter snart hos denne baren
+			                    {t('bar_starting_soon')}
 			                  </span>
 			                </div>
 			                <div className="space-y-2">
@@ -621,7 +622,7 @@ export default function BarDetailsPanel({
 			                        <div className="flex items-center justify-between gap-2">
 			                          <div className="flex flex-col gap-1">
 			                            <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-50">
-			                              {formatFixtureDateTime(f.kickoffUtc)}
+			                              {formatFixtureDateTime(f.kickoffUtc, t('date_locale'))}
 			                            </span>
 			                            <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
 			                              {f.homeTeam} – {f.awayTeam}
@@ -639,7 +640,7 @@ export default function BarDetailsPanel({
 			            )}
 
 			            {isLoadingFixtures && (
-	              <p className="text-sm text-zinc-600 dark:text-zinc-400">Laster kamper…</p>
+	              <p className="text-sm text-zinc-600 dark:text-zinc-400">{t('bar_loading_matches')}</p>
 	            )}
 
 	            {fixturesError && (
@@ -650,7 +651,7 @@ export default function BarDetailsPanel({
 	                  onClick={onRetryLoadFixtures}
 	                  className="mt-3 inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white dark:bg-zinc-50 dark:text-zinc-900"
 	                >
-	                  Prøv igjen
+	                  {t('bar_retry')}
 	                </button>
 	              </div>
 	            )}
@@ -658,7 +659,7 @@ export default function BarDetailsPanel({
 	            {!isLoadingFixtures && !fixturesError && activeSelectedFixtureIds.length === 0 && (
 	              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-4">
 	                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-	                  Denne baren har ikke satt opp kamper enda.
+	                  {t('bar_no_matches_setup')}
 	                </p>
 	              </div>
 	            )}
@@ -666,7 +667,7 @@ export default function BarDetailsPanel({
 	            {!isLoadingFixtures && !fixturesError && activeSelectedFixtureIds.length > 0 && selectedFixtures.length === 0 && (
 	              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-4">
 	                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-	                  Ingen kamper akkurat nå (eller de er passert 90-minutters cutoff).
+	                  {t('bar_no_matches_now')}
 	                </p>
 	              </div>
 	            )}
@@ -674,9 +675,9 @@ export default function BarDetailsPanel({
 	            {!isLoadingFixtures && !fixturesError && selectedFixtures.length > 0 && (
 	              <div className="space-y-4">
 	                <div>
-	                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-2">I dag</h4>
+	                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-2">{t('bar_today')}</h4>
 	                  {todayFixtures.length === 0 ? (
-	                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Ingen kamper i dag.</p>
+	                    <p className="text-sm text-zinc-600 dark:text-zinc-400">{t('bar_no_matches_today')}</p>
 	                  ) : (
 	                    <div className="space-y-2">
 	                      {todayFixtures.slice(0, 6).map((f) => {
@@ -688,7 +689,7 @@ export default function BarDetailsPanel({
 	                          >
 	                            <div className="flex items-center gap-2 mb-1">
 	                              <span className="text-xs text-zinc-500 dark:text-zinc-400">
-	                                {formatFixtureDateTime(f.kickoffUtc)}
+	                                {formatFixtureDateTime(f.kickoffUtc, t('date_locale'))}
 	                              </span>
 	                              <span className="text-xs rounded bg-zinc-200/60 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-200">
 	                                {competition.label}
@@ -708,9 +709,9 @@ export default function BarDetailsPanel({
 	                </div>
 
 	                <div>
-	                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-2">Kommende</h4>
+	                  <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-2">{t('bar_upcoming')}</h4>
 	                  {upcomingFixtures.length === 0 ? (
-	                    <p className="text-sm text-zinc-600 dark:text-zinc-400">Ingen kommende kamper.</p>
+	                    <p className="text-sm text-zinc-600 dark:text-zinc-400">{t('bar_no_upcoming')}</p>
 	                  ) : (
 	                    <div className="space-y-2">
 	                      {upcomingFixtures.slice(0, 8).map((f) => {
@@ -722,7 +723,7 @@ export default function BarDetailsPanel({
 	                          >
 	                            <div className="flex items-center gap-2 mb-1">
 	                              <span className="text-xs text-zinc-500 dark:text-zinc-400">
-	                                {formatFixtureDateTime(f.kickoffUtc)}
+	                                {formatFixtureDateTime(f.kickoffUtc, t('date_locale'))}
 	                              </span>
 	                              <span className="text-xs rounded bg-zinc-200/60 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-200">
 	                                {competition.label}

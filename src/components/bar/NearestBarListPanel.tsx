@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { BarService } from '@/lib/services';
 import type { Bar, Position } from '@/lib/models';
+import { useTranslation } from '@/lib/i18n';
 
 export default function NearestBarListPanel(props: {
   bars: Bar[];
@@ -11,6 +12,7 @@ export default function NearestBarListPanel(props: {
   onClose: () => void;
 }) {
   const { bars, userPosition, onSelectBar, onClose } = props;
+  const { t } = useTranslation();
 
   const items = useMemo(() => {
     if (!userPosition) {
@@ -40,11 +42,11 @@ export default function NearestBarListPanel(props: {
         <div className="px-6 pb-6">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">Barer nær deg</h2>
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{t('nearest_bars_title')}</h2>
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
                 {userPosition
-                  ? 'Sortert på avstand.'
-                  : 'Aktiver posisjon for å sortere på avstand.'}
+                  ? t('nearest_sorted')
+                  : t('nearest_enable_location')}
               </p>
             </div>
 
@@ -53,13 +55,13 @@ export default function NearestBarListPanel(props: {
               onClick={onClose}
               className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-950"
             >
-              Lukk
+              {t('close')}
             </button>
           </div>
 
           {items.length === 0 ? (
             <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
-              Ingen barer å vise med gjeldende filter.
+              {t('nearest_no_bars')}
             </div>
           ) : (
             <div className="divide-y divide-zinc-200 overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">

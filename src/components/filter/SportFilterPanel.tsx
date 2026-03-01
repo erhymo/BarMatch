@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Fixture, LeagueKey } from "@/lib/types/fixtures";
+import { useTranslation } from '@/lib/i18n';
 
 type LeagueOption = { key: LeagueKey; label: string };
 
@@ -52,6 +53,7 @@ export default function SportFilterPanel({
   onRetryLoad,
   onDone,
 }: SportFilterPanelProps) {
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [recentSearches, setRecentSearches] = useState<RecentSearchEntry[]>([]);
 
@@ -149,12 +151,12 @@ export default function SportFilterPanel({
     }));
 
     teamSuggestions.sort((a, b) => {
-      const nameCompare = a.teamName.localeCompare(b.teamName, "nb");
+      const nameCompare = a.teamName.localeCompare(b.teamName, t('date_locale'));
       if (nameCompare !== 0) return nameCompare;
-      return a.leagueLabel.localeCompare(b.leagueLabel, "nb");
+      return a.leagueLabel.localeCompare(b.leagueLabel, t('date_locale'));
     });
 
-    leagueSuggestions.sort((a, b) => a.label.localeCompare(b.label, "nb"));
+    leagueSuggestions.sort((a, b) => a.label.localeCompare(b.label, t('date_locale')));
 
     return { teamSuggestions, leagueSuggestions };
   }, [fixtures, leagues, leagueLabelMap]);
@@ -261,7 +263,7 @@ export default function SportFilterPanel({
         {error ? (
           <div className="rounded-xl border border-red-700/40 bg-red-900/20 px-4 py-3">
             <p className="text-sm text-red-100 font-semibold mb-1">
-              Kunne ikke laste kamper
+              {t('sport_error_loading')}
             </p>
             <p className="text-xs text-red-200/90">{error}</p>
             {onRetryLoad && (
@@ -271,7 +273,7 @@ export default function SportFilterPanel({
                   onClick={onRetryLoad}
                   className="px-3 py-1.5 text-xs font-medium text-white bg-red-600/80 hover:bg-red-600 rounded-lg transition-colors"
                 >
-                  Prøv igjen
+                  {t('sport_retry')}
                 </button>
               </div>
             )}
@@ -280,25 +282,24 @@ export default function SportFilterPanel({
 
         <div>
           <label className="block text-xs font-medium text-zinc-300 mb-1">
-            Søk etter lag eller liga
+            {t('sport_search_label')}
           </label>
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="F.eks. Rosenborg eller Premier League"
+            placeholder={t('sport_search_placeholder')}
             className="w-full rounded-xl border border-zinc-700/60 bg-zinc-900/40 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
             disabled={isLoading}
           />
           {isLoading && (
-            <p className="mt-1 text-xs text-zinc-400">Laster kamper…</p>
+            <p className="mt-1 text-xs text-zinc-400">{t('sport_loading')}</p>
           )}
         </div>
 
         {fixtures.length === 0 && !isLoading && !error ? (
           <p className="text-xs text-zinc-400">
-            Ingen kamper er lastet inn ennå. Åpne søket på nytt om et øyeblikk,
-            eller prøv igjen.
+            {t('sport_no_fixtures')}
           </p>
         ) : null}
 
@@ -323,7 +324,7 @@ export default function SportFilterPanel({
             {filteredTeamSuggestions.length > 0 && (
               <div>
                 <p className="text-[11px] uppercase tracking-wide text-zinc-400 mb-1">
-                  Lag
+                  {t('sport_teams')}
                 </p>
                 <div className="space-y-1">
                   {filteredTeamSuggestions.map((s) => (
@@ -346,7 +347,7 @@ export default function SportFilterPanel({
             {filteredLeagueSuggestions.length > 0 && (
               <div>
                 <p className="text-[11px] uppercase tracking-wide text-zinc-400 mb-1">
-                  Ligaer
+                  {t('sport_leagues')}
                 </p>
                 <div className="space-y-1">
                   {filteredLeagueSuggestions.map((s) => (
@@ -359,7 +360,7 @@ export default function SportFilterPanel({
                       <span className="font-medium">{s.label}</span>
                       {selectedLeague === s.league && !selectedTeam && (
                         <span className="ml-2 text-[11px] text-green-400">
-                          Aktiv
+                          {t('sport_active')}
                         </span>
                       )}
                     </button>
@@ -370,7 +371,7 @@ export default function SportFilterPanel({
           </div>
         ) : !isLoading && fixtures.length > 0 ? (
           <p className="text-xs text-zinc-400">
-            Ingen treff. Prøv et annet lag eller en annen liga.
+            {t('sport_no_results')}
           </p>
         ) : null}
 
@@ -380,12 +381,12 @@ export default function SportFilterPanel({
             onClick={handleReset}
             className="px-3 py-1.5 text-xs font-medium text-zinc-300 hover:text-white hover:bg-zinc-700/50 rounded-lg transition-colors"
           >
-            Nullstill lag
+            {t('sport_reset')}
           </button>
           <div className="text-xs text-zinc-400">
             {selectedTeam
               ? `Filter: ${selectedTeam} (${selectedLeagueLabel})`
-              : "Ingen lagfilter"}
+              : t('sport_no_filter')}
           </div>
         </div>
       </div>

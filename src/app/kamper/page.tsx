@@ -8,6 +8,7 @@ import type { TeamSuggestion } from "@/lib/hooks/useTeamSearch";
 import FixtureCard from "@/components/kamper/FixtureCard";
 import LeagueFilter from "@/components/kamper/LeagueFilter";
 import TeamSearchInput from "@/components/kamper/TeamSearchInput";
+import { useTranslation } from '@/lib/i18n';
 
 function getFixturesCountFromBody(body: unknown): number {
   if (!body || typeof body !== "object") return 0;
@@ -29,6 +30,7 @@ const IS_DEV = process.env.NODE_ENV !== "production";
 
 export default function KamperPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [selectedLeague, setSelectedLeague] = useState<LeagueKey | "">("");
   const [selfTestResult, setSelfTestResult] = useState<string | null>(null);
   const [selfTestLoading, setSelfTestLoading] = useState(false);
@@ -99,8 +101,8 @@ export default function KamperPage() {
 	        );
 	      } else {
 		        const { error: apiError, details: apiDetails } = getApiErrorFromBody(body);
-		        const errMessage = apiError || "Ukjent feil";
-	        const msg = `Test API feilet (HTTP ${res.status}): ${errMessage}`;
+		        const errMessage = apiError || t('kamper_unknown_error');
+	        const msg = t('kamper_test_failed_http').replace('{status}', String(res.status)).replace('{message}', errMessage);
 	        setSelfTestResult(msg);
 
 			        if (IS_DEV && apiDetails) {
@@ -111,8 +113,8 @@ export default function KamperPage() {
 	      const message =
 	        error instanceof Error && error.message
 	          ? error.message
-	          : "Ukjent feil ved Test API";
-	      setSelfTestResult(`Test API feilet: ${message}`);
+	          : t('kamper_unknown_error_test');
+	      setSelfTestResult(`${t('kamper_test_failed')}: ${message}`);
 	    } finally {
 	      setSelfTestLoading(false);
 	    }
@@ -125,13 +127,13 @@ export default function KamperPage() {
           {/* Header */}
           <header>
             <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-2">
-              Kamper
+              {t('kamper_title')}
             </h1>
             <p className="text-lg text-zinc-600 dark:text-zinc-400">
-              Se kommende kamper og filtrer på liga eller lag.
+              {t('kamper_subtitle')}
             </p>
 	            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-	              Trykk på en kamp for å se hvilke barer som viser den på kartet.
+	              {t('kamper_tap_match')}
 	            </p>
           </header>
 
@@ -153,7 +155,7 @@ export default function KamperPage() {
 	                  disabled={selfTestLoading}
 	                  className="inline-flex items-center justify-center rounded-full bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-60"
 		                >
-		                  {selfTestLoading ? "Tester…" : "Test API"}
+		                  {selfTestLoading ? t('kamper_testing') : t('kamper_test_api')}
 		                </button>
 	              </div>
 	              {selfTestResult && (
@@ -194,17 +196,17 @@ export default function KamperPage() {
               <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white/60 dark:bg-zinc-900/60 p-6 text-center">
                 <div className="mb-2 text-2xl">⏳</div>
                 <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Laster kommende kamper…
+                  {t('kamper_loading')}
                 </p>
               </div>
             ) : filteredFixtures.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-white/60 dark:bg-zinc-900/60 p-6 text-center">
                 <div className="mb-2 text-2xl">📅</div>
                 <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Ingen kommende kamper matcher filtrene dine ennå.
+                  {t('kamper_no_matches')}
                 </p>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  Endre liga eller søk, eller sjekk igjen litt senere.
+                  {t('kamper_change_filter')}
                 </p>
               </div>
             ) : (

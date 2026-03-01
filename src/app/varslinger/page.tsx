@@ -6,6 +6,7 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 import { useToast } from '@/contexts/ToastContext';
 import { FAVORITE_TEAM_OPTIONS } from '@/lib/config/favoriteTeams';
 import type { Bar } from '@/lib/models';
+import { useTranslation } from '@/lib/i18n';
 
 export default function VarslingerPage() {
   const {
@@ -19,6 +20,7 @@ export default function VarslingerPage() {
 
   const { favoriteTeams } = useFavorites();
   const { showToast } = useToast();
+  const { t } = useTranslation();
 
   // Local state for push-specific selections
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
@@ -78,10 +80,10 @@ export default function VarslingerPage() {
     try {
       await savePreferences(selectedTeams, selectedBarIds);
       setHasSaved(true);
-      showToast({ description: 'Varslingsinnstillinger lagret!', variant: 'success' });
+      showToast({ description: t('push_saved'), variant: 'success' });
     } catch (e) {
       showToast({
-        description: e instanceof Error ? e.message : 'Kunne ikke lagre innstillinger',
+        description: e instanceof Error ? e.message : t('push_save_error'),
         variant: 'error',
       });
     }
@@ -95,11 +97,10 @@ export default function VarslingerPage() {
           <div className="max-w-md mx-auto text-center space-y-4">
             <div className="text-4xl">📱</div>
             <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
-              Push-varsler
+              {t('push_title')}
             </h1>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Push-varsler er kun tilgjengelig i Where2Watch iOS-appen.
-              Last ned appen fra App Store for å motta varsler om kamper.
+              {t('push_ios_only')}
             </p>
           </div>
         </main>
@@ -117,10 +118,10 @@ export default function VarslingerPage() {
           {/* Header */}
           <header className="text-center space-y-1">
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-              🔔 Varslinger
+              🔔 {t('push_header')}
             </h1>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Få push-varsler når favorittlagene dine spiller på en bar nær deg.
+              {t('push_subtitle')}
             </p>
           </header>
 
@@ -159,7 +160,7 @@ export default function VarslingerPage() {
               disabled={isSaving}
               className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60 transition-colors"
             >
-              {isSaving ? 'Lagrer…' : 'Lagre innstillinger'}
+              {isSaving ? t('push_saving') : t('push_save')}
             </button>
           )}
         </div>
@@ -177,6 +178,7 @@ function PermissionCard({
   status: string;
   onRequest: () => void;
 }) {
+  const { t } = useTranslation();
   if (status === 'granted') {
     return (
       <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-4 flex items-center gap-3">
@@ -185,10 +187,10 @@ function PermissionCard({
         </div>
         <div>
           <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
-            Push-varsler er aktivert
+            {t('push_enabled')}
           </p>
           <p className="text-xs text-emerald-600 dark:text-emerald-400">
-            Du mottar varsler når lagene dine spiller.
+            {t('push_enabled_desc')}
           </p>
         </div>
       </div>
@@ -203,10 +205,10 @@ function PermissionCard({
         </div>
         <div>
           <p className="text-sm font-semibold text-red-800 dark:text-red-200">
-            Push-varsler er blokkert
+            {t('push_blocked')}
           </p>
           <p className="text-xs text-red-600 dark:text-red-400">
-            Gå til Innstillinger → Where2Watch → Varsler for å aktivere.
+            {t('push_blocked_desc')}
           </p>
         </div>
       </div>
@@ -218,17 +220,17 @@ function PermissionCard({
     <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/80 p-5 text-center space-y-3">
       <div className="text-3xl">🔔</div>
       <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-        Aktiver push-varsler
+        {t('push_activate')}
       </p>
       <p className="text-xs text-zinc-500 dark:text-zinc-400">
-        Få beskjed når favorittlagene dine spiller på en bar.
+        {t('push_activate_desc')}
       </p>
       <button
         type="button"
         onClick={onRequest}
         className="inline-flex items-center rounded-full bg-emerald-600 px-5 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
       >
-        Slå på varsler
+        {t('push_enable')}
       </button>
     </div>
   );
@@ -247,14 +249,15 @@ function TeamSelection({
   filteredOptions: { id: string; name: string }[];
   onToggle: (name: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <section className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/80 p-4 space-y-3">
       <div className="flex items-center gap-2">
         <span className="text-lg">⚽</span>
         <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-          Favorittlag
+          {t('push_fav_teams')}
         </h2>
-        <span className="ml-auto text-xs text-zinc-500">{selectedTeams.length} valgt</span>
+        <span className="ml-auto text-xs text-zinc-500">{selectedTeams.length} {t('push_selected')}</span>
       </div>
 
       {selectedTeams.length > 0 && (
@@ -276,7 +279,7 @@ function TeamSelection({
         type="text"
         value={teamQuery}
         onChange={(e) => onTeamQueryChange(e.target.value)}
-        placeholder="Søk etter lag…"
+        placeholder={t('push_search_teams')}
         className="w-full rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-2 text-xs text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
       />
 
@@ -295,7 +298,7 @@ function TeamSelection({
               }`}
             >
               <span>{opt.name}</span>
-              <span className="text-[10px] font-medium">{isSelected ? '✓' : 'Legg til'}</span>
+              <span className="text-[10px] font-medium">{isSelected ? '✓' : t('push_add')}</span>
             </button>
           );
         })}
@@ -315,10 +318,11 @@ function BarSelection({
   selectedBarIds: string[];
   onToggle: (barId: string) => void;
 }) {
+  const { t } = useTranslation();
   if (barsLoading) {
     return (
       <section className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/80 p-4 text-center">
-        <p className="text-xs text-zinc-500">Laster barer…</p>
+        <p className="text-xs text-zinc-500">{t('push_loading_bars')}</p>
       </section>
     );
   }
@@ -330,13 +334,13 @@ function BarSelection({
       <div className="flex items-center gap-2">
         <span className="text-lg">🍺</span>
         <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-          Favorittbarer
+          {t('push_fav_bars')}
         </h2>
-        <span className="ml-auto text-xs text-zinc-500">{selectedBarIds.length} valgt</span>
+        <span className="ml-auto text-xs text-zinc-500">{selectedBarIds.length} {t('push_selected')}</span>
       </div>
 
       <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-        Få varsel uansett kamp når disse barene viser sport.
+        {t('push_bars_desc')}
       </p>
 
       <div className="max-h-48 overflow-y-auto space-y-1">
@@ -355,7 +359,7 @@ function BarSelection({
             >
               <span className="truncate">{bar.name}</span>
               <span className="text-[10px] font-medium ml-2 flex-shrink-0">
-                {isSelected ? '✓' : 'Legg til'}
+                {isSelected ? '✓' : t('push_add')}
               </span>
             </button>
           );

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CITIES, type CityId } from "@/lib/data/cities";
+import { useTranslation } from '@/lib/i18n';
 
 interface CityFilterPanelProps {
   favoriteCity: CityId | null;
@@ -12,6 +13,7 @@ export default function CityFilterPanel({
   favoriteCity,
   onFavoriteCityChange,
 }: CityFilterPanelProps) {
+  const { t } = useTranslation();
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   // Hent brukerens posisjon for å kunne sortere byene etter nærhet
@@ -58,16 +60,15 @@ export default function CityFilterPanel({
             <span className="text-2xl">📍</span>
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white">Finn din by</h2>
-            <p className="text-xs text-zinc-400">Velg startposisjon for kartet</p>
+            <h2 className="text-lg font-bold text-white">{t('city_title')}</h2>
+            <p className="text-xs text-zinc-400">{t('city_subtitle')}</p>
           </div>
         </div>
       </div>
 
       <div className="p-5 space-y-3">
         <p className="text-[11px] text-zinc-400">
-          Velg en by for å sette hvor kartet skal starte. Vi foreslår nærmeste by hvis du deler
-          posisjon.
+          {t('city_description')}
         </p>
 
         <div className="mt-2 flex flex-wrap gap-2">
@@ -80,7 +81,7 @@ export default function CityFilterPanel({
                 : "bg-transparent text-zinc-400 hover:bg-zinc-800/60 border-zinc-700/80"
             }`}
           >
-            Ingen
+            {t('city_none')}
           </button>
 
           {sortedCities.map((city) => (

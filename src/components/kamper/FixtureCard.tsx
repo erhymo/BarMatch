@@ -3,8 +3,9 @@
 import { MatchService } from "@/lib/services";
 import type { Fixture } from "@/lib/types/fixtures";
 import { LEAGUE_LABEL_BY_KEY } from "@/lib/hooks/useTeamSearch";
+import { useTranslation } from '@/lib/i18n';
 
-function formatTimeFromUtc(kickoffUtc: string, locale: string = "nb-NO"): string {
+function formatTimeFromUtc(kickoffUtc: string, locale: string): string {
   const date = new Date(kickoffUtc);
   return date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 }
@@ -20,6 +21,7 @@ export default function FixtureCard({
   isFirstOfDay,
   onClick,
 }: FixtureCardProps) {
+  const { t } = useTranslation();
   const leagueLabel = LEAGUE_LABEL_BY_KEY[fixture.league];
 
   return (
@@ -37,7 +39,7 @@ export default function FixtureCard({
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
             <span className="font-semibold text-zinc-800 dark:text-zinc-100">
-              {formatTimeFromUtc(fixture.kickoffUtc)}
+              {formatTimeFromUtc(fixture.kickoffUtc, t('date_locale'))}
             </span>
             <span>
               {MatchService.getLeagueEmoji(leagueLabel)} {leagueLabel}

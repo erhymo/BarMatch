@@ -5,6 +5,7 @@ import Navigation from '@/components/navigation/Navigation';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { RatingsProvider } from '@/contexts/RatingsContext';
 import { ToastProvider } from '@/contexts/ToastContext';
+import { LanguageProvider } from '@/lib/i18n';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,14 +50,16 @@ export default function RootLayout({
 		      <body
 		        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
 		      >
-		        <FavoritesProvider>
-		          <RatingsProvider>
-		            <ToastProvider>
-		              <Navigation />
-		              {children}
-		            </ToastProvider>
-		          </RatingsProvider>
-		        </FavoritesProvider>
+		        <LanguageProvider>
+		          <FavoritesProvider>
+		            <RatingsProvider>
+		              <ToastProvider>
+		                <Navigation />
+		                {children}
+		              </ToastProvider>
+		            </RatingsProvider>
+		          </FavoritesProvider>
+		        </LanguageProvider>
 		      </body>
 		    </html>
 		  );

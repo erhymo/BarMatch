@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslation } from '@/lib/i18n';
+
 interface HomeHeaderProps {
   matchId: string | null;
   activeMatchDescription: string | null;
@@ -17,25 +19,26 @@ export default function HomeHeader({
   onToggleCityPanel,
   onClearMatchFilter,
 }: HomeHeaderProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="flex-shrink-0 bg-white/90 dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-800">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between gap-3">
-          {/* Midten: Logo / kamp-info */}
           <div className="flex-1 text-center">
             {matchId ? (
               <div className="space-y-1">
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
-                  Filtrerer på kamp
+                  {t('home_filtering_match')}
                 </div>
                 <div className="text-xs text-zinc-700 dark:text-zinc-300">
                   {activeMatchDescription ? (
                     <>
-                      Viser barer som viser:{' '}
+                      {t('home_showing_bars_for')}{' '}
                       <span className="font-medium">{activeMatchDescription}</span>
                     </>
                   ) : (
-                    'Viser barer som viser valgt kamp.'
+                    t('home_showing_bars_for_match')
                   )}
                 </div>
                 <button
@@ -43,7 +46,7 @@ export default function HomeHeader({
                   onClick={onClearMatchFilter}
                   className="mt-1 inline-flex items-center rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-medium text-white hover:bg-emerald-700"
                 >
-                  Fjern kampfilter
+                  {t('home_clear_match_filter')}
                 </button>
               </div>
             ) : (
@@ -58,13 +61,12 @@ export default function HomeHeader({
                 <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
                   {selectedTeam
                     ? `Filter: ${selectedTeam}`
-                    : 'Gå til «Kamper» for å søke etter lag og liga'}
+                    : t('home_go_to_matches')}
                 </div>
               </>
             )}
           </div>
 
-          {/* Høyre: Lokasjon-knapp */}
           <div className="flex-shrink-0">
             <button
               type="button"
@@ -74,9 +76,9 @@ export default function HomeHeader({
                   ? 'border-blue-500 text-blue-700 dark:border-blue-400 dark:text-blue-200'
                   : 'border-zinc-300/70 dark:border-zinc-600/80 text-zinc-700 dark:text-zinc-200'
               }`}
-              aria-label="Åpne valg for lokasjon"
+              aria-label={t('home_location')}
             >
-              <span className="text-xs font-medium tracking-tight">Lokasjon</span>
+              <span className="text-xs font-medium tracking-tight">{t('home_location')}</span>
             </button>
           </div>
         </div>

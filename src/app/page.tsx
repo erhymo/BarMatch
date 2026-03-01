@@ -18,6 +18,7 @@ import { BarFixtureSelectionService, BarService } from '@/lib/services';
 import { usePublicBars } from '@/lib/hooks/usePublicBars';
 import { useCandidateBars } from '@/lib/hooks/useCandidateBars';
 import { useFavoriteCity } from '@/lib/hooks/useFavoriteCity';
+import { useTranslation } from '@/lib/i18n';
 
 			const DEFAULT_RANGE_DAYS = 14;
 			const LEAGUES: LeagueKey[] = ['EPL', 'ENG_CHAMPIONSHIP', 'FA_CUP', 'EFL_TROPHY', 'NOR_ELITESERIEN', 'NOR_1_DIVISION', 'SERIE_A', 'LA_LIGA', 'COPA_DEL_REY', 'BUNDESLIGA', 'LIGUE_1', 'UCL', 'UEL', 'FIFA_CWC', 'FIFA_CWC_PLAYIN', 'UEFA_NL', 'FRIENDLIES'];
@@ -31,6 +32,7 @@ import { useFavoriteCity } from '@/lib/hooks/useFavoriteCity';
 function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { t } = useTranslation();
   const matchId = searchParams.get('matchId');
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
@@ -83,10 +85,10 @@ function HomeContent() {
 			      setFixtures(list);
 
 			      if (list.length === 0 && anyRejected) {
-			        setFixturesError('Kunne ikke laste kamper akkurat nå.');
+			        setFixturesError(t('home_could_not_load'));
 			      }
 			    } catch (e) {
-			      setFixturesError(e instanceof Error ? e.message : 'Kunne ikke laste kamper');
+			      setFixturesError(e instanceof Error ? e.message : t('home_could_not_load_generic'));
 			    } finally {
 			      setIsLoadingFixtures(false);
 			    }
@@ -257,16 +259,17 @@ function HomeContent() {
 					  const activeMatchDescription = useMemo(() => {
 					    if (!activeMatch) return null;
 					    const dt = new Date(activeMatch.kickoffUtc);
-					    const date = dt.toLocaleDateString('nb-NO', {
+					    const dateLocale = t('date_locale');
+					    const date = dt.toLocaleDateString(dateLocale, {
 					      weekday: 'short',
 					      day: 'numeric',
 					      month: 'short',
 					    });
-					    const time = dt.toLocaleTimeString('nb-NO', {
+					    const time = dt.toLocaleTimeString(dateLocale, {
 					      hour: '2-digit',
 					      minute: '2-digit',
 					    });
-					    return `${activeMatch.homeTeam} - ${activeMatch.awayTeam}, ${date} kl. ${time}`;
+					    return `${activeMatch.homeTeam} - ${activeMatch.awayTeam}, ${date} ${t('time_at')} ${time}`;
 					  }, [activeMatch]);
 
 					const handleClearMatchFilter = () => {
@@ -440,7 +443,7 @@ function HomeContent() {
 			            className="pointer-events-auto rounded-full bg-zinc-900/90 hover:bg-zinc-900 text-white text-sm font-medium px-4 py-2 shadow-lg border border-white/10 disabled:opacity-50"
 			            disabled={filteredBars.length === 0}
 			          >
-			            Finn nærmeste bar
+			            {t('home_find_nearest_bar')}
 			          </button>
 			        </div>
 
@@ -475,7 +478,7 @@ function HomeContent() {
 	    <Suspense
 	      fallback={
 	        <div className="flex h-screen items-center justify-center bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black text-zinc-500 dark:text-zinc-400">
-	          Laster inn siden...
+	          Loading...
 	        </div>
 	      }
 	    >

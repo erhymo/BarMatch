@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MatchService } from "@/lib/services";
 import type { LeagueKey } from "@/lib/types/fixtures";
+import { useTranslation } from '@/lib/i18n';
 
 const LEAGUES: { key: LeagueKey; label: string }[] = [
   // England
@@ -37,6 +38,7 @@ interface LeagueFilterProps {
 }
 
 export default function LeagueFilter({ selectedLeague, onSelectLeague }: LeagueFilterProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
 
   const selectedLabel = selectedLeague
@@ -63,7 +65,7 @@ export default function LeagueFilter({ selectedLeague, onSelectLeague }: LeagueF
         <div className="flex items-center gap-2">
           <span className="text-lg">⚽</span>
           <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">
-            Fotball
+            {t('league_football')}
           </span>
           {selectedLabel && (
             <span className="ml-1 text-xs text-blue-600 dark:text-blue-400 font-medium">
@@ -113,7 +115,7 @@ export default function LeagueFilter({ selectedLeague, onSelectLeague }: LeagueF
               onClick={() => { onSelectLeague(""); setIsOpen(false); }}
               className="w-full px-4 py-2 text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors text-center"
             >
-              Vis alle ligaer
+              {t('league_show_all')}
             </button>
           )}
         </div>

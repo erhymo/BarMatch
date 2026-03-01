@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 
 interface TeamFilterProps {
   onTeamSelect: (teamId: string | null) => void;
@@ -16,6 +17,7 @@ const teams = [
 ];
 
 export default function TeamFilter({ onTeamSelect }: TeamFilterProps) {
+  const { t } = useTranslation();
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
 
   const handleTeamChange = (teamId: string) => {
@@ -31,7 +33,7 @@ export default function TeamFilter({ onTeamSelect }: TeamFilterProps) {
           htmlFor="team-filter" 
           className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap"
         >
-          Filtrer etter lag:
+          {t('team_filter_label')}
         </label>
         <select
           id="team-filter"
@@ -42,7 +44,7 @@ export default function TeamFilter({ onTeamSelect }: TeamFilterProps) {
                      focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
                      cursor-pointer"
         >
-          <option value="">Alle barer</option>
+          <option value="">{t('team_filter_all')}</option>
           {teams.map((team) => (
             <option key={team.id} value={team.id}>
               {team.name}
@@ -55,7 +57,7 @@ export default function TeamFilter({ onTeamSelect }: TeamFilterProps) {
             className="px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100
                        hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg transition-colors"
           >
-            Nullstill
+            {t('team_filter_reset')}
           </button>
         )}
       </div>

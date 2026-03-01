@@ -83,7 +83,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 </p>
               </div>
               <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                Trykk for å lukke
+                {typeof window !== 'undefined' && document.documentElement.lang === 'en' ? 'Tap to dismiss' : 'Trykk for å lukke'}
               </p>
             </button>
           );
