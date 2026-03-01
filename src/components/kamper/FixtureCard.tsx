@@ -28,7 +28,7 @@ export default function FixtureCard({
     <div className="space-y-2">
       {isFirstOfDay && (
         <div className="mt-4 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-          {MatchService.formatDate(fixture.kickoffUtc)}
+          {MatchService.formatDate(fixture.kickoffUtc, t('date_locale'))}
         </div>
       )}
       <button
