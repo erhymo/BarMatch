@@ -36,13 +36,12 @@ export default function KamperPage() {
   const [selfTestResult, setSelfTestResult] = useState<string | null>(null);
   const [selfTestLoading, setSelfTestLoading] = useState(false);
 
-  const [isMobile, setIsMobile] = useState(false);
+  const [isIOSApp, setIsIOSApp] = useState(false);
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    setIsIOSApp(
+      !!(window as any).webkit?.messageHandlers?.['push-permission-request'],
+    );
   }, []);
 
   const { allFixtures, isLoading, loadError } = useKamperFixtures();
@@ -140,7 +139,7 @@ export default function KamperPage() {
               <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-2">
                 {t('kamper_title')}
               </h1>
-              {isMobile && (
+              {isIOSApp && (
                 <Link
                   href="/varslinger"
                   className="text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
