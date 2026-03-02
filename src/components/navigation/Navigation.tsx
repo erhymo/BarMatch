@@ -11,16 +11,9 @@ const LOCALES: Locale[] = ['no', 'en'];
 
 export default function Navigation() {
 	  const pathname = usePathname();
-	  const [isIOSApp, setIsIOSApp] = useState(false);
 	  const [langOpen, setLangOpen] = useState(false);
 	  const langRef = useRef<HTMLDivElement>(null);
 	  const { t, locale, setLocale } = useTranslation();
-
-	  useEffect(() => {
-	    setIsIOSApp(
-	      !!(window as any).webkit?.messageHandlers?.['push-permission-request'],
-	    );
-	  }, []);
 
 	  // Close language dropdown on outside click
 	  useEffect(() => {
@@ -34,17 +27,11 @@ export default function Navigation() {
 	  }, []);
 
 	  const navItems = useMemo(
-	    () => {
-	      const base = [
-	        { name: t('nav_home'), href: '/' },
-	        { name: t('nav_matches'), href: '/kamper' },
-	      ];
-	      if (isIOSApp) {
-	        base.push({ name: t('nav_notifications'), href: '/varslinger' });
-	      }
-	      return base;
-	    },
-	    [isIOSApp, t],
+	    () => [
+	      { name: t('nav_home'), href: '/' },
+	      { name: t('nav_matches'), href: '/kamper' },
+	    ],
+	    [t],
 	  );
 
 	  // Hide the public navigation inside admin/onboarding areas

@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import type { LeagueKey } from "@/lib/types/fixtures";
 import { useKamperFixtures, useTeamSearch, LEAGUE_LABEL_BY_KEY } from "@/lib/hooks";
 import type { TeamSuggestion } from "@/lib/hooks/useTeamSearch";
@@ -34,6 +35,15 @@ export default function KamperPage() {
   const [selectedLeague, setSelectedLeague] = useState<LeagueKey | "">("");
   const [selfTestResult, setSelfTestResult] = useState<string | null>(null);
   const [selfTestLoading, setSelfTestLoading] = useState(false);
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const { allFixtures, isLoading, loadError } = useKamperFixtures();
   const {
@@ -126,9 +136,19 @@ export default function KamperPage() {
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Header */}
           <header>
-            <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-2">
-              {t('kamper_title')}
-            </h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-2">
+                {t('kamper_title')}
+              </h1>
+              {isMobile && (
+                <Link
+                  href="/varslinger"
+                  className="text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+                >
+                  🔔 {t('nav_notifications')}
+                </Link>
+              )}
+            </div>
             <p className="text-lg text-zinc-600 dark:text-zinc-400">
               {t('kamper_subtitle')}
             </p>
