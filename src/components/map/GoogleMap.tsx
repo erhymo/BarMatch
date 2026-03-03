@@ -278,50 +278,36 @@ interface GoogleMapProps {
         </div>
       )}
 
-      {/* Error message */}
+      {/* Location permission banner */}
       {locationError && (
-	        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-white dark:bg-zinc-900 px-4 py-2 rounded-lg shadow-lg border border-red-300 dark:border-red-700 text-left">
+	        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-green-50 dark:bg-green-900/30 px-4 py-2 rounded-lg shadow-lg border border-green-300 dark:border-green-700 text-left">
 	          <div className="flex items-start gap-2">
-	            <button
-	              type="button"
-	              onClick={() => {
-	                if (!navigator.geolocation || isRetryingLocation) return;
-	                setIsRetryingLocation(true);
-	                navigator.geolocation.getCurrentPosition(
-	                  (position) => {
-	                    const pos = {
-	                      lat: position.coords.latitude,
-	                      lng: position.coords.longitude,
-	                    };
-	                    setCurrentPosition(pos);
-	                    onUserPositionChange?.(pos);
-	                    setIsLoadingPosition(false);
-	                    setLocationError(null);
-	                    setIsRetryingLocation(false);
-	                    setShowLocationHelp(false);
-	                    if (map && !disableAutoPanToUser) {
-	                      map.panTo(pos);
-	                    }
-	                  },
-	                  () => {
-	                    setIsRetryingLocation(false);
-	                    setShowLocationHelp(true);
-	                  },
-	                  { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-	                );
-	              }}
-	              className="flex-1 text-left cursor-pointer focus:outline-none"
-	            >
-	              <p className="text-sm font-medium text-red-700 dark:text-red-300">{locationError}</p>
-	              <p className="mt-0.5 text-xs text-red-600 dark:text-red-400 underline flex items-center gap-1.5">
-	                {isRetryingLocation && <span className="inline-block animate-spin rounded-full h-3 w-3 border-b-2 border-red-600 dark:border-red-400" />}
-	                {isRetryingLocation ? t('map_geo_denied_retrying') : t('map_geo_denied_tap')}
-	              </p>
-	            </button>
+	            <div className="flex-1">
+	              <p className="text-sm font-medium text-green-800 dark:text-green-200">{locationError}</p>
+	              <div className="mt-2">
+	                {typeof window !== 'undefined' && !!(window as any).webkit?.messageHandlers?.['open-settings'] ? (
+	                  <button
+	                    type="button"
+	                    onClick={() => {
+	                      try {
+	                        (window as any).webkit.messageHandlers['open-settings'].postMessage({});
+	                      } catch { /* ignore */ }
+	                    }}
+	                    className="text-xs font-medium text-white bg-green-600 dark:bg-green-700 px-3 py-1.5 rounded-md hover:bg-green-700 dark:hover:bg-green-600 focus:outline-none"
+	                  >
+	                    📍 {t('map_geo_open_settings')}
+	                  </button>
+	                ) : (
+	                  <p className="text-xs text-green-700 dark:text-green-300">
+	                    {t('map_geo_denied_help')}
+	                  </p>
+	                )}
+	              </div>
+	            </div>
 	            <button
 	              type="button"
 	              onClick={() => { setLocationError(null); setShowLocationHelp(false); }}
-	              className="shrink-0 p-0.5 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 focus:outline-none"
+	              className="shrink-0 p-0.5 text-green-400 hover:text-green-600 dark:text-green-500 dark:hover:text-green-300 focus:outline-none"
 	              aria-label="Lukk"
 	            >
 	              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -329,28 +315,6 @@ interface GoogleMapProps {
 	              </svg>
 	            </button>
 	          </div>
-	          {showLocationHelp && (
-	            <div className="mt-1.5">
-	              {typeof window !== 'undefined' && !!(window as any).webkit?.messageHandlers?.['open-settings'] ? (
-	                <button
-	                  type="button"
-	                  onClick={(e) => {
-	                    e.stopPropagation();
-	                    try {
-	                      (window as any).webkit.messageHandlers['open-settings'].postMessage({});
-	                    } catch { /* ignore */ }
-	                  }}
-	                  className="text-xs font-medium text-white bg-red-600 dark:bg-red-700 px-3 py-1 rounded-md hover:bg-red-700 dark:hover:bg-red-600 focus:outline-none"
-	                >
-	                  {t('map_geo_open_settings')}
-	                </button>
-	              ) : (
-	                <p className="text-xs text-zinc-600 dark:text-zinc-400">
-	                  {t('map_geo_denied_help')}
-	                </p>
-	              )}
-	            </div>
-	          )}
 	        </div>
       )}
 
