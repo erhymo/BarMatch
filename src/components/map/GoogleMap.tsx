@@ -280,47 +280,61 @@ interface GoogleMapProps {
 
       {/* Error message */}
       {locationError && (
-	        <button
-	          type="button"
-	          onClick={() => {
-	            if (!navigator.geolocation || isRetryingLocation) return;
-	            setIsRetryingLocation(true);
-	            navigator.geolocation.getCurrentPosition(
-	              (position) => {
-	                const pos = {
-	                  lat: position.coords.latitude,
-	                  lng: position.coords.longitude,
-	                };
-	                setCurrentPosition(pos);
-	                onUserPositionChange?.(pos);
-	                setIsLoadingPosition(false);
-	                setLocationError(null);
-	                setIsRetryingLocation(false);
-	                setShowLocationHelp(false);
-	                if (map && !disableAutoPanToUser) {
-	                  map.panTo(pos);
-	                }
-	              },
-	              () => {
-	                setIsRetryingLocation(false);
-	                setShowLocationHelp(true);
-	              },
-	              { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-	            );
-	          }}
-	          className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 w-[90%] max-w-sm bg-white dark:bg-zinc-900 px-4 py-3 rounded-xl shadow-xl border border-red-300 dark:border-red-700 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500"
-	        >
-	          <p className="text-sm font-medium text-red-700 dark:text-red-300">{locationError}</p>
-	          <p className="mt-1 text-sm text-red-600 dark:text-red-400 underline flex items-center gap-1.5">
-	            {isRetryingLocation && <span className="inline-block animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-red-600 dark:border-red-400" />}
-	            {isRetryingLocation ? t('map_geo_denied_retrying') : t('map_geo_denied_tap')}
-	          </p>
+	        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-white dark:bg-zinc-900 px-4 py-2 rounded-lg shadow-lg border border-red-300 dark:border-red-700 text-left">
+	          <div className="flex items-start gap-2">
+	            <button
+	              type="button"
+	              onClick={() => {
+	                if (!navigator.geolocation || isRetryingLocation) return;
+	                setIsRetryingLocation(true);
+	                navigator.geolocation.getCurrentPosition(
+	                  (position) => {
+	                    const pos = {
+	                      lat: position.coords.latitude,
+	                      lng: position.coords.longitude,
+	                    };
+	                    setCurrentPosition(pos);
+	                    onUserPositionChange?.(pos);
+	                    setIsLoadingPosition(false);
+	                    setLocationError(null);
+	                    setIsRetryingLocation(false);
+	                    setShowLocationHelp(false);
+	                    if (map && !disableAutoPanToUser) {
+	                      map.panTo(pos);
+	                    }
+	                  },
+	                  () => {
+	                    setIsRetryingLocation(false);
+	                    setShowLocationHelp(true);
+	                  },
+	                  { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+	                );
+	              }}
+	              className="flex-1 text-left cursor-pointer focus:outline-none"
+	            >
+	              <p className="text-sm font-medium text-red-700 dark:text-red-300">{locationError}</p>
+	              <p className="mt-0.5 text-xs text-red-600 dark:text-red-400 underline flex items-center gap-1.5">
+	                {isRetryingLocation && <span className="inline-block animate-spin rounded-full h-3 w-3 border-b-2 border-red-600 dark:border-red-400" />}
+	                {isRetryingLocation ? t('map_geo_denied_retrying') : t('map_geo_denied_tap')}
+	              </p>
+	            </button>
+	            <button
+	              type="button"
+	              onClick={() => { setLocationError(null); setShowLocationHelp(false); }}
+	              className="shrink-0 p-0.5 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 focus:outline-none"
+	              aria-label="Lukk"
+	            >
+	              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+	                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+	              </svg>
+	            </button>
+	          </div>
 	          {showLocationHelp && (
-	            <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">
+	            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
 	              {t('map_geo_denied_help')}
 	            </p>
 	          )}
-	        </button>
+	        </div>
       )}
 
 	      {/* Map loading and error states */}
