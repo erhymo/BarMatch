@@ -281,14 +281,40 @@ interface GoogleMapProps {
       {locationError && (
 	        <button
 	          type="button"
-	          onClick={() => setShowLocationHelp((prev) => !prev)}
+	          onClick={() => {
+	            if (!navigator.geolocation) return;
+	            setIsLoadingPosition(true);
+	            setLocationError(null);
+	            setShowLocationHelp(false);
+	            navigator.geolocation.getCurrentPosition(
+	              (position) => {
+	                const pos = {
+	                  lat: position.coords.latitude,
+	                  lng: position.coords.longitude,
+	                };
+	                setCurrentPosition(pos);
+	                onUserPositionChange?.(pos);
+	                setIsLoadingPosition(false);
+	                setLocationError(null);
+	                if (map && !disableAutoPanToUser) {
+	                  map.panTo(pos);
+	                }
+	              },
+	              () => {
+	                setIsLoadingPosition(false);
+	                setLocationError(t('map_geo_denied'));
+	                setShowLocationHelp(true);
+	              },
+	              { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+	            );
+	          }}
 	          className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-lg shadow-lg border border-red-200 dark:border-red-800 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500"
 	        >
 	          <p className="text-sm text-red-800 dark:text-red-200">{locationError}</p>
+	          <p className="mt-0.5 text-xs text-red-600 dark:text-red-300 underline">{t('map_geo_denied_tap')}</p>
 	          {showLocationHelp && (
 	            <p className="mt-1 text-xs text-red-900/90 dark:text-red-100/90">
-	              For å slå på posisjon på iPhone: Innstillinger → Personvern og sikkerhet →
-	              Stedstjenester → Safari / BarMatch → Tillat posisjon.
+	              {t('map_geo_denied_help')}
 	            </p>
 	          )}
 	        </button>
