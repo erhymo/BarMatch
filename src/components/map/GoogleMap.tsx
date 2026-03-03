@@ -330,9 +330,26 @@ interface GoogleMapProps {
 	            </button>
 	          </div>
 	          {showLocationHelp && (
-	            <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-	              {t('map_geo_denied_help')}
-	            </p>
+	            <div className="mt-1.5">
+	              {typeof window !== 'undefined' && !!(window as any).webkit?.messageHandlers?.['open-settings'] ? (
+	                <button
+	                  type="button"
+	                  onClick={(e) => {
+	                    e.stopPropagation();
+	                    try {
+	                      (window as any).webkit.messageHandlers['open-settings'].postMessage({});
+	                    } catch { /* ignore */ }
+	                  }}
+	                  className="text-xs font-medium text-white bg-red-600 dark:bg-red-700 px-3 py-1 rounded-md hover:bg-red-700 dark:hover:bg-red-600 focus:outline-none"
+	                >
+	                  {t('map_geo_open_settings')}
+	                </button>
+	              ) : (
+	                <p className="text-xs text-zinc-600 dark:text-zinc-400">
+	                  {t('map_geo_denied_help')}
+	                </p>
+	              )}
+	            </div>
 	          )}
 	        </div>
       )}
