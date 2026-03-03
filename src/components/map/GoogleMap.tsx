@@ -103,8 +103,7 @@ interface GoogleMapProps {
 	    useState<{ lat: number; lng: number } | null>(null);
 	  const [isLoadingPosition, setIsLoadingPosition] = useState(false);
 	  const [locationError, setLocationError] = useState<string | null>(null);
-		  const [showLocationHelp, setShowLocationHelp] = useState(false);
-	  const [isRetryingLocation, setIsRetryingLocation] = useState(false);
+
 	  const [selectedBar, setSelectedBar] = useState<Bar | null>(null);
 	  const [isMapReady, setIsMapReady] = useState(false);
 	  const [mapError, setMapError] = useState<string | null>(null);
@@ -191,7 +190,6 @@ interface GoogleMapProps {
 	    },
 	    (error) => {
 	      setIsLoadingPosition(false);
-			  setShowLocationHelp(false);
 		      onUserPositionChange?.(null);
 	      switch (error.code) {
 	        case error.PERMISSION_DENIED:
@@ -278,35 +276,14 @@ interface GoogleMapProps {
         </div>
       )}
 
-      {/* Location permission banner */}
+      {/* Location permission info banner */}
       {locationError && (
-	        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-green-50 dark:bg-green-900/30 px-4 py-2 rounded-lg shadow-lg border border-green-300 dark:border-green-700 text-left">
+	        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 max-w-xs bg-green-50 dark:bg-green-900/30 px-4 py-2.5 rounded-lg shadow-lg border border-green-300 dark:border-green-700 text-left">
 	          <div className="flex items-start gap-2">
-	            <div className="flex-1">
-	              <p className="text-sm font-medium text-green-900 dark:text-white">{locationError}</p>
-	              <div className="mt-2">
-	                {typeof window !== 'undefined' && !!(window as any).webkit?.messageHandlers?.['open-settings'] ? (
-	                  <button
-	                    type="button"
-	                    onClick={() => {
-	                      try {
-	                        (window as any).webkit.messageHandlers['open-settings'].postMessage({});
-	                      } catch { /* ignore */ }
-	                    }}
-	                    className="text-xs font-medium text-white bg-green-600 dark:bg-green-700 px-3 py-1.5 rounded-md hover:bg-green-700 dark:hover:bg-green-600 focus:outline-none"
-	                  >
-	                    📍 {t('map_geo_open_settings')}
-	                  </button>
-	                ) : (
-	                  <p className="text-xs text-green-700 dark:text-green-300">
-	                    {t('map_geo_denied_help')}
-	                  </p>
-	                )}
-	              </div>
-	            </div>
+	            <p className="flex-1 text-xs text-green-800 dark:text-green-200">{locationError}</p>
 	            <button
 	              type="button"
-	              onClick={() => { setLocationError(null); setShowLocationHelp(false); }}
+	              onClick={() => setLocationError(null)}
 	              className="shrink-0 p-0.5 text-green-400 hover:text-green-600 dark:text-green-500 dark:hover:text-green-300 focus:outline-none"
 	              aria-label="Lukk"
 	            >
