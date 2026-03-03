@@ -80,7 +80,7 @@ export function BarProfileForm({
                   <option value="3-5">3–5 skjermer</option>
                   <option value="6+">6+ skjermer</option>
                 </select>
-                <Checkbox label="Har projektor" checked={profile.hasProjector} onChange={(v) => updateProfileField('hasProjector', v)} />
+                <Checkbox label="Har prosjektor" checked={profile.hasProjector} onChange={(v) => updateProfileField('hasProjector', v)} />
               </div>
             </Field>
             <Field label="Mat">

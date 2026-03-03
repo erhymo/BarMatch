@@ -130,7 +130,7 @@ export const translations = {
     bar_wifi_badge: '📶 Gratis WiFi',
     bar_family_badge: '👨‍👩‍👧 Familievennlig før kl. 21',
     bar_reservation_badge: '📅 Reservasjon til kamp',
-    bar_projector_badge: '📽️ Projektor',
+    bar_projector_badge: '📽️ Prosjektor',
 
     // Opening hours
     bar_opening_hours: 'Åpningstider',

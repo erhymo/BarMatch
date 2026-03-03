@@ -153,7 +153,7 @@ export function useBarProfile({
   if (profile?.hasWifi) previewFacilityBadges.push('📶 Gratis WiFi');
   if (profile?.familyFriendly) previewFacilityBadges.push('👨‍👩‍👧 Familievennlig før kl. 21');
   if (profile?.canReserveTable) previewFacilityBadges.push('📅 Reservasjon til kamp');
-  if (profile?.hasProjector) previewFacilityBadges.push('📽️ Projektor');
+  if (profile?.hasProjector) previewFacilityBadges.push('📽️ Prosjektor');
 
   const previewCapacityLabel =
     profile && profile.capacity.trim().length > 0
