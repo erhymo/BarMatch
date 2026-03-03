@@ -39,7 +39,7 @@ function buildCandidateOnboardingMailto(bar: Bar, t: (key: string) => string): s
 	    '[Telefonnummer]',
 	  ];
 	  const body = encodeURIComponent(bodyLines.join('\n'));
-	  return `mailto:support@where2watch.com?subject=${subject}&body=${body}`;
+	  return `mailto:post@where2watch.no?subject=${subject}&body=${body}`;
 	}
 
 interface GoogleMapProps {

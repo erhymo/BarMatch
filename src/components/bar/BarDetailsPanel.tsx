@@ -383,7 +383,7 @@ export default function BarDetailsPanel({
 	              <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
 	                {t('bar_candidate_notice')}{' '}
 	                <a
-	                  href={`mailto:support@where2watch.com?subject=${encodeURIComponent(
+	                  href={`mailto:post@where2watch.no?subject=${encodeURIComponent(
 	                    `${bar.name} – onboarding`,
 	                  )}`}
 	                  className="font-medium text-emerald-600 hover:text-emerald-700 underline"
