@@ -283,7 +283,7 @@ interface GoogleMapProps {
 	        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-green-50 dark:bg-green-900/30 px-4 py-2 rounded-lg shadow-lg border border-green-300 dark:border-green-700 text-left">
 	          <div className="flex items-start gap-2">
 	            <div className="flex-1">
-	              <p className="text-sm font-medium text-green-800 dark:text-green-200">{locationError}</p>
+	              <p className="text-sm font-medium text-green-900 dark:text-white">{locationError}</p>
 	              <div className="mt-2">
 	                {typeof window !== 'undefined' && !!(window as any).webkit?.messageHandlers?.['open-settings'] ? (
 	                  <button
