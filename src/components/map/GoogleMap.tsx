@@ -308,15 +308,15 @@ interface GoogleMapProps {
 	              { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
 	            );
 	          }}
-	          className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-red-50 dark:bg-red-900/20 px-4 py-2 rounded-lg shadow-lg border border-red-200 dark:border-red-800 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500"
+	          className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 w-[90%] max-w-sm bg-white dark:bg-zinc-900 px-4 py-3 rounded-xl shadow-xl border border-red-300 dark:border-red-700 text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:focus-visible:ring-red-500"
 	        >
-	          <p className="text-sm text-red-800 dark:text-red-200">{locationError}</p>
-	          <p className="mt-0.5 text-xs text-red-600 dark:text-red-300 underline flex items-center gap-1.5">
-	            {isRetryingLocation && <span className="inline-block animate-spin rounded-full h-3 w-3 border-b-2 border-red-600 dark:border-red-300" />}
+	          <p className="text-sm font-medium text-red-700 dark:text-red-300">{locationError}</p>
+	          <p className="mt-1 text-sm text-red-600 dark:text-red-400 underline flex items-center gap-1.5">
+	            {isRetryingLocation && <span className="inline-block animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-red-600 dark:border-red-400" />}
 	            {isRetryingLocation ? t('map_geo_denied_retrying') : t('map_geo_denied_tap')}
 	          </p>
 	          {showLocationHelp && (
-	            <p className="mt-1 text-xs text-red-900/90 dark:text-red-100/90">
+	            <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">
 	              {t('map_geo_denied_help')}
 	            </p>
 	          )}
