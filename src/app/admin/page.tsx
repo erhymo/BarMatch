@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { getFirebaseAuthClient } from '@/lib/firebase/client';
 import { useAdminMe } from '@/lib/admin/useAdminMe';
+
+const SESSION_KEY = 'w2w_admin_login_time';
+const MAX_SESSION_MS = 48 * 60 * 60 * 1000; // 2 days
 
 type AdminMeResponse =
   | { role: 'superadmin' | 'bar_owner'; barId?: string }
@@ -37,6 +40,14 @@ async function fetchMe(idToken: string): Promise<AdminMeResponse> {
   useEffect(() => {
     if (loading) return;
     if (user && me) {
+      // Check if session is older than 48 hours
+      const loginTime = localStorage.getItem(SESSION_KEY);
+      if (loginTime && Date.now() - Number(loginTime) > MAX_SESSION_MS) {
+        // Session expired — sign out and force re-login
+        localStorage.removeItem(SESSION_KEY);
+        void signOut(getFirebaseAuthClient());
+        return;
+      }
       router.replace(me.role === 'superadmin' ? '/admin/super' : '/admin/bar');
     }
   }, [loading, user, me, router]);
@@ -74,7 +85,10 @@ async function fetchMe(idToken: string): Promise<AdminMeResponse> {
 	      const token = await cred.user.getIdToken();
 	      const me = await fetchMe(token);
 	      if ('error' in me) throw new Error(me.error);
-	
+
+	      // Save login timestamp for 48-hour expiry check
+	      localStorage.setItem(SESSION_KEY, String(Date.now()));
+
 	      router.replace(me.role === 'superadmin' ? '/admin/super' : '/admin/bar');
 	    } catch (e) {
 	      setLoginError(e instanceof Error ? e.message : 'Ukjent feil');
