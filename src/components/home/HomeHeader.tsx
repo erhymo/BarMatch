@@ -145,16 +145,8 @@ export default function HomeHeader({
             )}
           </div>
 
-          {/* Right side: Varslinger (iOS only) + Lokasjon + Logg inn (web only) */}
+          {/* Right side: Lokasjon + Logg inn (web only) */}
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            {isIosApp && (
-              <Link
-                href="/varslinger"
-                className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300/70 dark:border-zinc-600/80 px-3 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-              >
-                🔔 {t('nav_notifications')}
-              </Link>
-            )}
             <button
               type="button"
               onClick={onToggleCityPanel}
