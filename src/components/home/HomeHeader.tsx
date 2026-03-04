@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useTranslation, LOCALE_FLAGS, LOCALE_LABELS } from '@/lib/i18n';
 import type { Locale } from '@/lib/i18n';
 
@@ -42,8 +43,8 @@ export default function HomeHeader({
     <div className="flex-shrink-0 bg-white/90 dark:bg-zinc-900/80 backdrop-blur border-b border-zinc-200 dark:border-zinc-800 relative z-20">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between gap-3">
-          {/* Language switcher — left side, mirrors Lokasjon on the right */}
-          <div className="flex-shrink-0">
+          {/* Left side: Flag + Hjem + Kamper */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <div ref={langRef} className="relative">
               <button
                 type="button"
@@ -74,6 +75,22 @@ export default function HomeHeader({
                 </div>
               )}
             </div>
+            <Link
+              href="/"
+              onClick={(e) => {
+                e.preventDefault();
+                window.dispatchEvent(new CustomEvent('where2watch:reset-home-filters'));
+              }}
+              className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300/70 dark:border-zinc-600/80 px-3 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+            >
+              {t('nav_home')}
+            </Link>
+            <Link
+              href="/kamper"
+              className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300/70 dark:border-zinc-600/80 px-3 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+            >
+              {t('nav_matches')}
+            </Link>
           </div>
 
           <div className="flex-1 text-center">
@@ -118,7 +135,16 @@ export default function HomeHeader({
             )}
           </div>
 
-          <div className="flex-shrink-0">
+          {/* Right side: Varslinger (iOS only) + Lokasjon */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {typeof window !== 'undefined' && !!(window as any).webkit?.messageHandlers?.['push-permission-request'] && (
+              <Link
+                href="/varslinger"
+                className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300/70 dark:border-zinc-600/80 px-3 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+              >
+                🔔 {t('nav_notifications')}
+              </Link>
+            )}
             <button
               type="button"
               onClick={onToggleCityPanel}
