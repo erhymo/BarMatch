@@ -19,6 +19,7 @@ export const translations = {
     nav_matches: 'Kamper',
     nav_notifications: 'Varslinger',
     nav_home_reset: 'Hjem/resett',
+    nav_login: 'Logg inn',
 
     // Home header
     home_filtering_match: 'Filtrerer på kamp',
@@ -299,6 +300,7 @@ export const translations = {
     nav_matches: 'Matches',
     nav_notifications: 'Notifications',
     nav_home_reset: 'Home/reset',
+    nav_login: 'Log in',
 
     // Home header
     home_filtering_match: 'Filtering by match',
