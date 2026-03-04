@@ -26,7 +26,13 @@ export default function HomeHeader({
 }: HomeHeaderProps) {
   const { t, locale, setLocale } = useTranslation();
   const [langOpen, setLangOpen] = useState(false);
+  const [isIosApp, setIsIosApp] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
+
+  // Detect iOS WKWebView wrapper
+  useEffect(() => {
+    setIsIosApp(!!(window as any).webkit?.messageHandlers?.['push-permission-request']);
+  }, []);
 
   // Close language dropdown on outside click
   useEffect(() => {
@@ -75,22 +81,26 @@ export default function HomeHeader({
                 </div>
               )}
             </div>
-            <Link
-              href="/"
-              onClick={(e) => {
-                e.preventDefault();
-                window.dispatchEvent(new CustomEvent('where2watch:reset-home-filters'));
-              }}
-              className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300/70 dark:border-zinc-600/80 px-3 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-            >
-              {t('nav_home')}
-            </Link>
-            <Link
-              href="/kamper"
-              className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300/70 dark:border-zinc-600/80 px-3 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-            >
-              {t('nav_matches')}
-            </Link>
+            {!isIosApp && (
+              <>
+                <Link
+                  href="/"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.dispatchEvent(new CustomEvent('where2watch:reset-home-filters'));
+                  }}
+                  className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300/70 dark:border-zinc-600/80 px-3 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                >
+                  {t('nav_home')}
+                </Link>
+                <Link
+                  href="/kamper"
+                  className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300/70 dark:border-zinc-600/80 px-3 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                >
+                  {t('nav_matches')}
+                </Link>
+              </>
+            )}
           </div>
 
           <div className="flex-1 text-center">
@@ -135,9 +145,9 @@ export default function HomeHeader({
             )}
           </div>
 
-          {/* Right side: Varslinger (iOS only) + Lokasjon */}
+          {/* Right side: Varslinger (iOS only) + Lokasjon + Logg inn (web only) */}
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            {typeof window !== 'undefined' && !!(window as any).webkit?.messageHandlers?.['push-permission-request'] && (
+            {isIosApp && (
               <Link
                 href="/varslinger"
                 className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300/70 dark:border-zinc-600/80 px-3 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
@@ -157,12 +167,14 @@ export default function HomeHeader({
             >
               <span className="text-xs font-medium tracking-tight">{t('home_location')}</span>
             </button>
-            <Link
-              href="/admin"
-              className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300/70 dark:border-zinc-600/80 px-3 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-            >
-              {t('nav_login')}
-            </Link>
+            {!isIosApp && (
+              <Link
+                href="/admin"
+                className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300/70 dark:border-zinc-600/80 px-3 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+              >
+                {t('nav_login')}
+              </Link>
+            )}
           </div>
         </div>
       </div>
