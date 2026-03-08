@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">where2watch</string>
+    <string name="channel_name">Kampvarsler</string>
+    <string name="channel_description">Varsler om kommende kamper på barer du følger</string>
+</resources>
+
