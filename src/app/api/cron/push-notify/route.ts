@@ -3,7 +3,8 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { getFirebaseAdminDb } from '@/lib/firebase/admin';
 import { ALL_LEAGUE_KEYS } from '@/lib/config/competitions';
 import { sendPushNotifications } from '@/lib/push/apns';
-import type { ApnsPayload } from '@/lib/push/types';
+import { sendFcmNotifications } from '@/lib/push/fcm';
+import type { ApnsPayload, FcmDataPayload, NotificationContent } from '@/lib/push/types';
 import type { Fixture } from '@/lib/types/fixtures';
 
 export const runtime = 'nodejs';
@@ -114,8 +115,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: true, reason: 'No subscribers', sent: 0 });
     }
 
-    // 5. Match subscribers to bar matches
-    const notifications: { token: string; payload: ApnsPayload }[] = [];
+    // 5. Match subscribers to bar matches (split by platform)
+    type MatchedNotification = { token: string; platform: string; content: NotificationContent };
+    const notifications: MatchedNotification[] = [];
     const notifiedDocIds: string[] = [];
 
     for (const subDoc of subSnap.docs) {
@@ -123,6 +125,7 @@ export async function GET(request: Request) {
       const deviceToken = typeof sub.deviceToken === 'string' ? sub.deviceToken : '';
       if (!deviceToken) continue;
 
+      const platform = typeof sub.platform === 'string' ? sub.platform : 'ios';
       const subTeams = Array.isArray(sub.teams) ? new Set(sub.teams as string[]) : new Set<string>();
       const subBarIds = Array.isArray(sub.barIds) ? new Set(sub.barIds as string[]) : new Set<string>();
 
@@ -137,15 +140,10 @@ export async function GET(request: Request) {
 
           notifications.push({
             token: deviceToken,
-            payload: {
-              aps: {
-                alert: {
-                  title: `${bm.fixture.homeTeam} – ${bm.fixture.awayTeam}`,
-                  body: `Vises på ${bm.barName} kl. ${timeStr} ⚽`,
-                },
-                sound: 'default',
-                'thread-id': 'match-alerts',
-              },
+            platform,
+            content: {
+              title: `${bm.fixture.homeTeam} – ${bm.fixture.awayTeam}`,
+              body: `Vises på ${bm.barName} kl. ${timeStr} ⚽`,
               fixtureId: bm.fixture.id,
               barId: bm.barId,
             },
@@ -156,28 +154,67 @@ export async function GET(request: Request) {
       }
     }
 
-    // 6. Send notifications
+    // 6. Send notifications — split by platform
     let sentCount = 0;
     if (notifications.length > 0) {
-      const tokens = notifications.map((n) => n.token);
-      // Use the first payload for batch (simplified — all get the same notification)
-      // For production, you'd send individual payloads
-      const uniquePayloads = new Map<string, { payload: ApnsPayload; tokens: string[] }>();
+      // Group by platform and payload
+      const iosPayloads = new Map<string, { payload: ApnsPayload; tokens: string[] }>();
+      const fcmPayloads = new Map<string, { payload: FcmDataPayload; tokens: string[] }>();
+
       for (const n of notifications) {
-        const key = JSON.stringify(n.payload);
-        const entry = uniquePayloads.get(key);
-        if (entry) { entry.tokens.push(n.token); }
-        else { uniquePayloads.set(key, { payload: n.payload, tokens: [n.token] }); }
+        const key = JSON.stringify(n.content);
+
+        if (n.platform === 'android') {
+          const fcmPayload: FcmDataPayload = {
+            title: n.content.title,
+            body: n.content.body,
+            fixtureId: n.content.fixtureId,
+            barId: n.content.barId,
+          };
+          const entry = fcmPayloads.get(key);
+          if (entry) { entry.tokens.push(n.token); }
+          else { fcmPayloads.set(key, { payload: fcmPayload, tokens: [n.token] }); }
+        } else {
+          const apnsPayload: ApnsPayload = {
+            aps: {
+              alert: { title: n.content.title, body: n.content.body },
+              sound: 'default',
+              'thread-id': 'match-alerts',
+            },
+            fixtureId: n.content.fixtureId,
+            barId: n.content.barId,
+          };
+          const entry = iosPayloads.get(key);
+          if (entry) { entry.tokens.push(n.token); }
+          else { iosPayloads.set(key, { payload: apnsPayload, tokens: [n.token] }); }
+        }
       }
 
-      for (const { payload, tokens: batchTokens } of uniquePayloads.values()) {
+      // Send iOS (APNs) notifications
+      for (const { payload, tokens: batchTokens } of iosPayloads.values()) {
         const results = await sendPushNotifications(batchTokens, payload);
         sentCount += results.filter((r) => r.success).length;
 
-        // Deactivate tokens that got "Unregistered" or "BadDeviceToken"
         for (const r of results) {
           if (!r.success && (r.reason === 'Unregistered' || r.reason === 'BadDeviceToken')) {
-            // Find and deactivate this subscription
+            const subQuery = await db.collection('pushSubscriptions')
+              .where('deviceToken', '==', r.deviceToken)
+              .limit(1)
+              .get();
+            for (const doc of subQuery.docs) {
+              await doc.ref.update({ active: false, updatedAt: FieldValue.serverTimestamp() });
+            }
+          }
+        }
+      }
+
+      // Send Android (FCM) notifications
+      for (const { payload, tokens: batchTokens } of fcmPayloads.values()) {
+        const results = await sendFcmNotifications(batchTokens, payload);
+        sentCount += results.filter((r) => r.success).length;
+
+        for (const r of results) {
+          if (!r.success && (r.reason?.includes('not-registered') || r.reason?.includes('invalid-registration-token'))) {
             const subQuery = await db.collection('pushSubscriptions')
               .where('deviceToken', '==', r.deviceToken)
               .limit(1)

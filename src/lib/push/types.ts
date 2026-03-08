@@ -5,11 +5,13 @@
  * Document ID: SHA-256 hash of deviceToken (to avoid duplicates)
  */
 
+export type PushPlatform = 'ios' | 'android';
+
 export interface PushSubscription {
-  /** APNs device token (hex string) */
+  /** Device token — APNs hex string (iOS) or FCM registration token (Android) */
   deviceToken: string;
   /** Platform identifier */
-  platform: 'ios';
+  platform: PushPlatform;
   /** Team names the user wants notifications for (e.g. ["Arsenal", "Liverpool"]) */
   teams: string[];
   /** Bar IDs the user wants notifications for */
@@ -27,7 +29,7 @@ export interface PushSubscription {
 /** Request body for POST /api/push/register */
 export interface PushRegisterRequest {
   deviceToken: string;
-  platform: 'ios';
+  platform: PushPlatform;
   teams?: string[];
   barIds?: string[];
 }
@@ -51,6 +53,22 @@ export interface ApnsPayload {
     'thread-id'?: string;
   };
   /** Custom data */
+  fixtureId?: string;
+  barId?: string;
+}
+
+/** FCM data message payload (used for Android) */
+export interface FcmDataPayload {
+  title: string;
+  body: string;
+  fixtureId?: string;
+  barId?: string;
+}
+
+/** Common notification content used across platforms */
+export interface NotificationContent {
+  title: string;
+  body: string;
   fixtureId?: string;
   barId?: string;
 }
