@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { LeagueKey } from "@/lib/types/fixtures";
-import { useKamperFixtures, useTeamSearch, LEAGUE_LABEL_BY_KEY } from "@/lib/hooks";
+import { useKamperFixtures, useTeamSearch } from "@/lib/hooks";
 import type { TeamSuggestion } from "@/lib/hooks/useTeamSearch";
 import FixtureCard from "@/components/kamper/FixtureCard";
 import LeagueFilter from "@/components/kamper/LeagueFilter";
 import TeamSearchInput from "@/components/kamper/TeamSearchInput";
 import { useTranslation } from '@/lib/i18n';
+import { useNativeAppPlatform } from '@/lib/push/nativeApp';
 
 function getFixturesCountFromBody(body: unknown): number {
   if (!body || typeof body !== "object") return 0;
@@ -35,14 +36,7 @@ export default function KamperPage() {
   const [selectedLeague, setSelectedLeague] = useState<LeagueKey | "">("");
   const [selfTestResult, setSelfTestResult] = useState<string | null>(null);
   const [selfTestLoading, setSelfTestLoading] = useState(false);
-
-  const [isIOSApp, setIsIOSApp] = useState(false);
-
-  useEffect(() => {
-    setIsIOSApp(
-      !!(window as any).webkit?.messageHandlers?.['push-permission-request'],
-    );
-  }, []);
+  const isNativeApp = useNativeAppPlatform() !== null;
 
   const { allFixtures, isLoading, loadError } = useKamperFixtures();
   const {
@@ -139,7 +133,7 @@ export default function KamperPage() {
               <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 mb-2">
                 {t('kamper_title')}
               </h1>
-              {isIOSApp && (
+              {isNativeApp && (
                 <Link
                   href="/varslinger"
                   className="text-xs font-medium text-zinc-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"

@@ -261,6 +261,7 @@ export const translations = {
     // Varslinger page
     push_title: 'Push-varsler',
     push_ios_only: 'Push-varsler er kun tilgjengelig i Where2Watch iOS-appen. Last ned appen fra App Store for å motta varsler om kamper.',
+    push_app_only: 'Push-varsler er kun tilgjengelig i Where2Watch-appen. Last ned appen fra App Store eller Google Play for å motta varsler om kamper.',
     push_header: '🔔 Varslinger',
     push_subtitle: 'Få push-varsler når favorittlagene dine spiller på en bar nær deg.',
     push_enabled: 'Push-varsler er aktivert',
@@ -542,6 +543,7 @@ export const translations = {
     // Varslinger page
     push_title: 'Push notifications',
     push_ios_only: 'Push notifications are only available in the Where2Watch iOS app. Download the app from the App Store to receive match notifications.',
+    push_app_only: 'Push notifications are only available in the Where2Watch app. Download the app from the App Store or Google Play to receive match notifications.',
     push_header: '🔔 Notifications',
     push_subtitle: 'Get push notifications when your favorite teams play at a bar near you.',
     push_enabled: 'Push notifications are enabled',

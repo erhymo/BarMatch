@@ -1,53 +1,64 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import {
+  queryNativePushState,
+  requestNativePushPermission,
+  useNativeAppPlatform,
+} from '@/lib/push/nativeApp';
+export type { NativeAppPlatform } from '@/lib/push/nativeApp';
 
 export type PushPermissionStatus = 'default' | 'granted' | 'denied' | 'unknown';
 
 interface PushState {
-  /** Whether we are inside the iOS WKWebView app */
+  /** Whether we are inside a native app (iOS or Android) */
+  isNativeApp: boolean;
+  /** Whether we are inside the iOS WKWebView app (backward compat) */
   isIOSApp: boolean;
+  /** Whether we are inside the Android WebView app */
+  isAndroidApp: boolean;
+  /** Which native platform we're on, or null for web */
+  platform: NativeAppPlatform;
   /** Current push permission status */
   permissionStatus: PushPermissionStatus;
-  /** APNs device token (hex string) */
+  /** Device token — APNs hex (iOS) or FCM token (Android) */
   deviceToken: string | null;
   /** Whether preferences are being saved */
   isSaving: boolean;
 }
 
 /**
- * Hook for managing push notification state within the iOS WKWebView app.
+ * Hook for managing push notification state within native app wrappers.
  *
- * Detects the iOS app environment via `window.webkit?.messageHandlers`,
- * listens for CustomEvents dispatched from Swift, and provides methods
- * to request permission and save notification preferences.
+ * Supports both:
+ *   - iOS: detects via `window.webkit?.messageHandlers`
+ *   - Android: detects via `window.AndroidBridge`
+ *
+ * Both platforms dispatch the same CustomEvents (push-permission-result,
+ * push-state, push-token), so the event listeners work identically.
  */
 export function usePushNotifications() {
-  const [isIOSApp, setIsIOSApp] = useState(false);
+  const platform = useNativeAppPlatform();
   const [permissionStatus, setPermissionStatus] = useState<PushPermissionStatus>('unknown');
   const [deviceToken, setDeviceToken] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Detect iOS WKWebView environment
+  const isIOSApp = platform === 'ios';
+  const isAndroidApp = platform === 'android';
+  const isNativeApp = platform !== null;
+
+  // Ask the native wrapper for the current push state when available.
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (!platform) return;
 
-    const hasWebkit =
-      !!(window as any).webkit?.messageHandlers?.['push-permission-request'];
-
-    setIsIOSApp(hasWebkit);
-
-    if (hasWebkit) {
-      // Ask iOS for current push state on mount
-      try {
-        (window as any).webkit.messageHandlers['push-permission-state'].postMessage({});
-      } catch {
-        // ignore
-      }
+    try {
+      queryNativePushState(platform);
+    } catch {
+      // ignore
     }
-  }, []);
+  }, [platform]);
 
-  // Listen for CustomEvents from the iOS bridge
+  // Listen for CustomEvents from the native bridge (same events on both platforms)
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -78,14 +89,14 @@ export function usePushNotifications() {
     };
   }, []);
 
-  /** Request push permission from the iOS app */
+  /** Request push permission from the native app */
   const requestPermission = useCallback(() => {
     try {
-      (window as any).webkit?.messageHandlers?.['push-permission-request']?.postMessage({});
+      requestNativePushPermission(platform);
     } catch {
       // ignore
     }
-  }, []);
+  }, [platform]);
 
   /** Save push notification preferences (teams & bars) to the backend */
   const savePreferences = useCallback(
@@ -110,7 +121,10 @@ export function usePushNotifications() {
   );
 
   return {
+    isNativeApp,
     isIOSApp,
+    isAndroidApp,
+    platform,
     permissionStatus,
     deviceToken,
     isSaving,

@@ -10,7 +10,7 @@ import { useTranslation } from '@/lib/i18n';
 
 export default function VarslingerPage() {
   const {
-    isIOSApp,
+    isNativeApp,
     permissionStatus,
     deviceToken,
     isSaving,
@@ -89,8 +89,8 @@ export default function VarslingerPage() {
     }
   };
 
-  // If not in iOS app, show a message
-  if (!isIOSApp) {
+  // If not in a native app, show a message
+  if (!isNativeApp) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black">
         <main className="container mx-auto px-4 py-12 pb-24">
@@ -100,7 +100,7 @@ export default function VarslingerPage() {
               {t('push_title')}
             </h1>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              {t('push_ios_only')}
+              {t('push_app_only')}
             </p>
           </div>
         </main>
@@ -109,7 +109,6 @@ export default function VarslingerPage() {
   }
 
   const isPushEnabled = permissionStatus === 'granted';
-  const isPushDenied = permissionStatus === 'denied';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black">

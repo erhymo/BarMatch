@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useTranslation, LOCALE_FLAGS, LOCALE_LABELS } from '@/lib/i18n';
 import type { Locale } from '@/lib/i18n';
+import { useNativeAppPlatform } from '@/lib/push/nativeApp';
 
 const LOCALES: Locale[] = ['no', 'en'];
 
@@ -26,13 +27,8 @@ export default function HomeHeader({
 }: HomeHeaderProps) {
   const { t, locale, setLocale } = useTranslation();
   const [langOpen, setLangOpen] = useState(false);
-  const [isIosApp, setIsIosApp] = useState(false);
+  const isNativeApp = useNativeAppPlatform() !== null;
   const langRef = useRef<HTMLDivElement>(null);
-
-  // Detect iOS WKWebView wrapper
-  useEffect(() => {
-    setIsIosApp(!!(window as any).webkit?.messageHandlers?.['push-permission-request']);
-  }, []);
 
   // Close language dropdown on outside click
   useEffect(() => {
@@ -81,7 +77,7 @@ export default function HomeHeader({
                 </div>
               )}
             </div>
-            {!isIosApp && (
+            {!isNativeApp && (
               <>
                 <Link
                   href="/"
@@ -159,7 +155,7 @@ export default function HomeHeader({
             >
               <span className="text-xs font-medium tracking-tight">{t('home_location')}</span>
             </button>
-            {!isIosApp && (
+            {!isNativeApp && (
               <Link
                 href="/admin"
                 className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300/70 dark:border-zinc-600/80 px-3 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
