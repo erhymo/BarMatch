@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useTranslation, LOCALE_FLAGS, LOCALE_LABELS } from '@/lib/i18n';
 import type { Locale } from '@/lib/i18n';

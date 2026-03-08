@@ -6,6 +6,7 @@ import {
   requestNativePushPermission,
   useNativeAppPlatform,
 } from '@/lib/push/nativeApp';
+import type { NativeAppPlatform } from '@/lib/push/nativeApp';
 export type { NativeAppPlatform } from '@/lib/push/nativeApp';
 
 export type PushPermissionStatus = 'default' | 'granted' | 'denied' | 'unknown';
