@@ -7,7 +7,7 @@ const STORAGE_KEY = 'where2watch.favoriteCity';
 const LEGACY_KEY = 'matchbar.favoriteCity';
 
 const VALID_CITY_IDS: ReadonlySet<string> = new Set<CityId>([
-  'oslo', 'bergen', 'forde', 'trondheim',
+  'oslo', 'bergen', 'trondheim',
   'stavanger', 'kristiansand', 'molde', 'bodo', 'tromso',
 ]);
 
@@ -25,6 +25,9 @@ export function useFavoriteCity() {
     try {
       const stored = window.localStorage.getItem(STORAGE_KEY);
       if (isValidCityId(stored)) return stored;
+
+      const legacy = window.localStorage.getItem(LEGACY_KEY);
+      if (isValidCityId(legacy)) return legacy;
     } catch {
       // Ignorer feil fra localStorage
     }
@@ -37,10 +40,6 @@ export function useFavoriteCity() {
     try {
       const legacy = window.localStorage.getItem(LEGACY_KEY);
       if (!legacy) return;
-
-      if (isValidCityId(legacy)) {
-        setFavoriteCity((current) => (current ? current : legacy));
-      }
 
       window.localStorage.removeItem(LEGACY_KEY);
     } catch {

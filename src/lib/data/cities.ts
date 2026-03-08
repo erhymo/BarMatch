@@ -1,4 +1,4 @@
-export type CityId = 'oslo' | 'bergen' | 'forde' | 'trondheim' | 'stavanger' | 'kristiansand' | 'molde' | 'bodo' | 'tromso';
+export type CityId = 'oslo' | 'bergen' | 'trondheim' | 'stavanger' | 'kristiansand' | 'molde' | 'bodo' | 'tromso';
 
 export interface CityConfig {
   id: CityId;
@@ -25,14 +25,6 @@ export const CITIES: CityConfig[] = [
     center: {
       lat: 60.39299,
       lng: 5.32415,
-    },
-  },
-  {
-    id: 'forde',
-    name: 'Førde',
-    center: {
-      lat: 61.4507,
-      lng: 5.8583,
     },
   },
   {
