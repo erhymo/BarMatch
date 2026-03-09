@@ -3,7 +3,32 @@
 import { useState } from 'react';
 import type { User } from 'firebase/auth';
 import { useToast } from '@/contexts/ToastContext';
+import { asRecord } from '@/lib/utils/unknown';
 import type { BarDoc, BarProfileFormState } from './types';
+
+type AddressCandidate = {
+  formattedAddress: string;
+  location: { lat: number; lng: number };
+  city: string;
+  country: string;
+};
+
+function readAddressCandidates(value: unknown): AddressCandidate[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((entry) => {
+    const rec = asRecord(entry);
+    const loc = asRecord(rec?.location);
+    const formattedAddress = typeof rec?.formattedAddress === 'string' ? rec.formattedAddress : '';
+    const city = typeof rec?.city === 'string' ? rec.city : '';
+    const country = typeof rec?.country === 'string' ? rec.country : '';
+    const lat = typeof loc?.lat === 'number' ? loc.lat : Number(loc?.lat);
+    const lng = typeof loc?.lng === 'number' ? loc.lng : Number(loc?.lng);
+
+    if (!formattedAddress || !Number.isFinite(lat) || !Number.isFinite(lng)) return [];
+    return [{ formattedAddress, city, country, location: { lat, lng } }];
+  });
+}
 
 interface UseBarProfileArgs {
   user: User | null;
@@ -22,12 +47,25 @@ export function useBarProfile({
 }: UseBarProfileArgs) {
   const { showToast } = useToast();
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
+  const [manualLocationOverride, setManualLocationOverride] = useState(false);
+  const [addressCandidates, setAddressCandidates] = useState<AddressCandidate[]>([]);
 
   const updateProfileField = <K extends keyof BarProfileFormState>(
     key: K,
     value: BarProfileFormState[K],
   ) => {
+    if (key === 'address') {
+      setAddressCandidates([]);
+      setManualLocationOverride(false);
+    }
     setProfile((prev) => (prev ? { ...prev, [key]: value } : prev));
+  };
+
+  const applyAddressCandidate = (candidate: AddressCandidate) => {
+    setAddressCandidates([]);
+    setManualLocationOverride(false);
+    setLocation(candidate.location);
+    setProfile((prev) => (prev ? { ...prev, address: candidate.formattedAddress } : prev));
   };
 
   const handleAutocompletePlaceChanged = () => {
@@ -38,6 +76,8 @@ export function useBarProfile({
       (typeof place.formatted_address === 'string' && place.formatted_address) ||
       (typeof place.name === 'string' && place.name) ||
       '';
+    setAddressCandidates([]);
+    setManualLocationOverride(false);
     if (formatted) updateProfileField('address', formatted);
     const loc = place.geometry?.location;
     if (loc) {
@@ -50,7 +90,11 @@ export function useBarProfile({
   const handleMarkerDragEnd = (event: google.maps.MapMouseEvent) => {
     const lat = event.latLng?.lat();
     const lng = event.latLng?.lng();
-    if (typeof lat === 'number' && typeof lng === 'number') setLocation({ lat, lng });
+    if (typeof lat === 'number' && typeof lng === 'number') {
+      setAddressCandidates([]);
+      setManualLocationOverride(true);
+      setLocation({ lat, lng });
+    }
   };
 
   const saveProfile = async () => {
@@ -92,6 +136,7 @@ export function useBarProfile({
       if (address) body.address = address;
       body.phone = phone;
       if (location) body.location = location;
+      body.manualLocationOverride = manualLocationOverride;
 
       const res = await fetch(`/api/admin/bars/${barId}`, {
         method: 'PATCH',
@@ -100,7 +145,17 @@ export function useBarProfile({
       });
       const raw: unknown = await res.json().catch(() => ({}));
       const data = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null;
+      const candidates = readAddressCandidates(data?.candidates);
       if (!res.ok) {
+        if (res.status === 409 && candidates.length > 0) {
+          setAddressCandidates(candidates);
+          showToast({
+            title: 'Velg adresse',
+            description: 'Vi fant flere mulige adresser. Velg riktig treff under adressefeltet.',
+            variant: 'info',
+          });
+          return;
+        }
         const msg = typeof data?.error === 'string' ? data.error : '';
         throw new Error(msg || `Kunne ikke lagre barprofil (${res.status})`);
       }
@@ -113,8 +168,10 @@ export function useBarProfile({
       const savedLocation = typeof savedLocationRaw?.lat === 'number' && typeof savedLocationRaw?.lng === 'number'
         ? { lat: savedLocationRaw.lat, lng: savedLocationRaw.lng }
         : location;
+      setAddressCandidates([]);
       setProfile((prev) => (prev ? { ...prev, address: savedAddress } : prev));
       if (savedLocation) setLocation(savedLocation);
+      setManualLocationOverride(false);
       setBar((prev) =>
         prev
           ? {
@@ -174,7 +231,9 @@ export function useBarProfile({
 
   return {
     autocomplete, setAutocomplete,
+    addressCandidates,
     updateProfileField,
+    applyAddressCandidate,
     handleAutocompletePlaceChanged,
     handleMarkerDragEnd,
     saveProfile,

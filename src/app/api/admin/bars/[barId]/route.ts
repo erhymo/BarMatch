@@ -4,7 +4,7 @@ import { getFirebaseAdminDb } from '@/lib/firebase/admin';
 import { requireRole } from '@/lib/admin/serverAuth';
 import { getFirebaseAdminAuth } from '@/lib/firebase/admin';
 import { logAdminAction } from '@/lib/admin/audit';
-import { geocodeAddress, GoogleGeocodeError, reverseGeocodeLocation } from '@/lib/googleGeocoding';
+import { geocodeAddress, GoogleGeocodeAmbiguousError, GoogleGeocodeError, reverseGeocodeLocation } from '@/lib/googleGeocoding';
 import { asRecord } from '@/lib/utils/unknown';
 import { tsToMs } from '@/lib/utils/time';
 
@@ -117,6 +117,13 @@ export async function PATCH(
     }
 
     const body = (await request.json()) as Record<string, unknown>;
+    const manualLocationOverride = (() => {
+      if (!('manualLocationOverride' in body)) return false;
+      if (typeof body.manualLocationOverride !== 'boolean') {
+        throw new GoogleGeocodeError('Invalid manualLocationOverride', 400);
+      }
+      return body.manualLocationOverride;
+    })();
 
     const db = getFirebaseAdminDb();
     const barRef = db.collection('bars').doc(barId);
@@ -224,15 +231,25 @@ export async function PATCH(
       requestedLocation
         && (!existingLocation || existingLocation.lat !== requestedLocation.lat || existingLocation.lng !== requestedLocation.lng),
     );
+	    const shouldUseAddressAsAuthority = Boolean(
+	      !manualLocationOverride
+	      && typeof requestedAddress === 'string'
+	      && requestedAddress.length > 0
+	      && (addressChanged || locationChanged || 'city' in body || 'country' in body),
+	    );
 
-    if (locationChanged && requestedLocation) {
+	    if (manualLocationOverride && locationChanged && requestedLocation) {
       const resolved = await reverseGeocodeLocation(requestedLocation);
       requestedAddress = resolved.formattedAddress;
       requestedCity = resolved.city;
       requestedCountry = resolved.country;
       requestedLocation = resolved.location;
-    } else if (addressChanged && requestedAddress) {
-      const resolved = await geocodeAddress(requestedAddress);
+	    } else if (shouldUseAddressAsAuthority && requestedAddress) {
+	      const resolved = await geocodeAddress({
+	        address: requestedAddress,
+	        city: requestedCity,
+	        country: requestedCountry,
+	      });
       requestedAddress = resolved.formattedAddress;
       requestedCity = resolved.city;
       requestedCountry = resolved.country;
@@ -397,6 +414,9 @@ export async function PATCH(
 		      location: update.location,
 		    });
   } catch (e) {
+    if (e instanceof GoogleGeocodeAmbiguousError) {
+      return NextResponse.json({ error: e.message, ambiguous: true, candidates: e.candidates }, { status: e.statusCode });
+    }
     if (e instanceof GoogleGeocodeError) {
       return NextResponse.json({ error: e.message }, { status: e.statusCode });
     }

@@ -8,9 +8,40 @@ import DraggablePinMap from '@/components/onboard/DraggablePinMap';
 import { asRecord } from '@/lib/utils/unknown';
 
 type Step = 'account' | 'bar' | 'payment';
+type AddressCandidate = {
+  formattedAddress: string;
+  location: { lat: number; lng: number };
+  city: string;
+  country: string;
+};
 
 function validPassword(pw: string) {
   return pw.length >= 8 && /[A-Z]/.test(pw) && /[0-9]/.test(pw);
+}
+
+function readAddressCandidates(value: unknown): AddressCandidate[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((entry) => {
+    const rec = asRecord(entry);
+    const loc = asRecord(rec?.location);
+    const formattedAddress = typeof rec?.formattedAddress === 'string' ? rec.formattedAddress : '';
+    const city = typeof rec?.city === 'string' ? rec.city : '';
+    const country = typeof rec?.country === 'string' ? rec.country : '';
+    const lat = typeof loc?.lat === 'number' ? loc.lat : Number(loc?.lat);
+    const lng = typeof loc?.lng === 'number' ? loc.lng : Number(loc?.lng);
+
+    if (!formattedAddress || !Number.isFinite(lat) || !Number.isFinite(lng)) return [];
+    return [{ formattedAddress, city, country, location: { lat, lng } }];
+  });
+}
+
+function getCandidateTitle(candidate: AddressCandidate): string {
+  const firstPart = candidate.formattedAddress.split(',')[0]?.trim() || candidate.formattedAddress;
+  if (candidate.city && !firstPart.toLowerCase().includes(candidate.city.toLowerCase())) {
+    return `${firstPart}, ${candidate.city}`;
+  }
+  return firstPart;
 }
 
 function OnboardInner() {
@@ -38,6 +69,8 @@ function OnboardInner() {
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('NO');
   const [pos, setPos] = useState<{ lat: number; lng: number }>({ lat: 59.9139, lng: 10.7522 });
+  const [manualLocationOverride, setManualLocationOverride] = useState(false);
+  const [addressCandidates, setAddressCandidates] = useState<AddressCandidate[]>([]);
 
   const mapsKey = useMemo(() => process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '', []);
 
@@ -86,6 +119,40 @@ function OnboardInner() {
   const authHeader = async () => {
     if (!user) throw new Error('Du må være innlogget');
     return { Authorization: `Bearer ${await user.getIdToken()}` };
+  };
+
+  const handleAddressChange = (value: string) => {
+    setAddressCandidates([]);
+    setManualLocationOverride(false);
+    setAddress(value);
+  };
+
+  const handleCityChange = (value: string) => {
+    setAddressCandidates([]);
+    setManualLocationOverride(false);
+    setCity(value);
+  };
+
+  const handleCountryChange = (value: string) => {
+    setAddressCandidates([]);
+    setManualLocationOverride(false);
+    setCountry(value);
+  };
+
+  const handlePinChange = (nextPos: { lat: number; lng: number }) => {
+    setAddressCandidates([]);
+    setManualLocationOverride(true);
+    setPos(nextPos);
+  };
+
+  const applyAddressCandidate = (candidate: AddressCandidate) => {
+    setAddress(candidate.formattedAddress);
+    setCity(candidate.city);
+    setCountry(candidate.country || 'NO');
+    setPos(candidate.location);
+    setManualLocationOverride(false);
+    setAddressCandidates([]);
+    setError(null);
   };
 
   const goToStep = (next: Step, nextBarId?: string) => {
@@ -154,16 +221,22 @@ function OnboardInner() {
       const res = await fetch('/api/geocode', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ address }),
+        body: JSON.stringify({ address, city, country }),
       });
       const raw: unknown = await res.json().catch(() => ({}));
       const data = asRecord(raw);
+      const candidates = readAddressCandidates(data?.candidates);
 
       if (!res.ok) {
+        if (res.status === 409 && candidates.length > 0) {
+          setAddressCandidates(candidates);
+          return;
+        }
         const msg = typeof data?.error === 'string' ? data.error : '';
         throw new Error(msg || `Geocode feilet (${res.status})`);
       }
 
+      setAddressCandidates([]);
       if (typeof data?.formattedAddress === 'string' && data.formattedAddress) {
         setAddress(data.formattedAddress);
       }
@@ -174,6 +247,7 @@ function OnboardInner() {
       if (typeof loc?.lat === 'number' && typeof loc?.lng === 'number') {
         setPos({ lat: loc.lat, lng: loc.lng });
       }
+      setManualLocationOverride(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ukjent feil');
     } finally {
@@ -190,7 +264,7 @@ function OnboardInner() {
       const res = await fetch(`/api/admin/bars/${barId}`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ name, address, city, country, location: pos }),
+        body: JSON.stringify({ name, address, city, country, location: pos, manualLocationOverride }),
       });
       const raw: unknown = await res.json().catch(() => ({}));
       const data = asRecord(raw);
@@ -278,16 +352,34 @@ function OnboardInner() {
           <h2 className="text-sm font-semibold">2) Barinfo</h2>
           <div className="mt-3 grid gap-3">
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Navn på bar" className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900" />
-            <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Adresse" className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900" />
+            <input value={address} onChange={(e) => handleAddressChange(e.target.value)} placeholder="Adresse" className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900" />
             <div className="flex gap-2">
-              <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="By" className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900" />
-              <input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Land" className="w-28 rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900" />
+              <input value={city} onChange={(e) => handleCityChange(e.target.value)} placeholder="By" className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900" />
+              <input value={country} onChange={(e) => handleCountryChange(e.target.value)} placeholder="Land" className="w-28 rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900" />
             </div>
             <button disabled={busy || !address} onClick={geocode} className="rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800">
               Geokode adresse
             </button>
-            <DraggablePinMap apiKey={mapsKey} center={pos} marker={pos} onChange={setPos} />
-            <button disabled={busy || !name || !address} onClick={saveBar} className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900">
+            {addressCandidates.length > 0 && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-900/20">
+                <p className="text-sm font-medium text-amber-900 dark:text-amber-100">Vi fant flere mulige adresser. Velg riktig treff:</p>
+                <div className="mt-3 space-y-2">
+                  {addressCandidates.map((candidate) => (
+                    <button
+                      key={`${candidate.formattedAddress}-${candidate.location.lat}-${candidate.location.lng}`}
+                      type="button"
+                      onClick={() => applyAddressCandidate(candidate)}
+                      className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-left text-sm text-zinc-900 transition hover:border-amber-400 hover:bg-amber-100 dark:border-amber-800 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-amber-950/40"
+                    >
+                      <div className="font-medium">{getCandidateTitle(candidate)}</div>
+                      <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">{candidate.formattedAddress}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <DraggablePinMap apiKey={mapsKey} center={pos} marker={pos} onChange={handlePinChange} />
+            <button disabled={busy || !name || !address || addressCandidates.length > 0} onClick={saveBar} className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900">
               Lagre og gå videre
             </button>
           </div>

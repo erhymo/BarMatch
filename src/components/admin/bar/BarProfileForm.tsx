@@ -3,6 +3,13 @@
 import { Autocomplete, GoogleMap as GoogleMapComponent, LoadScriptNext, Marker } from '@react-google-maps/api';
 import type { BarProfileFormState } from '@/lib/admin/bar/types';
 
+type AddressCandidate = {
+  formattedAddress: string;
+  location: { lat: number; lng: number };
+  city: string;
+  country: string;
+};
+
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 const AUTOCOMPLETE_OPTIONS: google.maps.places.AutocompleteOptions = {
   componentRestrictions: { country: 'no' },
@@ -15,16 +22,26 @@ interface BarProfileFormProps {
   location: { lat: number; lng: number } | null;
   busy: boolean;
   autocomplete: google.maps.places.Autocomplete | null;
+  addressCandidates: AddressCandidate[];
   setAutocomplete: (ac: google.maps.places.Autocomplete) => void;
   updateProfileField: <K extends keyof BarProfileFormState>(key: K, value: BarProfileFormState[K]) => void;
+  onApplyAddressCandidate: (candidate: AddressCandidate) => void;
   onAutocompletePlaceChanged: () => void;
   onMarkerDragEnd: (event: google.maps.MapMouseEvent) => void;
   onSave: () => void;
 }
 
+function getCandidateTitle(candidate: AddressCandidate): string {
+  const firstPart = candidate.formattedAddress.split(',')[0]?.trim() || candidate.formattedAddress;
+  if (candidate.city && !firstPart.toLowerCase().includes(candidate.city.toLowerCase())) {
+    return `${firstPart}, ${candidate.city}`;
+  }
+  return firstPart;
+}
+
 export function BarProfileForm({
-  profile, location, busy, setAutocomplete,
-  updateProfileField, onAutocompletePlaceChanged, onMarkerDragEnd, onSave,
+  profile, location, busy, addressCandidates, setAutocomplete,
+  updateProfileField, onApplyAddressCandidate, onAutocompletePlaceChanged, onMarkerDragEnd, onSave,
 }: BarProfileFormProps) {
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition-all duration-150 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-950">
@@ -64,6 +81,24 @@ export function BarProfileForm({
                           )}
                         </div>
                       </div>
+                      {addressCandidates.length > 0 && (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-900/20">
+                          <p className="text-sm font-medium text-amber-900 dark:text-amber-100">Vi fant flere mulige adresser. Velg riktig treff:</p>
+                          <div className="mt-3 space-y-2">
+                            {addressCandidates.map((candidate) => (
+                              <button
+                                key={`${candidate.formattedAddress}-${candidate.location.lat}-${candidate.location.lng}`}
+                                type="button"
+                                onClick={() => onApplyAddressCandidate(candidate)}
+                                className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-left text-sm text-zinc-900 transition hover:border-amber-400 hover:bg-amber-100 dark:border-amber-800 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-amber-950/40"
+                              >
+                                <div className="font-medium">{getCandidateTitle(candidate)}</div>
+                                <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">{candidate.formattedAddress}</div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </LoadScriptNext>
                 </div>
@@ -71,6 +106,24 @@ export function BarProfileForm({
                 <>
                   <input type="text" className={inputCls} value={profile.address} onChange={(e) => updateProfileField('address', e.target.value)} />
                   <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Kart og adresseforslag krever en Google Maps API-nøkkel (NEXT_PUBLIC_GOOGLE_MAPS_API_KEY).</p>
+                  {addressCandidates.length > 0 && (
+                    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-900/20">
+                      <p className="text-sm font-medium text-amber-900 dark:text-amber-100">Vi fant flere mulige adresser. Velg riktig treff:</p>
+                      <div className="mt-3 space-y-2">
+                        {addressCandidates.map((candidate) => (
+                          <button
+                            key={`${candidate.formattedAddress}-${candidate.location.lat}-${candidate.location.lng}`}
+                            type="button"
+                            onClick={() => onApplyAddressCandidate(candidate)}
+                            className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-left text-sm text-zinc-900 transition hover:border-amber-400 hover:bg-amber-100 dark:border-amber-800 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-amber-950/40"
+                          >
+                            <div className="font-medium">{getCandidateTitle(candidate)}</div>
+                            <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">{candidate.formattedAddress}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </Field>
@@ -113,7 +166,7 @@ export function BarProfileForm({
               <textarea rows={3} placeholder="F.eks. 2-for-1 på øl før kampstart, egne kampmenyer, happy hour-tider osv." className={inputCls} value={profile.specialOffers} onChange={(e) => updateProfileField('specialOffers', e.target.value)} />
             </Field>
           </div>
-          <button type="button" disabled={busy} onClick={onSave}
+          <button type="button" disabled={busy || addressCandidates.length > 0} onClick={onSave}
             className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-emerald-600/20 transition-all duration-150 hover:bg-emerald-700 hover:shadow-md active:scale-[0.98] disabled:opacity-50 dark:bg-emerald-500 dark:shadow-emerald-500/15 dark:hover:bg-emerald-600 sm:w-auto">
             Lagre barprofil
           </button>

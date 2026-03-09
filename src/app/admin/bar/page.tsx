@@ -103,8 +103,10 @@ export default function BarOwnerDashboard() {
           location={data.location}
           busy={data.busy}
           autocomplete={profileHook.autocomplete}
+          addressCandidates={profileHook.addressCandidates}
           setAutocomplete={profileHook.setAutocomplete}
           updateProfileField={profileHook.updateProfileField}
+          onApplyAddressCandidate={profileHook.applyAddressCandidate}
           onAutocompletePlaceChanged={profileHook.handleAutocompletePlaceChanged}
           onMarkerDragEnd={profileHook.handleMarkerDragEnd}
           onSave={profileHook.saveProfile}
