@@ -4,6 +4,7 @@ import { getFirebaseAdminDb } from '@/lib/firebase/admin';
 import { requireRole } from '@/lib/admin/serverAuth';
 import { getFirebaseAdminAuth } from '@/lib/firebase/admin';
 import { logAdminAction } from '@/lib/admin/audit';
+import { geocodeAddress, GoogleGeocodeError, reverseGeocodeLocation } from '@/lib/googleGeocoding';
 import { asRecord } from '@/lib/utils/unknown';
 import { tsToMs } from '@/lib/utils/time';
 
@@ -44,6 +45,18 @@ function parseStringArrayField(params: {
 function readStringArrayFromDoc(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((v): v is string => typeof v === 'string' && v.trim().length > 0).map((v) => v.trim());
+}
+
+function parseLatLng(value: unknown): { lat: number; lng: number } | null {
+  const rec = asRecord(value);
+  if (!rec) return null;
+
+  const lat = typeof rec.lat === 'number' ? rec.lat : Number(rec.lat);
+  const lng = typeof rec.lng === 'number' ? rec.lng : Number(rec.lng);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return { lat, lng };
 }
 
 export async function GET(
@@ -110,10 +123,16 @@ export async function PATCH(
     const barSnap = await barRef.get();
     if (!barSnap.exists) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     const barData = (barSnap.data() ?? {}) as Record<string, unknown>;
+    const existingAddress = typeof barData.address === 'string' ? barData.address.trim() : '';
+    const existingLocation = parseLatLng(barData.location);
 
     const update: Record<string, unknown> = {
       updatedAt: FieldValue.serverTimestamp(),
     };
+    let requestedAddress: string | undefined;
+    let requestedCity: string | undefined;
+    let requestedCountry: string | undefined;
+    let requestedLocation: { lat: number; lng: number } | undefined;
 
     if ('isVisible' in body) {
       if (typeof body.isVisible !== 'boolean') {
@@ -166,21 +185,21 @@ export async function PATCH(
       if (typeof body.address !== 'string' || !body.address.trim()) {
         return NextResponse.json({ error: 'Invalid address' }, { status: 400 });
       }
-      update.address = body.address.trim();
+      requestedAddress = body.address.trim();
     }
 
     if ('city' in body) {
       if (typeof body.city !== 'string') {
         return NextResponse.json({ error: 'Invalid city' }, { status: 400 });
       }
-      update.city = body.city.trim();
+      requestedCity = body.city.trim();
     }
 
     if ('country' in body) {
       if (typeof body.country !== 'string') {
         return NextResponse.json({ error: 'Invalid country' }, { status: 400 });
       }
-      update.country = body.country.trim();
+      requestedCountry = body.country.trim();
     }
 
 	    if ('phone' in body) {
@@ -197,8 +216,33 @@ export async function PATCH(
       if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
         return NextResponse.json({ error: 'Invalid location' }, { status: 400 });
       }
-      update.location = { lat, lng };
+      requestedLocation = { lat, lng };
     }
+
+    const addressChanged = typeof requestedAddress === 'string' && requestedAddress !== existingAddress;
+    const locationChanged = Boolean(
+      requestedLocation
+        && (!existingLocation || existingLocation.lat !== requestedLocation.lat || existingLocation.lng !== requestedLocation.lng),
+    );
+
+    if (locationChanged && requestedLocation) {
+      const resolved = await reverseGeocodeLocation(requestedLocation);
+      requestedAddress = resolved.formattedAddress;
+      requestedCity = resolved.city;
+      requestedCountry = resolved.country;
+      requestedLocation = resolved.location;
+    } else if (addressChanged && requestedAddress) {
+      const resolved = await geocodeAddress(requestedAddress);
+      requestedAddress = resolved.formattedAddress;
+      requestedCity = resolved.city;
+      requestedCountry = resolved.country;
+      requestedLocation = resolved.location;
+    }
+
+    if (typeof requestedAddress === 'string') update.address = requestedAddress;
+    if (typeof requestedCity === 'string') update.city = requestedCity;
+    if (typeof requestedCountry === 'string') update.country = requestedCountry;
+    if (requestedLocation) update.location = requestedLocation;
 
 	    if ('description' in body) {
 	      if (typeof body.description !== 'string') {
@@ -345,8 +389,17 @@ export async function PATCH(
 	      });
 	    }
 
-	    return NextResponse.json({ ok: true });
+		    return NextResponse.json({
+		      ok: true,
+		      address: typeof update.address === 'string' ? update.address : undefined,
+		      city: typeof update.city === 'string' ? update.city : undefined,
+		      country: typeof update.country === 'string' ? update.country : undefined,
+		      location: update.location,
+		    });
   } catch (e) {
+    if (e instanceof GoogleGeocodeError) {
+      return NextResponse.json({ error: e.message }, { status: e.statusCode });
+    }
     const msg = e instanceof Error ? e.message : 'Unauthorized';
     const status = msg === 'Forbidden' ? 403 : 401;
     return NextResponse.json({ error: msg }, { status });

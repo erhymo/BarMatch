@@ -3,6 +3,8 @@ export type BarDoc = {
   name?: string;
   email?: string;
   address?: string;
+  city?: string;
+  country?: string;
   phone?: string;
   location?: {
     lat: number;

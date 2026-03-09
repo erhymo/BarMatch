@@ -20,7 +20,6 @@ export default function BarOwnerDashboard() {
     setLocation: data.setLocation,
     bar: data.bar,
     setBar: data.setBar,
-    busy: data.busy,
     setBusy: data.setBusy,
   });
 

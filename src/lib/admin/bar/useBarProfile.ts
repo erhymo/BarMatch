@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import type { User } from 'firebase/auth';
 import { useToast } from '@/contexts/ToastContext';
 import type { BarDoc, BarProfileFormState } from './types';
@@ -14,12 +14,11 @@ interface UseBarProfileArgs {
   setLocation: React.Dispatch<React.SetStateAction<{ lat: number; lng: number } | null>>;
   bar: BarDoc | null;
   setBar: React.Dispatch<React.SetStateAction<BarDoc | null>>;
-  busy: boolean;
   setBusy: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export function useBarProfile({
-  user, barId, profile, setProfile, location, setLocation, bar, setBar, busy, setBusy,
+  user, barId, profile, setProfile, location, setLocation, bar, setBar, setBusy,
 }: UseBarProfileArgs) {
   const { showToast } = useToast();
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
@@ -105,14 +104,27 @@ export function useBarProfile({
         const msg = typeof data?.error === 'string' ? data.error : '';
         throw new Error(msg || `Kunne ikke lagre barprofil (${res.status})`);
       }
+      const savedAddress = typeof data?.address === 'string' ? data.address : address;
+      const savedCity = typeof data?.city === 'string' ? data.city : undefined;
+      const savedCountry = typeof data?.country === 'string' ? data.country : undefined;
+      const savedLocationRaw = data?.location && typeof data.location === 'object' && !Array.isArray(data.location)
+        ? data.location as { lat?: unknown; lng?: unknown }
+        : null;
+      const savedLocation = typeof savedLocationRaw?.lat === 'number' && typeof savedLocationRaw?.lng === 'number'
+        ? { lat: savedLocationRaw.lat, lng: savedLocationRaw.lng }
+        : location;
+      setProfile((prev) => (prev ? { ...prev, address: savedAddress } : prev));
+      if (savedLocation) setLocation(savedLocation);
       setBar((prev) =>
         prev
           ? {
               ...prev,
               name: name || prev.name,
-              address: address || prev.address,
+              address: savedAddress || prev.address,
+              city: savedCity ?? prev.city,
+              country: savedCountry ?? prev.country,
               phone,
-              location: location ?? prev.location,
+              location: savedLocation ?? prev.location,
               description: body.description as string,
               specialOffers: body.specialOffers as string,
               facilities: { ...(prev.facilities ?? {}), ...(facilities as Record<string, unknown>) },

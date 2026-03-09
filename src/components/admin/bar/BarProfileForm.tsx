@@ -4,6 +4,11 @@ import { Autocomplete, GoogleMap as GoogleMapComponent, LoadScriptNext, Marker }
 import type { BarProfileFormState } from '@/lib/admin/bar/types';
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
+const AUTOCOMPLETE_OPTIONS: google.maps.places.AutocompleteOptions = {
+  componentRestrictions: { country: 'no' },
+  fields: ['formatted_address', 'geometry', 'address_components', 'name'],
+  types: ['address'],
+};
 
 interface BarProfileFormProps {
   profile: BarProfileFormState | null;
@@ -43,7 +48,7 @@ export function BarProfileForm({
                 <div className="space-y-3">
                   <LoadScriptNext id="bar-profile-address-map" googleMapsApiKey={GOOGLE_MAPS_API_KEY} libraries={['places']} preventGoogleFontsLoading>
                     <div className="space-y-3">
-                      <Autocomplete onLoad={(ac) => setAutocomplete(ac)} onPlaceChanged={onAutocompletePlaceChanged}>
+                      <Autocomplete options={AUTOCOMPLETE_OPTIONS} onLoad={(ac) => setAutocomplete(ac)} onPlaceChanged={onAutocompletePlaceChanged}>
                         <input type="text" className={inputCls} value={profile.address} onChange={(e) => updateProfileField('address', e.target.value)} />
                       </Autocomplete>
                       <div className="rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950/40">
