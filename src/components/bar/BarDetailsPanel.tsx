@@ -142,11 +142,6 @@ export default function BarDetailsPanel({
 	 	   return count;
 	 	 }, [selectedFixtures, nowMs]);
 
-	  const nextHighlightedFixtures = useMemo(
-	    () => selectedFixtures.slice(0, 2),
-	    [selectedFixtures],
-	  );
-
   const distanceLabel = useMemo(() => {
     if (!userPosition) return null;
     const km = BarService.calculateDistance(userPosition, bar.position);
@@ -684,44 +679,6 @@ export default function BarDetailsPanel({
 			              </p>
 			            )}
 
-			            {nextHighlightedFixtures.length > 0 && (
-			              <div className="mt-4 rounded-2xl border border-emerald-300 bg-emerald-50/80 p-4 dark:border-emerald-700 dark:bg-emerald-900/30">
-			                <div className="mb-2 flex items-center justify-between gap-2">
-			                  <h4 className="text-sm font-semibold text-emerald-900 dark:text-emerald-50">
-			                    {nextHighlightedFixtures.length > 1 ? t('bar_next_matches') : t('bar_next_match')}
-			                  </h4>
-			                  <span className="text-[11px] text-emerald-800/80 dark:text-emerald-100/80">
-			                    {t('bar_starting_soon')}
-			                  </span>
-			                </div>
-			                <div className="space-y-2">
-			                  {nextHighlightedFixtures.map((f) => {
-			                    const competition = getCompetitionByKey(f.league);
-			                    return (
-			                      <div
-			                        key={f.id}
-			                        className="rounded-xl bg-white/90 px-3 py-2 shadow-sm ring-1 ring-emerald-200 dark:bg-zinc-900/90 dark:ring-emerald-800"
-			                      >
-			                        <div className="flex items-center justify-between gap-2">
-			                          <div className="flex flex-col gap-1">
-			                            <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-50">
-			                              {formatFixtureDateTime(f.kickoffUtc, t('date_locale'))}
-			                            </span>
-			                            <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-			                              {f.homeTeam} – {f.awayTeam}
-			                            </div>
-			                          </div>
-			                          <span className="text-[11px] rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
-			                            {competition.label}
-			                          </span>
-			                        </div>
-			                      </div>
-			                    );
-			                  })}
-			                </div>
-			              </div>
-			            )}
-
 			            {isLoadingFixtures && (
 	              <p className="text-sm text-zinc-600 dark:text-zinc-400">{t('bar_loading_matches')}</p>
 	            )}
@@ -768,13 +725,13 @@ export default function BarDetailsPanel({
 	                        return (
 	                          <div
 	                            key={f.id}
-	                            className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 p-3"
+		                            className="rounded-xl border border-emerald-300 bg-emerald-50/80 p-3 dark:border-emerald-700 dark:bg-emerald-900/30"
 	                          >
 	                            <div className="flex items-center gap-2 mb-1">
-	                              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+		                              <span className="text-xs text-emerald-800/80 dark:text-emerald-100/80">
 	                                {formatFixtureDateTime(f.kickoffUtc, t('date_locale'))}
 	                              </span>
-	                              <span className="text-xs rounded bg-zinc-200/60 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-200">
+		                              <span className="text-xs rounded bg-white/90 px-2 py-0.5 text-emerald-900 ring-1 ring-emerald-200 dark:bg-zinc-900/90 dark:text-emerald-100 dark:ring-emerald-800">
 	                                {competition.label}
 	                              </span>
 	                            </div>
@@ -782,7 +739,7 @@ export default function BarDetailsPanel({
 	                              {f.homeTeam} – {f.awayTeam}
 	                            </div>
 	                            {f.venue && (
-	                              <div className="text-xs text-zinc-500 dark:text-zinc-400">{f.venue}</div>
+		                              <div className="text-xs text-emerald-800/80 dark:text-emerald-100/80">{f.venue}</div>
 	                            )}
 	                          </div>
 	                        );
