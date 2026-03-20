@@ -30,6 +30,14 @@ export const COMPETITIONS: Competition[] = [
     defaultSeason: 2026,
   },
   {
+    key: 'NOR_NM_CUPEN',
+    label: 'NM Cupen',
+    type: 'tournament',
+    tier: 'high',
+    apiFootballLeagueId: 105,
+    defaultSeason: 2026,
+  },
+  {
     key: 'EPL',
     label: 'Premier League',
     type: 'league',

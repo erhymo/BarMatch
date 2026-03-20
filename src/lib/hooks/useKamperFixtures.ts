@@ -2,12 +2,20 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Fixture, LeagueKey } from "@/lib/types/fixtures";
+import { ALL_LEAGUE_KEYS } from "@/lib/config/competitions";
 import { getFixtureProvider } from "@/lib/providers/fixtures";
 
 const DEFAULT_RANGE_DAYS = 14;
 const IS_DEV = process.env.NODE_ENV !== "production";
 
-const LEAGUES: LeagueKey[] = ["EPL", "ENG_CHAMPIONSHIP", "FA_CUP", "EFL_TROPHY", "NOR_ELITESERIEN", "NOR_1_DIVISION", "SERIE_A", "LA_LIGA", "COPA_DEL_REY", "BUNDESLIGA", "LIGUE_1", "UCL", "UEL", "FIFA_CWC", "FIFA_CWC_PLAYIN", "UEFA_NL", "FRIENDLIES"];
+const LEAGUES: LeagueKey[] = ALL_LEAGUE_KEYS;
+
+function createEmptyFixturesByLeague(): Record<LeagueKey, Fixture[]> {
+  return LEAGUES.reduce<Record<LeagueKey, Fixture[]>>((acc, key) => {
+    acc[key] = [];
+    return acc;
+  }, {} as Record<LeagueKey, Fixture[]>);
+}
 
 function getErrorInfo(err: unknown): { message: string; details?: string } {
   if (err && typeof err === "object") {
@@ -44,9 +52,7 @@ function createDefaultRange(): DateRange {
  * Returnerer sortert liste, loading-state og ev. feilmelding.
  */
 export function useKamperFixtures() {
-  const [fixturesByLeague, setFixturesByLeague] = useState<Record<LeagueKey, Fixture[]>>({
-    EPL: [], ENG_CHAMPIONSHIP: [], FA_CUP: [], EFL_TROPHY: [], NOR_ELITESERIEN: [], NOR_1_DIVISION: [], SERIE_A: [], LA_LIGA: [], COPA_DEL_REY: [], BUNDESLIGA: [], LIGUE_1: [], UCL: [], UEL: [], FIFA_CWC: [], FIFA_CWC_PLAYIN: [], UEFA_NL: [], FRIENDLIES: [],
-  });
+  const [fixturesByLeague, setFixturesByLeague] = useState<Record<LeagueKey, Fixture[]>>(() => createEmptyFixturesByLeague());
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [range] = useState<DateRange>(() => createDefaultRange());
@@ -77,7 +83,7 @@ export function useKamperFixtures() {
         const results = await Promise.allSettled(LEAGUES.map((key) => fetchForLeague(key)));
         if (isCancelled) return;
 
-        const byLeague: Record<LeagueKey, Fixture[]> = { EPL: [], ENG_CHAMPIONSHIP: [], FA_CUP: [], EFL_TROPHY: [], NOR_ELITESERIEN: [], NOR_1_DIVISION: [], SERIE_A: [], LA_LIGA: [], COPA_DEL_REY: [], BUNDESLIGA: [], LIGUE_1: [], UCL: [], UEL: [], FIFA_CWC: [], FIFA_CWC_PLAYIN: [], UEFA_NL: [], FRIENDLIES: [] };
+        const byLeague = createEmptyFixturesByLeague();
         LEAGUES.forEach((key, i) => {
           const r = results[i];
           if (r.status === "fulfilled") {

@@ -13,15 +13,15 @@ import { CITY_COORDINATES, type CityId } from '@/lib/data/cities';
 import { Bar } from '@/lib/models';
 import type { Fixture, LeagueKey } from '@/lib/types/fixtures';
 import { getFixtureProvider } from '@/lib/providers/fixtures';
-import { getCompetitionByKey } from '@/lib/config/competitions';
+import { ALL_LEAGUE_KEYS, getCompetitionByKey } from '@/lib/config/competitions';
 import { BarFixtureSelectionService, BarService } from '@/lib/services';
 import { usePublicBars } from '@/lib/hooks/usePublicBars';
 import { useCandidateBars } from '@/lib/hooks/useCandidateBars';
 import { useFavoriteCity } from '@/lib/hooks/useFavoriteCity';
 import { useTranslation } from '@/lib/i18n';
 
-			const DEFAULT_RANGE_DAYS = 14;
-			const LEAGUES: LeagueKey[] = ['EPL', 'ENG_CHAMPIONSHIP', 'FA_CUP', 'EFL_TROPHY', 'NOR_ELITESERIEN', 'NOR_1_DIVISION', 'SERIE_A', 'LA_LIGA', 'COPA_DEL_REY', 'BUNDESLIGA', 'LIGUE_1', 'UCL', 'UEL', 'FIFA_CWC', 'FIFA_CWC_PLAYIN', 'UEFA_NL', 'FRIENDLIES'];
+const DEFAULT_RANGE_DAYS = 14;
+const LEAGUES: LeagueKey[] = ALL_LEAGUE_KEYS;
 
 			function createDefaultRange(days: number = DEFAULT_RANGE_DAYS): { from: string; to: string } {
 			  const from = new Date();

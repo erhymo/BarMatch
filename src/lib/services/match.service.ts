@@ -98,6 +98,7 @@ export class MatchService {
       'Serie A': '🇮🇹',
       'Eliteserien': '🇳🇴',
       'OBOS-ligaen': '🇳🇴',
+      'NM Cupen': '🇳🇴',
       'Champions League': '🏆',
       'FIFA Club World Cup': '🌍',
       'FIFA Club World Cup - Play-In': '🌍',

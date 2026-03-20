@@ -1,29 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ALL_LEAGUE_KEYS, getCompetitionByKey } from "@/lib/config/competitions";
 import type { Fixture, LeagueKey } from "@/lib/types/fixtures";
 
 const RECENT_SEARCHES_STORAGE_KEY = "bar_match_recent_team_searches_v1";
 
-export const LEAGUE_LABEL_BY_KEY: Record<LeagueKey, string> = {
-  EPL: "Premier League",
-  ENG_CHAMPIONSHIP: "Championship",
-  FA_CUP: "FA Cup",
-  EFL_TROPHY: "EFL Trophy",
-  NOR_ELITESERIEN: "Eliteserien",
-  NOR_1_DIVISION: "OBOS-ligaen",
-  LA_LIGA: "La Liga",
-  COPA_DEL_REY: "Copa del Rey",
-  BUNDESLIGA: "Bundesliga",
-  LIGUE_1: "Ligue 1",
-  FIFA_CWC: "FIFA Club World Cup",
-  FIFA_CWC_PLAYIN: "FIFA CWC Play-In",
-  UEFA_NL: "UEFA Nations League",
-  FRIENDLIES: "Friendlies",
-  SERIE_A: "Serie A",
-  UCL: "UEFA Champions League",
-  UEL: "UEFA Europa League",
-};
+export const LEAGUE_LABEL_BY_KEY: Record<LeagueKey, string> = Object.fromEntries(
+  ALL_LEAGUE_KEYS.map((key) => [key, getCompetitionByKey(key).label]),
+) as Record<LeagueKey, string>;
 
 export type TeamSuggestion = {
   type: "team";
@@ -39,32 +24,40 @@ type RecentSearchEntry = {
   league: LeagueKey;
 };
 
+function isRecentSearchEntry(entry: unknown): entry is RecentSearchEntry {
+  if (!entry || typeof entry !== "object") return false;
+
+  const candidate = entry as Record<string, unknown>;
+
+  return (
+    typeof candidate.teamName === "string" &&
+    typeof candidate.league === "string" &&
+    ALL_LEAGUE_KEYS.includes(candidate.league as LeagueKey)
+  );
+}
+
+function loadRecentSearches(): RecentSearchEntry[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = window.localStorage.getItem(RECENT_SEARCHES_STORAGE_KEY);
+    if (!raw) return [];
+
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.filter(isRecentSearchEntry).slice(0, 2);
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Håndterer søkeforslag, nylige søk og filtrering.
  */
 export function useTeamSearch(allFixtures: Fixture[]) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [recentSearches, setRecentSearches] = useState<RecentSearchEntry[]>([]);
-
-  // Last inn nylige søk fra localStorage
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(RECENT_SEARCHES_STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return;
-      const cleaned: RecentSearchEntry[] = parsed
-        .filter(
-          (entry: any) =>
-            entry && typeof entry.league === "string" && typeof entry.teamName === "string",
-        )
-        .slice(0, 2);
-      setRecentSearches(cleaned);
-    } catch {
-      // Ignorer korrupt lagret data
-    }
-  }, []);
+  const [recentSearches, setRecentSearches] = useState<RecentSearchEntry[]>(() => loadRecentSearches());
 
   // Persist til localStorage
   useEffect(() => {

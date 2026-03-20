@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Fixture, LeagueKey } from '@/lib/types/fixtures';
-import { getCompetitionByKey } from '@/lib/config/competitions';
+import { ALL_LEAGUE_KEYS, getCompetitionByKey } from '@/lib/config/competitions';
 import {
   mapApiFootballFixtureToFixture,
   type ApiFootballFixtureLike,
@@ -21,26 +21,8 @@ const memoryCache = new Map<string, CacheEntry>();
 let hasLoggedEnv = false;
 
 function isLeagueKey(value: string | null): value is LeagueKey {
-		  return (
-		    value === 'NOR_ELITESERIEN' ||
-    value === 'NOR_1_DIVISION' ||
-		    value === 'EPL' ||
-    value === 'ENG_CHAMPIONSHIP' ||
-    value === 'FA_CUP' ||
-    value === 'EFL_TROPHY' ||
-		    value === 'SERIE_A' ||
-    value === 'LA_LIGA' ||
-    value === 'COPA_DEL_REY' ||
-    value === 'BUNDESLIGA' ||
-    value === 'LIGUE_1' ||
-		    value === 'UCL' ||
-		    value === 'UEL' ||
-    value === 'FIFA_CWC' ||
-    value === 'FIFA_CWC_PLAYIN' ||
-    value === 'UEFA_NL' ||
-    value === 'FRIENDLIES'
-		  );
-	}
+  return value !== null && ALL_LEAGUE_KEYS.includes(value as LeagueKey);
+}
 
 function getDefaultRange(): { from: string; to: string } {
   const now = new Date();
@@ -143,9 +125,8 @@ export async function GET(req: NextRequest) {
         {
           error: 'Ugyldig eller manglende leagueKey-parameter',
           status: 400,
-			          details:
-			            'leagueKey må være en av: NOR_ELITESERIEN, NOR_1_DIVISION, EPL, ENG_CHAMPIONSHIP, FA_CUP, EFL_TROPHY, SERIE_A, LA_LIGA, COPA_DEL_REY, BUNDESLIGA, LIGUE_1, UCL, UEL, FIFA_CWC, FIFA_CWC_PLAYIN, UEFA_NL, FRIENDLIES ' +
-			            `(fikk: ${leagueParamRaw})`,
+          details:
+            `leagueKey må være en av: ${ALL_LEAGUE_KEYS.join(', ')} (fikk: ${leagueParamRaw})`,
         },
         { status: 400 },
       );
