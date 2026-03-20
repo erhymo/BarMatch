@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification, type User } from 'firebase/auth';
+import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification, signOut, type User } from 'firebase/auth';
 import { getFirebaseAuthClient } from '@/lib/firebase/client';
 import DraggablePinMap from '@/components/onboard/DraggablePinMap';
 import { asRecord } from '@/lib/utils/unknown';
@@ -116,9 +116,10 @@ function OnboardInner() {
     void loadInvite();
   }, [token, barIdParam]);
 
-  const authHeader = async () => {
-    if (!user) throw new Error('Du må være innlogget');
-    return { Authorization: `Bearer ${await user.getIdToken()}` };
+  const authHeader = async (authUser?: User | null) => {
+    const activeUser = authUser ?? user;
+    if (!activeUser) throw new Error('Du må være innlogget');
+    return { Authorization: `Bearer ${await activeUser.getIdToken()}` };
   };
 
   const handleAddressChange = (value: string) => {
@@ -164,9 +165,9 @@ function OnboardInner() {
     router.replace(`/onboard?${qs.toString()}`);
   };
 
-  const completeAccount = async () => {
+  const completeAccount = async (authUser?: User | null) => {
     if (!token) throw new Error('Mangler token');
-    const headers = { ...(await authHeader()), 'Content-Type': 'application/json' };
+    const headers = { ...(await authHeader(authUser)), 'Content-Type': 'application/json' };
     const res = await fetch('/api/onboard/complete-account', {
       method: 'POST',
       headers,
@@ -192,7 +193,15 @@ function OnboardInner() {
       if (!inviteEmail) throw new Error('Mangler e-post fra invitasjon');
       if (!accept) throw new Error('Du må godta vilkår/personvern');
 
-      if (!user) {
+      let activeUser = user;
+
+      if (activeUser && activeUser.email?.toLowerCase() !== inviteEmail.toLowerCase()) {
+        await signOut(getFirebaseAuthClient());
+        setUser(null);
+        throw new Error('Du er innlogget med en annen e-post enn invitasjonen. Logg inn eller opprett konto med invitert e-post.');
+      }
+
+      if (!activeUser) {
         if (!validPassword(pw)) throw new Error('Passord må være 8+ tegn, 1 stor bokstav og 1 tall');
         if (pw !== pw2) throw new Error('Passordene matcher ikke');
         const cred = await createUserWithEmailAndPassword(getFirebaseAuthClient(), inviteEmail, pw);
@@ -203,9 +212,10 @@ function OnboardInner() {
 	          // best effort
 	        }
         setUser(cred.user);
+        activeUser = cred.user;
       }
 
-      await completeAccount();
+      await completeAccount(activeUser);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ukjent feil');
     } finally {
