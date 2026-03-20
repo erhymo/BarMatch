@@ -150,6 +150,14 @@ export const COMPETITIONS: Competition[] = [
     defaultSeason: 2024,
   },
   {
+    key: 'WCQ_INTERCONTINENTAL_PLAYOFFS',
+    label: 'Play-offs',
+    type: 'tournament',
+    tier: 'high',
+    apiFootballLeagueId: 37,
+    defaultSeason: 2026,
+  },
+  {
     key: 'FRIENDLIES',
     label: 'Friendlies',
     type: 'tournament',

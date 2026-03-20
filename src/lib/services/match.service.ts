@@ -103,6 +103,7 @@ export class MatchService {
       'FIFA Club World Cup': '🌍',
       'FIFA Club World Cup - Play-In': '🌍',
       'UEFA Nations League': '🏆',
+      'Play-offs': '🌍',
       'Friendlies': '⚽',
     };
     return emojiMap[league] || '⚽';
