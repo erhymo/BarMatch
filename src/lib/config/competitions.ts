@@ -154,7 +154,7 @@ export const COMPETITIONS: Competition[] = [
     label: 'Friendlies',
     type: 'tournament',
     tier: 'standard',
-    apiFootballLeagueId: 7977,
+    apiFootballLeagueId: 10,
     defaultSeason: 2026,
   },
 ];
