@@ -138,7 +138,7 @@ export const COMPETITIONS: Competition[] = [
     label: 'FIFA Club World Cup - Play-In',
     type: 'tournament',
     tier: 'standard',
-    apiFootballLeagueId: 7283,
+    apiFootballLeagueId: 1186,
     defaultSeason: 2025,
   },
   {
@@ -146,7 +146,7 @@ export const COMPETITIONS: Competition[] = [
     label: 'UEFA Nations League',
     type: 'tournament',
     tier: 'high',
-    apiFootballLeagueId: 6029,
+    apiFootballLeagueId: 5,
     defaultSeason: 2024,
   },
   {
