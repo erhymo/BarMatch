@@ -30,6 +30,10 @@ body {
   height: 100vh;
 }
 
+.home-nearest-button-anchor {
+  bottom: calc(5rem + env(safe-area-inset-bottom));
+}
+
 @media (min-width: 768px) and (max-width: 1366px) and (pointer: coarse) {
   .home-screen-shell {
     min-height: 100dvh;

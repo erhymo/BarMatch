@@ -415,7 +415,7 @@ function HomeContent() {
 
 			        {/* Find nearest bar */}
 					<div
-					  className="pointer-events-none absolute bottom-20 right-4 flex flex-col items-end gap-2 px-4 transition-[right] duration-300 md:bottom-4"
+					  className="home-nearest-button-anchor pointer-events-none absolute right-4 flex flex-col items-end gap-2 px-4 transition-[right] duration-300 md:bottom-4"
 					  style={shouldShiftNearestButton ? { right: 'calc(min(32rem, 42vw) + 1.5rem)' } : undefined}
 					>
 			          <button
