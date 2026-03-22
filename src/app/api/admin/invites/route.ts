@@ -4,8 +4,7 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getFirebaseAdminDb } from '@/lib/firebase/admin';
 import { requireRole } from '@/lib/admin/serverAuth';
 import { sendInviteEmail } from '@/lib/email/mailer';
-import { asRecord } from '@/lib/utils/unknown';
-import { tsToMs, isExpired, formatDateForEmail } from '@/lib/utils/time';
+import { isExpired, formatDateForEmail } from '@/lib/utils/time';
 
 const ALLOWED_TRIAL_DAYS = new Set([0, 7, 14, 30]);
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from 'next/image';
 import { MatchService } from "@/lib/services";
 import type { Fixture } from "@/lib/types/fixtures";
 import { LEAGUE_LABEL_BY_KEY } from "@/lib/hooks/useTeamSearch";
@@ -49,7 +50,7 @@ export default function FixtureCard({
             <div className="flex items-center gap-1.5">
               {fixture.homeTeamLogoUrl && (
                 <div className="h-5 w-5 sm:h-6 sm:w-6 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-                  <img src={fixture.homeTeamLogoUrl} alt={fixture.homeTeam} loading="lazy" className="h-full w-full object-contain" />
+                  <Image src={fixture.homeTeamLogoUrl} alt={fixture.homeTeam} width={24} height={24} sizes="24px" className="h-full w-full object-contain" />
                 </div>
               )}
               <span>
@@ -60,7 +61,7 @@ export default function FixtureCard({
             <div className="flex items-center gap-1.5">
               {fixture.awayTeamLogoUrl && (
                 <div className="h-5 w-5 sm:h-6 sm:w-6 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-                  <img src={fixture.awayTeamLogoUrl} alt={fixture.awayTeam} loading="lazy" className="h-full w-full object-contain" />
+                  <Image src={fixture.awayTeamLogoUrl} alt={fixture.awayTeam} width={24} height={24} sizes="24px" className="h-full w-full object-contain" />
                 </div>
               )}
               <span>

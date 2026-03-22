@@ -9,6 +9,15 @@ type NextConfigWithTurbopackRoot = NextConfig & {
 const nextConfig: NextConfigWithTurbopackRoot = {
   /* config options here */
   reactCompiler: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'media.api-sports.io',
+        pathname: '/football/teams/**',
+      },
+    ],
+  },
   // Fix for Turbopack choosing the wrong workspace root when multiple lockfiles exist.
 	// Ensures Next picks the project root (and thus loads .env.local correctly).
   turbopack: {

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -547,10 +548,12 @@ function BarFixturesPlannerPageInner() {
 	                          <div className="flex items-center gap-1.5">
 	                            {f.homeTeamLogoUrl && (
 	                              <div className="h-5 w-5 sm:h-6 sm:w-6 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-	                                <img
+			                                <Image
 	                                  src={f.homeTeamLogoUrl}
 	                                  alt={f.homeTeam}
-	                                  loading="lazy"
+			                                  width={24}
+			                                  height={24}
+			                                  sizes="24px"
 	                                  className="h-full w-full object-contain"
 	                                />
 	                              </div>
@@ -563,10 +566,12 @@ function BarFixturesPlannerPageInner() {
 	                          <div className="flex items-center gap-1.5">
 	                            {f.awayTeamLogoUrl && (
 	                              <div className="h-5 w-5 sm:h-6 sm:w-6 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-	                                <img
+			                                <Image
 	                                  src={f.awayTeamLogoUrl}
 	                                  alt={f.awayTeam}
-	                                  loading="lazy"
+			                                  width={24}
+			                                  height={24}
+			                                  sizes="24px"
 	                                  className="h-full w-full object-contain"
 	                                />
 	                              </div>

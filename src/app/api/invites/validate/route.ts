@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { getFirebaseAdminDb } from '@/lib/firebase/admin';
 import { asRecord } from '@/lib/utils/unknown';
 import { isExpired } from '@/lib/utils/time';

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { fetchNearbySportsbarsFromPlaces } from '@/lib/googlePlacesSportsbars';
-import { asRecord } from '@/lib/utils/unknown';
 
 export const runtime = 'nodejs';
 

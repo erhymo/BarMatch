@@ -5,7 +5,7 @@ import { getFirebaseAdminDb } from '@/lib/firebase/admin';
 import { requireRole } from '@/lib/admin/serverAuth';
 import { sendInviteEmail } from '@/lib/email/mailer';
 import { asRecord } from '@/lib/utils/unknown';
-import { tsToMs, isExpired, formatDateForEmail } from '@/lib/utils/time';
+import { isExpired, formatDateForEmail } from '@/lib/utils/time';
 
 export async function POST(
   request: Request,

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { getFirebaseAdminDb } from '@/lib/firebase/admin';
 import { sendHiddenDay14, sendPaymentReminderDay7 } from '@/lib/email/mailer';
 import { tsToMs } from '@/lib/utils/time';
