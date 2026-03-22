@@ -35,6 +35,7 @@ function HomeContent() {
   const router = useRouter();
   const { t } = useTranslation();
   const matchId = searchParams.get('matchId');
+  const isLayoutLockMode = searchParams.get('layoutLock') === '1';
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
   const [selectedLeague, setSelectedLeague] = useState<LeagueKey>('EPL');
@@ -375,6 +376,7 @@ function HomeContent() {
 			        <div className="absolute inset-0">
 			          <GoogleMap
 			            apiKey={apiKey}
+				            layoutLockMode={isLayoutLockMode}
 			            center={mapCenter}
 			            zoom={13}
 			            useGeolocation={true}

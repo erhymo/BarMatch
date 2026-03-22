@@ -43,6 +43,7 @@ function buildCandidateOnboardingMailto(bar: Bar, t: (key: string) => string): s
 
 interface GoogleMapProps {
 	  apiKey: string;
+		  layoutLockMode?: boolean;
 	  center?: {
 	    lat: number;
 	    lng: number;
@@ -82,6 +83,7 @@ interface GoogleMapProps {
 
 	export default function GoogleMap({
 	  apiKey,
+  layoutLockMode = false,
 	  center = defaultCenter,
 		  focusPosition = null,
 		  focusZoom,
@@ -96,6 +98,7 @@ interface GoogleMapProps {
 			  onViewportChange,
 	}: GoogleMapProps) {
   const [hasMounted, setHasMounted] = useState(false);
+	  const isLayoutLockMode = layoutLockMode || process.env.NEXT_PUBLIC_E2E_LAYOUT_LOCK === '1';
 	  const [showSlowLoadHint, setShowSlowLoadHint] = useState(false);
 	  const [map, setMap] = useState<google.maps.Map | null>(null);
 	  const [currentPosition, setCurrentPosition] =
@@ -160,7 +163,7 @@ interface GoogleMapProps {
 
 	// Get user's current position
 	useEffect(() => {
-	  if (!useGeolocation) return;
+		  if (isLayoutLockMode || !useGeolocation) return;
 
 	  if (!navigator.geolocation) {
 	    setLocationError(t('map_geo_unsupported'));
@@ -210,7 +213,7 @@ interface GoogleMapProps {
 	      maximumAge: 0,
 	    }
 	  );
-		}, [useGeolocation, disableAutoPanToUser, map, onUserPositionChange, t]);
+		}, [isLayoutLockMode, useGeolocation, disableAutoPanToUser, map, onUserPositionChange, t]);
 
 		// Allow parent to programmatically focus the map (e.g. nearest bar)
 		useEffect(() => {
@@ -237,6 +240,20 @@ interface GoogleMapProps {
 		// Hvis disableAutoPanToUser er satt (f.eks. når vi har favoritt-by),
 	// lar vi center-propen styre og ignorerer currentPosition som kart-senter.
 	const mapCenter = disableAutoPanToUser ? center : currentPosition || center;
+
+	  if (isLayoutLockMode) {
+	    return (
+	      <div
+	        data-testid="layout-lock-map-placeholder"
+	        className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900"
+	      >
+	        <div className="rounded-2xl border border-zinc-300/80 bg-white/90 px-5 py-4 text-center shadow-lg dark:border-zinc-700 dark:bg-zinc-900/90">
+	          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Kart-placeholder</p>
+	          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">Layout lock testmodus</p>
+	        </div>
+	      </div>
+	    );
+	  }
 
   if (!apiKey) {
     return (

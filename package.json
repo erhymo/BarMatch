@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "layout-lock:test": "playwright test --config=playwright.config.ts",
+    "layout-lock:update": "playwright test --config=playwright.config.ts --update-snapshots",
     "seed:superadmin": "node scripts/seed-superadmin.mjs",
     "seed:bar-owner": "node scripts/seed-bar-owner.mjs"
   },
@@ -22,6 +24,7 @@
     "stripe": "^20.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
