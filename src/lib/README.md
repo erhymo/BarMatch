@@ -100,7 +100,6 @@ Mock/dummy data for utvikling og testing.
 
 **Filer:**
 - `bars.ts` - Dummy-barer i Oslo
-- `matches.ts` - Placeholder for eventuelle dummy-kamper (per nå tom, ekte kamper hentes via API)
 
 ## 🔄 Migrering til Capacitor
 

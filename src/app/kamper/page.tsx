@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { LeagueKey } from "@/lib/types/fixtures";
 import { useKamperFixtures, useTeamSearch } from "@/lib/hooks";
@@ -32,11 +32,13 @@ const IS_DEV = process.env.NODE_ENV !== "production";
 
 export default function KamperPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useTranslation();
   const [selectedLeague, setSelectedLeague] = useState<LeagueKey | "">("");
   const [selfTestResult, setSelfTestResult] = useState<string | null>(null);
   const [selfTestLoading, setSelfTestLoading] = useState(false);
   const isNativeApp = useNativeAppPlatform() !== null;
+  const isLayoutLockMode = searchParams.get("layoutLock") === "1";
 
   const { allFixtures, isLoading, loadError } = useKamperFixtures();
   const {
@@ -150,7 +152,7 @@ export default function KamperPage() {
 	            </p>
           </header>
 
-			          {IS_DEV && (
+		          {IS_DEV && !isLayoutLockMode && (
 	            <section className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-2xl p-4 text-xs text-amber-900 dark:text-amber-100">
 	              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 	                <div>
