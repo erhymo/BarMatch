@@ -2,18 +2,23 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification, signOut, type User } from 'firebase/auth';
+import { createUserWithEmailAndPassword, onAuthStateChanged, sendEmailVerification, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth';
 import { getFirebaseAuthClient } from '@/lib/firebase/client';
 import DraggablePinMap from '@/components/onboard/DraggablePinMap';
 import { asRecord } from '@/lib/utils/unknown';
 
 type Step = 'account' | 'bar' | 'payment';
+type AccountMode = 'signup' | 'signin';
 type AddressCandidate = {
   formattedAddress: string;
   location: { lat: number; lng: number };
   city: string;
   country: string;
 };
+
+function readAccountMode(value: string | null | undefined): AccountMode | null {
+  return value === 'signin' || value === 'signup' ? value : null;
+}
 
 function validPassword(pw: string) {
   return pw.length >= 8 && /[A-Z]/.test(pw) && /[0-9]/.test(pw);
@@ -44,12 +49,84 @@ function getCandidateTitle(candidate: AddressCandidate): string {
   return firstPart;
 }
 
+function readFirebaseAuthCode(error: unknown): string {
+  if (error && typeof error === 'object') {
+    const rec = error as { code?: unknown; message?: unknown };
+    if (typeof rec.code === 'string' && rec.code) return rec.code;
+    if (typeof rec.message === 'string') {
+      const match = rec.message.match(/auth\/[a-z-]+/i);
+      if (match) return match[0].toLowerCase();
+    }
+  }
+  if (error instanceof Error) {
+    const match = error.message.match(/auth\/[a-z-]+/i);
+    if (match) return match[0].toLowerCase();
+  }
+  return '';
+}
+
+function mapOnboardingAuthError(error: unknown, mode: AccountMode): string {
+  const code = readFirebaseAuthCode(error);
+  if (code === 'auth/email-already-in-use') {
+    return 'Det finnes allerede en konto på denne e-posten. Velg «Jeg har allerede konto» og logg inn i stedet.';
+  }
+  if (code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials' || code === 'auth/wrong-password') {
+    return 'Feil passord eller ugyldig innlogging. Prøv igjen.';
+  }
+  if (code === 'auth/user-not-found' && mode === 'signin') {
+    return 'Fant ingen eksisterende konto på denne e-posten. Velg «Opprett ny konto» i stedet.';
+  }
+  if (code === 'auth/weak-password') {
+    return 'Passordet er for svakt. Bruk minst 8 tegn, én stor bokstav og ett tall.';
+  }
+  if (code === 'auth/too-many-requests') {
+    return 'For mange forsøk. Vent litt og prøv igjen.';
+  }
+  if (code === 'auth/unauthorized-domain') {
+    return 'Innlogging er ikke riktig satt opp for dette domenet ennå. Kontakt oss hvis problemet fortsetter.';
+  }
+  if (code === 'auth/network-request-failed') {
+    return 'Nettverksfeil. Sjekk forbindelsen og prøv igjen.';
+  }
+  if (error instanceof Error && error.message.includes('Missing Firebase client env vars')) {
+    return 'Innlogging er ikke satt opp riktig for dette miljøet ennå. Kontakt oss hvis problemet fortsetter.';
+  }
+  return error instanceof Error ? error.message : 'Ukjent feil';
+}
+
+function mapInviteValidationError(status: string | null, fallbackMessage: string): string {
+  if (status === 'not_found') {
+    return 'Vi fant ikke invitasjonen. Be oss sende en ny invitasjonslenke.';
+  }
+  if (status === 'expired') {
+    return 'Invitasjonslenken har utløpt. Be oss sende en ny lenke, så hjelper vi deg videre.';
+  }
+  if (status === 'used') {
+    return 'Denne invitasjonslenken er allerede brukt. Logg inn med kontoen din hvis du vil fortsette oppsettet.';
+  }
+  if (status === 'cancelled') {
+    return 'Denne invitasjonen er ikke lenger aktiv. Be oss sende en ny lenke.';
+  }
+  return fallbackMessage || 'Ugyldig invitasjon';
+}
+
+function mapCompleteAccountError(status: string | null, fallbackMessage: string): string {
+  if (status === 'email_mismatch') {
+    return 'Invitasjonen hører til en annen e-postadresse. Logg inn eller opprett konto med den inviterte e-posten.';
+  }
+  if (status === 'missing_email') {
+    return 'Vi fant ingen e-post på kontoen din. Prøv å logge inn på nytt.';
+  }
+  return mapInviteValidationError(status, fallbackMessage);
+}
+
 function OnboardInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const token = sp.get('token')?.trim() || '';
   const barIdParam = sp.get('barId')?.trim() || '';
   const stepParam = (sp.get('step')?.trim() || '') as Step;
+  const modeParam = readAccountMode(sp.get('mode'));
 
   const [user, setUser] = useState<User | null>(null);
   const [inviteEmail, setInviteEmail] = useState<string>('');
@@ -57,7 +134,9 @@ function OnboardInner() {
   const [barId, setBarId] = useState<string>('');
 
   const [step, setStep] = useState<Step>('account');
+  const [accountMode, setAccountMode] = useState<AccountMode>(() => modeParam ?? 'signup');
   const [busy, setBusy] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [pw, setPw] = useState('');
@@ -73,10 +152,37 @@ function OnboardInner() {
   const [addressCandidates, setAddressCandidates] = useState<AddressCandidate[]>([]);
 
   const mapsKey = useMemo(() => process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '', []);
+  const forgotPasswordHref = useMemo(() => {
+    const qs = new URLSearchParams();
+    if (inviteEmail) qs.set('email', inviteEmail);
+    if (token || barIdParam) {
+      const returnQs = new URLSearchParams();
+      if (token) returnQs.set('token', token);
+      if (barIdParam) returnQs.set('barId', barIdParam);
+      returnQs.set('step', 'account');
+      returnQs.set('mode', 'signin');
+      qs.set('returnTo', `/onboard?${returnQs.toString()}`);
+    }
+    const query = qs.toString();
+    return query ? `/forgot-password?${query}` : '/forgot-password';
+  }, [barIdParam, inviteEmail, token]);
 
   useEffect(() => {
-    const auth = getFirebaseAuthClient();
-    return onAuthStateChanged(auth, (u) => setUser(u));
+    let unsub: (() => void) | undefined;
+    try {
+      const auth = getFirebaseAuthClient();
+      unsub = onAuthStateChanged(auth, (u) => {
+        setUser(u);
+        setAuthReady(true);
+      });
+    } catch (e) {
+      setError(mapOnboardingAuthError(e, 'signup'));
+      setAuthReady(true);
+    }
+
+    return () => {
+      if (unsub) unsub();
+    };
   }, []);
 
   useEffect(() => {
@@ -86,8 +192,17 @@ function OnboardInner() {
   }, [barIdParam, barId]);
 
   useEffect(() => {
-    if (stepParam === 'bar' || stepParam === 'payment') setStep(stepParam);
+    if (stepParam === 'account' || stepParam === 'bar' || stepParam === 'payment') setStep(stepParam);
   }, [stepParam]);
+
+  useEffect(() => {
+    if (!user && modeParam && modeParam !== accountMode) {
+      setAccountMode(modeParam);
+      setPw('');
+      setPw2('');
+      setError(null);
+    }
+  }, [accountMode, modeParam, user]);
 
   useEffect(() => {
     const loadInvite = async () => {
@@ -102,9 +217,9 @@ function OnboardInner() {
       const data = asRecord(raw);
 
       if (!res.ok || data?.ok !== true) {
-        const status = typeof data?.status === 'string' ? ` (${data.status})` : '';
+        const status = typeof data?.status === 'string' ? data.status : null;
         const msg = typeof data?.error === 'string' ? data.error : '';
-        setError(msg || `Ugyldig invitasjon${status}`);
+        setError(mapInviteValidationError(status, msg));
         return;
       }
 
@@ -126,6 +241,27 @@ function OnboardInner() {
     setAddressCandidates([]);
     setManualLocationOverride(false);
     setAddress(value);
+  };
+
+  const changeAccountMode = (nextMode: AccountMode) => {
+    setAccountMode(nextMode);
+    setPw('');
+    setPw2('');
+    setError(null);
+  };
+
+  const handleSwitchAccount = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await signOut(getFirebaseAuthClient());
+      setUser(null);
+      changeAccountMode('signin');
+    } catch (e) {
+      setError(mapOnboardingAuthError(e, 'signin'));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleCityChange = (value: string) => {
@@ -176,8 +312,9 @@ function OnboardInner() {
     const raw: unknown = await res.json().catch(() => ({}));
     const data = asRecord(raw);
     if (!res.ok) {
+      const status = typeof data?.status === 'string' ? data.status : null;
       const msg = typeof data?.error === 'string' ? data.error : '';
-      throw new Error(msg || `Feil (${res.status})`);
+      throw new Error(mapCompleteAccountError(status, msg || `Feil (${res.status})`));
     }
 
     const newBarId = typeof data?.barId === 'string' ? data.barId : '';
@@ -191,6 +328,7 @@ function OnboardInner() {
     setError(null);
     try {
       if (!inviteEmail) throw new Error('Mangler e-post fra invitasjon');
+      if (!authReady) throw new Error('Sjekker innlogging. Prøv igjen om et øyeblikk.');
       if (!accept) throw new Error('Du må godta vilkår/personvern');
 
       let activeUser = user;
@@ -202,22 +340,38 @@ function OnboardInner() {
       }
 
       if (!activeUser) {
-        if (!validPassword(pw)) throw new Error('Passord må være 8+ tegn, 1 stor bokstav og 1 tall');
-        if (pw !== pw2) throw new Error('Passordene matcher ikke');
-        const cred = await createUserWithEmailAndPassword(getFirebaseAuthClient(), inviteEmail, pw);
-	        // Send verification email right away (visibility is blocked until verified).
-	        try {
-	          await sendEmailVerification(cred.user);
-	        } catch {
-	          // best effort
-	        }
+        const auth = getFirebaseAuthClient();
+        let cred;
+
+        if (accountMode === 'signin') {
+          if (!pw) throw new Error('Skriv inn passordet ditt for å logge inn.');
+          cred = await signInWithEmailAndPassword(auth, inviteEmail, pw);
+        } else {
+          if (!validPassword(pw)) throw new Error('Passord må være 8+ tegn, 1 stor bokstav og 1 tall');
+          if (pw !== pw2) throw new Error('Passordene matcher ikke');
+          cred = await createUserWithEmailAndPassword(auth, inviteEmail, pw);
+          // Send verification email right away (visibility is blocked until verified).
+          try {
+            await sendEmailVerification(cred.user);
+          } catch {
+            // best effort
+          }
+        }
+
         setUser(cred.user);
         activeUser = cred.user;
       }
 
       await completeAccount(activeUser);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ukjent feil');
+      const code = readFirebaseAuthCode(e);
+      if (code === 'auth/email-already-in-use') {
+        setAccountMode('signin');
+      }
+      if (code === 'auth/user-not-found' && accountMode === 'signin') {
+        setAccountMode('signup');
+      }
+      setError(mapOnboardingAuthError(e, accountMode));
     } finally {
       setBusy(false);
     }
@@ -324,8 +478,8 @@ function OnboardInner() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Onboarding</h1>
-      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Invitasjon → konto → barinfo → betaling.</p>
+      <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">Kom i gang med baren din</h1>
+      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Vi leder deg trygt gjennom konto, barinfo og betaling. Dette tar bare noen minutter.</p>
 
       {!token && !barId && (
         <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-200">
@@ -337,21 +491,68 @@ function OnboardInner() {
 
       {step === 'account' && (
         <div className="mt-6 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-semibold">1) Opprett konto</h2>
+          <h2 className="text-sm font-semibold">1) Konto</h2>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            Bruk e-posten i invitasjonen nedenfor. Har du allerede konto, logger du bare inn. Er du ny, oppretter du konto og fortsetter.
+          </p>
           <div className="mt-3 grid gap-3">
-            <input value={inviteEmail} readOnly placeholder="E-post" className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900" />
-            {!user && (
+            <label className="grid gap-1">
+              <span className="text-sm text-zinc-700 dark:text-zinc-300">Invitert e-post</span>
+              <input value={inviteEmail} readOnly placeholder="E-post" className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900" />
+            </label>
+            {!authReady && (
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+                Sjekker innlogging…
+              </div>
+            )}
+            {!user && authReady && (
               <>
-                <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Passord" className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900" />
-                <input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder="Gjenta passord" className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900" />
+                <div className="grid grid-cols-2 gap-2 rounded-lg border border-zinc-200 p-1 dark:border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => changeAccountMode('signup')}
+                    className={`rounded-md px-3 py-2 text-sm ${accountMode === 'signup' ? 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900' : 'text-zinc-700 dark:text-zinc-300'}`}
+                  >
+                    Jeg er ny her
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => changeAccountMode('signin')}
+                    className={`rounded-md px-3 py-2 text-sm ${accountMode === 'signin' ? 'bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900' : 'text-zinc-700 dark:text-zinc-300'}`}
+                  >
+                    Jeg har allerede konto
+                  </button>
+                </div>
+                <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder={accountMode === 'signin' ? 'Passord' : 'Lag passord'} className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900" />
+                {accountMode === 'signup' && (
+                  <input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} placeholder="Gjenta passord" className="w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800 dark:bg-zinc-900" />
+                )}
+                {accountMode === 'signin' && (
+                  <a href={forgotPasswordHref} className="text-sm text-zinc-700 underline dark:text-zinc-300">
+                    Glemt passord?
+                  </a>
+                )}
               </>
+            )}
+            {user && authReady && (
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100">
+                <span>Innlogget som {user.email ?? 'ukjent e-post'}.</span>
+                <button
+                  type="button"
+                  onClick={handleSwitchAccount}
+                  disabled={busy}
+                  className="shrink-0 rounded-md border border-emerald-300 px-2 py-1 text-xs font-medium text-emerald-900 disabled:opacity-50 dark:border-emerald-800 dark:text-emerald-100"
+                >
+                  Bytt konto
+                </button>
+              </div>
             )}
             <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-200">
               <input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} />
               Jeg godtar vilkår og personvern
             </label>
-            <button disabled={busy} onClick={handleCreateOrLink} className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900">
-              {user ? 'Koble invitasjon' : 'Opprett konto'}
+            <button disabled={busy || !authReady || !inviteEmail} onClick={handleCreateOrLink} className="rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900">
+              {user ? 'Fortsett med denne kontoen' : accountMode === 'signin' ? 'Logg inn og fortsett' : 'Opprett konto og fortsett'}
             </button>
           </div>
         </div>

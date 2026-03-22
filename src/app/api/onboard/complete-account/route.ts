@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { NextResponse } from 'next/server';
-import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { getFirebaseAdminDb } from '@/lib/firebase/admin';
 import { requireFirebaseUser } from '@/lib/admin/serverAuth';
 import { asRecord } from '@/lib/utils/unknown';
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   try {
     const decoded = await requireFirebaseUser(request);
     const email = decoded.email?.toLowerCase() ?? null;
-    if (!email) return NextResponse.json({ error: 'Missing email on user' }, { status: 400 });
+    if (!email) return NextResponse.json({ error: 'Missing email on user', status: 'missing_email' }, { status: 400 });
 
     const body = (await request.json()) as { inviteId?: unknown };
     const inviteId = typeof body.inviteId === 'string' ? body.inviteId.trim() : '';
@@ -34,22 +34,22 @@ export async function POST(request: Request) {
     const created = await db.runTransaction(async (tx) => {
       const inviteSnap = await tx.get(inviteRef);
       if (!inviteSnap.exists) {
-        return { ok: false as const, error: 'Invite not found', status: 404 as const };
+        return { ok: false as const, error: 'Invite not found', status: 404 as const, inviteStatus: 'not_found' as const };
       }
 
       const invite = asRecord(inviteSnap.data());
       const inviteStatus = typeof invite?.status === 'string' ? invite.status : null;
       if (inviteStatus !== 'pending') {
-        return { ok: false as const, error: 'Invite is not pending', status: 400 as const };
+        return { ok: false as const, error: 'Invite is not pending', status: 400 as const, inviteStatus: inviteStatus ?? 'unknown' };
       }
       if (isExpired(invite?.expiresAt)) {
         tx.set(inviteRef, { status: 'expired', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-        return { ok: false as const, error: 'Invite expired', status: 400 as const };
+        return { ok: false as const, error: 'Invite expired', status: 400 as const, inviteStatus: 'expired' as const };
       }
 
       const inviteEmail = typeof invite?.email === 'string' ? invite.email.toLowerCase() : null;
       if (!inviteEmail || inviteEmail !== email) {
-        return { ok: false as const, error: 'Email does not match invite', status: 403 as const };
+        return { ok: false as const, error: 'Email does not match invite', status: 403 as const, inviteStatus: 'email_mismatch' as const };
       }
 
       const existing = await tx.get(barUsersRef);
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     });
 
     if (!created.ok) {
-      return NextResponse.json({ error: created.error }, { status: created.status });
+      return NextResponse.json({ error: created.error, status: created.inviteStatus }, { status: created.status });
     }
 
     return NextResponse.json({ ok: true, barId: created.barId, alreadyLinked: created.alreadyLinked });

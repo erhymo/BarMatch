@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { sendPasswordResetEmail } from 'firebase/auth';
 
 import { getFirebaseAuthClient } from '@/lib/firebase/client';
@@ -12,11 +13,62 @@ function normalizeLogin(input: string) {
   return trimmed.toLowerCase();
 }
 
-export default function ForgotPasswordPage() {
+function readFirebaseAuthCode(error: unknown): string {
+  if (error && typeof error === 'object') {
+    const rec = error as { code?: unknown; message?: unknown };
+    if (typeof rec.code === 'string' && rec.code) return rec.code;
+    if (typeof rec.message === 'string') {
+      const match = rec.message.match(/auth\/[a-z-]+/i);
+      if (match) return match[0].toLowerCase();
+    }
+  }
+  if (error instanceof Error) {
+    const match = error.message.match(/auth\/[a-z-]+/i);
+    if (match) return match[0].toLowerCase();
+  }
+  return '';
+}
+
+function readSafeReturnTo(value: string | null): string {
+  const trimmed = value?.trim() || '';
+  if (!trimmed.startsWith('/') || trimmed.startsWith('//')) return '/admin';
+  return trimmed;
+}
+
+function mapForgotPasswordError(error: unknown): string {
+  const code = readFirebaseAuthCode(error);
+  if (code === 'auth/invalid-email') {
+    return 'Skriv inn en gyldig e-postadresse.';
+  }
+  if (code === 'auth/too-many-requests') {
+    return 'For mange forsøk. Vent litt og prøv igjen.';
+  }
+  if (code === 'auth/network-request-failed') {
+    return 'Nettverksfeil. Sjekk forbindelsen og prøv igjen.';
+  }
+  if (code === 'auth/unauthorized-domain') {
+    return 'Dette domenet er ikke godkjent i Firebase Auth ennå. Kontakt oss hvis problemet fortsetter.';
+  }
+  if (error instanceof Error && error.message.includes('Missing Firebase client env vars')) {
+    return 'Passord-reset er ikke satt opp riktig for dette miljøet ennå. Kontakt oss hvis problemet fortsetter.';
+  }
+  return error instanceof Error ? error.message : 'Ukjent feil';
+}
+
+function ForgotPasswordInner() {
+  const searchParams = useSearchParams();
+  const returnTo = readSafeReturnTo(searchParams.get('returnTo'));
   const [identifier, setIdentifier] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+
+  useEffect(() => {
+    const invitedEmail = normalizeLogin(searchParams.get('email')?.trim() || '');
+    if (invitedEmail) {
+      setIdentifier((current) => current || invitedEmail);
+    }
+  }, [searchParams]);
 
   const handleSend = async () => {
     setBusy(true);
@@ -29,15 +81,12 @@ export default function ForgotPasswordPage() {
       // Do not leak whether user exists.
       setSent(true);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Ukjent feil';
-      // Common Firebase Auth production issue: unauthorized domain.
-      if (msg.includes('auth/unauthorized-domain')) {
-        setError(
-          'Dette domenet er ikke godkjent i Firebase Auth (authorized domains). Legg til domenet i Firebase Console og prøv igjen.',
-        );
-      } else {
-        setError(msg);
+      const code = readFirebaseAuthCode(e);
+      if (code === 'auth/user-not-found') {
+        setSent(true);
+        return;
       }
+      setError(mapForgotPasswordError(e));
     } finally {
       setBusy(false);
     }
@@ -48,7 +97,7 @@ export default function ForgotPasswordPage() {
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
         <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">Glemt passord</h1>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Skriv inn e-post (eller brukernavn) – så sender vi en lenke for å sette nytt passord.
+          Skriv inn e-post (eller brukernavn), så sender vi en lenke for å sette nytt passord.
         </p>
 
         <div className="mt-6 space-y-3">
@@ -85,12 +134,20 @@ export default function ForgotPasswordPage() {
           </button>
 
           <div className="pt-2 text-center text-sm">
-            <a href="/admin" className="text-zinc-700 underline dark:text-zinc-300">
+            <a href={returnTo} className="text-zinc-700 underline dark:text-zinc-300">
               Tilbake til innlogging
             </a>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense fallback={<div className="p-4 text-sm text-zinc-700 dark:text-zinc-200">Laster...</div>}>
+      <ForgotPasswordInner />
+    </Suspense>
   );
 }
