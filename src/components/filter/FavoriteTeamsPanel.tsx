@@ -29,7 +29,7 @@ export default function FavoriteTeamsPanel({
       if (fixture.awayTeam) set.add(fixture.awayTeam);
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b, t('date_locale')));
-  }, [fixtures]);
+  }, [fixtures, t]);
 
   const filteredTeams = useMemo(() => {
     const q = query.trim().toLowerCase();

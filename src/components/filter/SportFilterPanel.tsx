@@ -28,6 +28,33 @@ type RecentSearchEntry = {
 
 const RECENT_SEARCHES_STORAGE_KEY = "bar_match_recent_team_searches_v1";
 
+function isRecentSearchEntry(entry: unknown): entry is RecentSearchEntry {
+  if (!entry || typeof entry !== "object") return false;
+
+  const candidate = entry as Record<string, unknown>;
+
+  return (
+    typeof candidate.teamName === "string" &&
+    typeof candidate.league === "string"
+  );
+}
+
+function loadRecentSearches(): RecentSearchEntry[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = window.localStorage.getItem(RECENT_SEARCHES_STORAGE_KEY);
+    if (!raw) return [];
+
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.filter(isRecentSearchEntry).slice(0, 6);
+  } catch {
+    return [];
+  }
+}
+
 interface SportFilterPanelProps {
   leagues: LeagueOption[];
   selectedLeague: LeagueKey;
@@ -55,29 +82,7 @@ export default function SportFilterPanel({
 }: SportFilterPanelProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
-  const [recentSearches, setRecentSearches] = useState<RecentSearchEntry[]>([]);
-
-  // Load recent searches from localStorage on mount
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(RECENT_SEARCHES_STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return;
-      const cleaned: RecentSearchEntry[] = parsed
-        .filter(
-          (entry: any) =>
-            entry &&
-            typeof entry.teamName === "string" &&
-            typeof entry.league === "string",
-        )
-        .slice(0, 6);
-      setRecentSearches(cleaned);
-    } catch {
-      // Ignorer korrupt lagret data
-    }
-  }, []);
+  const [recentSearches, setRecentSearches] = useState<RecentSearchEntry[]>(() => loadRecentSearches());
 
   // Best-effort: hold localStorage i sync hvis noe annet endrer state
   useEffect(() => {
@@ -159,7 +164,7 @@ export default function SportFilterPanel({
     leagueSuggestions.sort((a, b) => a.label.localeCompare(b.label, t('date_locale')));
 
     return { teamSuggestions, leagueSuggestions };
-  }, [fixtures, leagues, leagueLabelMap]);
+  }, [fixtures, leagues, leagueLabelMap, t]);
 
   const filteredTeamSuggestions = useMemo(() => {
     const q = query.trim().toLowerCase();

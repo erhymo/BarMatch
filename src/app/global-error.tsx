@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useSyncExternalStore } from 'react';
+
+const noopSubscribe = () => () => {};
 
 export default function GlobalError({
   error,
@@ -9,25 +11,27 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const [details, setDetails] = useState('');
+  const hasClientDetails = useSyncExternalStore(noopSubscribe, () => true, () => false);
 
   useEffect(() => {
     // Log the error for debugging
     console.error('[GlobalError]', error);
+  }, [error]);
 
+  const details = useMemo(() => {
     const info = [
       `Message: ${error.message}`,
       error.digest ? `Digest: ${error.digest}` : null,
       `Stack: ${error.stack ?? 'N/A'}`,
-      `URL: ${typeof window !== 'undefined' ? window.location.href : 'unknown'}`,
-      `UA: ${typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'}`,
-      `Time: ${new Date().toISOString()}`,
+      hasClientDetails ? `URL: ${window.location.href}` : null,
+      hasClientDetails ? `UA: ${navigator.userAgent}` : null,
+      hasClientDetails ? `Time: ${new Date().toISOString()}` : null,
     ]
       .filter(Boolean)
       .join('\n');
 
-    setDetails(info);
-  }, [error]);
+    return info;
+  }, [error, hasClientDetails]);
 
   return (
     <html lang="no">

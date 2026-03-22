@@ -8,7 +8,6 @@ import {
 	  InfoWindow,
 	} from '@react-google-maps/api';
 import { Bar } from '@/lib/models';
-import { useFavorites } from '@/contexts/FavoritesContext';
 import { useRatings } from '@/contexts/RatingsContext';
 import { getBarPinIcon, type BarPinType } from '@/lib/map/barPin';
 import { useTranslation } from '@/lib/i18n';
@@ -107,7 +106,6 @@ interface GoogleMapProps {
 	  const [selectedBar, setSelectedBar] = useState<Bar | null>(null);
 	  const [isMapReady, setIsMapReady] = useState(false);
 	  const [mapError, setMapError] = useState<string | null>(null);
-	  const { isFavoriteBar } = useFavorites();
 	  const { getBarRating } = useRatings();
   const { t } = useTranslation();
 
@@ -141,7 +139,7 @@ interface GoogleMapProps {
 	        // ignore
 	      }
 	    };
-	  }, [hasMounted]);
+		  }, [hasMounted, t]);
 
   // If the map takes unusually long to load, show a hint while still loading.
   useEffect(() => {
@@ -212,7 +210,7 @@ interface GoogleMapProps {
 	      maximumAge: 0,
 	    }
 	  );
-		}, [useGeolocation, disableAutoPanToUser, map, onUserPositionChange]);
+		}, [useGeolocation, disableAutoPanToUser, map, onUserPositionChange, t]);
 
 		// Allow parent to programmatically focus the map (e.g. nearest bar)
 		useEffect(() => {
@@ -387,13 +385,11 @@ interface GoogleMapProps {
 
 		      {/* Bar markers – only render when google.maps is available */}
 		        {isMapReady && typeof google !== 'undefined' && bars.map((bar) => {
-			          const isFavorite = isFavoriteBar(bar.id);
 			          const barRating = getBarRating(bar.id);
 			          const ratingValue = barRating?.averageRating ?? bar.rating ?? 0;
 			          // Hvis source ikke er satt antar vi at baren er en partner-bar slik
 			          // at eksisterende data fortsetter å fungere. Disse regnes som kunder.
 			          const isCustomerBar = bar.source ? bar.source === 'partner' : true;
-						  const isSelected = selectedBar?.id === bar.id;
 						  const pinType: BarPinType = isCustomerBar ? 'customer' : 'nonCustomer';
 
 		          return (

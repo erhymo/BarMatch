@@ -6,11 +6,13 @@ import {
   useContext,
   useEffect,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react';
 import { translations, type Locale } from './translations';
 
 const STORAGE_KEY = 'w2w_locale';
+const noopSubscribe = () => () => {};
 
 interface LanguageContextValue {
   locale: Locale;
@@ -31,14 +33,21 @@ function getInitialLocale(): Locale {
   return 'no';
 }
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>('no');
-  const [mounted, setMounted] = useState(false);
+function translate(locale: Locale, key: string, params?: Record<string, string | number>): string {
+  const dict = translations[locale];
+  let value = (dict as Record<string, string>)[key] ?? key;
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => {
+      value = value.replace(`{${k}}`, String(v));
+    });
+  }
+  return value;
+}
 
-  useEffect(() => {
-    setLocaleState(getInitialLocale());
-    setMounted(true);
-  }, []);
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [locale, setLocaleState] = useState<Locale>(() => getInitialLocale());
+  const hasHydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  const activeLocale = hasHydrated ? locale : 'no';
 
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
@@ -51,34 +60,21 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = newLocale === 'no' ? 'no' : 'en';
   }, []);
 
+  useEffect(() => {
+    document.documentElement.lang = activeLocale === 'no' ? 'no' : 'en';
+  }, [activeLocale]);
+
   const t = useCallback(
     (key: string, params?: Record<string, string | number>): string => {
-      const dict = translations[locale];
-      let value = (dict as Record<string, string>)[key] ?? key;
-      if (params) {
-        Object.entries(params).forEach(([k, v]) => {
-          value = value.replace(`{${k}}`, String(v));
-        });
-      }
-      return value;
+      return translate(activeLocale, key, params);
     },
-    [locale],
+    [activeLocale],
   );
 
   // Prevent flash of wrong language
-  if (!mounted) {
-    const defaultT = (key: string, params?: Record<string, string | number>): string => {
-      const dict = translations.no;
-      let value = (dict as Record<string, string>)[key] ?? key;
-      if (params) {
-        Object.entries(params).forEach(([k, v]) => {
-          value = value.replace(`{${k}}`, String(v));
-        });
-      }
-      return value;
-    };
+  if (!hasHydrated) {
     return (
-      <LanguageContext.Provider value={{ locale: 'no', setLocale, t: defaultT }}>
+      <LanguageContext.Provider value={{ locale: 'no', setLocale, t: (key, params) => translate('no', key, params) }}>
         {children}
       </LanguageContext.Provider>
     );
