@@ -158,7 +158,7 @@ export default function HomeHeader({
             {!isNativeApp && (
               <Link
                 href="/admin"
-                className="inline-flex h-9 items-center justify-center rounded-md border border-zinc-300/70 dark:border-zinc-600/80 px-3 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                className="hidden min-[1367px]:inline-flex h-9 items-center justify-center rounded-md border border-zinc-300/70 dark:border-zinc-600/80 px-3 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
               >
                 {t('nav_login')}
               </Link>
