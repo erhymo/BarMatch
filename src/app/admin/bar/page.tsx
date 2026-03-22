@@ -23,6 +23,30 @@ export default function BarOwnerDashboard() {
     setBusy: data.setBusy,
   });
 
+  if (data.loading || data.isLoadingBar) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-10">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-sm text-zinc-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
+          Laster barpanelet…
+        </div>
+      </div>
+    );
+  }
+
+  if (data.barLoadError) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-10">
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 p-6 shadow-sm dark:border-amber-900/70 dark:bg-amber-950/40">
+          <h1 className="text-lg font-semibold text-amber-950 dark:text-amber-100">Kunne ikke åpne barpanelet</h1>
+          <p className="mt-2 text-sm text-amber-900 dark:text-amber-100">{data.barLoadError}</p>
+          <p className="mt-2 text-sm text-amber-800 dark:text-amber-200">
+            Hvis problemet vedvarer, må en superadmin kontrollere at kontoen fortsatt peker til en gyldig bar.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
       {/* ─── Page header with bar name + live status ─── */}

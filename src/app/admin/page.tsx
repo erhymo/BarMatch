@@ -3,11 +3,15 @@
 import { useEffect, useState } from 'react';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
+import {
+  clearAdminLogin,
+  consumeAdminSessionExpiredNotice,
+  getAdminLoginTime,
+  isAdminSessionExpired,
+  rememberAdminLogin,
+} from '@/lib/admin/session';
 import { getFirebaseAuthClient } from '@/lib/firebase/client';
 import { useAdminMe } from '@/lib/admin/useAdminMe';
-
-const SESSION_KEY = 'w2w_admin_login_time';
-const MAX_SESSION_MS = 48 * 60 * 60 * 1000; // 2 days
 
 type AdminMeResponse =
   | { role: 'superadmin' | 'bar_owner'; barId?: string }
@@ -37,14 +41,19 @@ async function fetchMe(idToken: string): Promise<AdminMeResponse> {
 	  const [busy, setBusy] = useState(false);
 	  const [loginError, setLoginError] = useState<string | null>(null);
 
+	  useEffect(() => {
+	    const sessionExpiredNotice = consumeAdminSessionExpiredNotice();
+	    if (sessionExpiredNotice) {
+	      setLoginError((current) => current ?? sessionExpiredNotice);
+	    }
+	  }, []);
+
   useEffect(() => {
     if (loading) return;
     if (user && me) {
-      // Check if session is older than 48 hours
-      const loginTime = localStorage.getItem(SESSION_KEY);
-      if (loginTime && Date.now() - Number(loginTime) > MAX_SESSION_MS) {
-        // Session expired — sign out and force re-login
-        localStorage.removeItem(SESSION_KEY);
+	      const loginTime = getAdminLoginTime();
+	      if (isAdminSessionExpired(loginTime)) {
+	        clearAdminLogin();
         void signOut(getFirebaseAuthClient());
         return;
       }
@@ -86,8 +95,7 @@ async function fetchMe(idToken: string): Promise<AdminMeResponse> {
 	      const me = await fetchMe(token);
 	      if ('error' in me) throw new Error(me.error);
 
-	      // Save login timestamp for 48-hour expiry check
-	      localStorage.setItem(SESSION_KEY, String(Date.now()));
+		      rememberAdminLogin();
 
 	      router.replace(me.role === 'superadmin' ? '/admin/super' : '/admin/bar');
 	    } catch (e) {

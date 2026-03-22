@@ -6,7 +6,7 @@ export async function GET(request: Request) {
     const decoded = await requireFirebaseUser(request);
     const me = await getAdminMeForUid(decoded.uid);
     if (!me) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+	      return NextResponse.json({ error: 'Denne brukeren har ikke admin-tilgang.' }, { status: 403 });
     }
 
     return NextResponse.json({

@@ -23,9 +23,11 @@ function createCalendarRange(): { from: string; to: string } {
 
 export function useBarOwnerData() {
   const { showToast } = useToast();
-  const { user, me } = useRequireAdminRole(['bar_owner']);
+	  const { user, me, loading } = useRequireAdminRole(['bar_owner']);
   const [bar, setBar] = useState<BarDoc | null>(null);
   const [busy, setBusy] = useState(false);
+  const [isLoadingBar, setIsLoadingBar] = useState(false);
+  const [barLoadError, setBarLoadError] = useState<string | null>(null);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [profile, setProfile] = useState<BarProfileFormState | null>(null);
   const [fixtures, setFixtures] = useState<Fixture[]>([]);
@@ -62,24 +64,40 @@ export function useBarOwnerData() {
   useEffect(() => {
     const run = async () => {
       if (!user || !me || me.role !== 'bar_owner' || !me.barId) return;
+      setIsLoadingBar(true);
+	      setBarLoadError(null);
       setBusy(true);
       try {
         const token = await user.getIdToken();
         const res = await fetch(`/api/admin/bars/${me.barId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) throw new Error(`Failed to load bar (${res.status})`);
-        const data = (await res.json()) as BarDoc;
-        setBar(data);
-        setProfile(buildProfileFromBar(data));
-        if (data.location && typeof data.location.lat === 'number' && typeof data.location.lng === 'number') {
-          setLocation({ lat: data.location.lat, lng: data.location.lng });
+	        const raw: unknown = await res.json().catch(() => ({}));
+	        const data = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null;
+	        if (!res.ok) {
+	          const apiError = typeof data?.error === 'string' ? data.error : '';
+	          if (res.status === 404) {
+	            throw new Error('Baren knyttet til kontoen finnes ikke lenger. Kontakt administrator.');
+	          }
+	          throw new Error(apiError || `Failed to load bar (${res.status})`);
+	        }
+	        const barData = data as BarDoc;
+	        setBar(barData);
+	        setProfile(buildProfileFromBar(barData));
+	        if (barData.location && typeof barData.location.lat === 'number' && typeof barData.location.lng === 'number') {
+	          setLocation({ lat: barData.location.lat, lng: barData.location.lng });
         } else {
           setLocation(null);
         }
       } catch (e) {
-        showToast({ title: 'Feil', description: e instanceof Error ? e.message : 'Ukjent feil', variant: 'error' });
+	        const message = e instanceof Error ? e.message : 'Ukjent feil';
+	        setBar(null);
+	        setProfile(null);
+	        setLocation(null);
+	        setBarLoadError(message);
+	        showToast({ title: 'Feil', description: message, variant: 'error' });
       } finally {
+	        setIsLoadingBar(false);
         setBusy(false);
       }
     };
@@ -290,6 +308,7 @@ export function useBarOwnerData() {
   };
 
   return {
+	    loading, isLoadingBar, barLoadError,
     bar, busy, setBusy, location, setLocation, profile, setProfile,
     fixtures, isLoadingFixtures, fixturesError,
     messages, messagesLoading, messagesError, messagesOpen,

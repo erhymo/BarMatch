@@ -1,8 +1,16 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
+import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import type { AdminRole } from '@/lib/admin/types';
+import {
+  clearAdminLogin,
+  getAdminLoginTime,
+  isAdminSessionExpired,
+  markAdminSessionExpiredNotice,
+} from '@/lib/admin/session';
+import { getFirebaseAuthClient } from '@/lib/firebase/client';
 import { useAdminMe } from '@/lib/admin/useAdminMe';
 
 /**
@@ -25,6 +33,14 @@ export function useRequireAdminRole(
 
   useEffect(() => {
     if (state.loading) return;
+
+    if (state.user && isAdminSessionExpired(getAdminLoginTime())) {
+      clearAdminLogin();
+      markAdminSessionExpiredNotice();
+      void signOut(getFirebaseAuthClient()).catch(() => undefined);
+      router.replace(redirectTo);
+      return;
+    }
 
     if (!state.user || !state.roleOk) {
       // Avoid "silent" failures in dev.
