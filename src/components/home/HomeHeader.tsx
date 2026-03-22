@@ -78,7 +78,7 @@ export default function HomeHeader({
               )}
             </div>
             {!isNativeApp && (
-              <>
+              <div className="hidden md:flex items-center gap-1.5">
                 <Link
                   href="/"
                   onClick={(e) => {
@@ -95,7 +95,7 @@ export default function HomeHeader({
                 >
                   {t('nav_matches')}
                 </Link>
-              </>
+              </div>
             )}
           </div>
 
