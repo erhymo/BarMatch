@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { usePushNotifications } from '@/lib/hooks';
+import { useMemo, useState } from 'react';
+import { usePublicBars, usePushNotifications } from '@/lib/hooks';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useToast } from '@/contexts/ToastContext';
 import { FAVORITE_TEAM_OPTIONS } from '@/lib/config/favoriteTeams';
@@ -17,6 +17,11 @@ export default function VarslingerPage() {
     requestPermission,
     savePreferences,
   } = usePushNotifications();
+  const {
+    liveBars,
+    isLoading: barsLoading,
+    error: barsError,
+  } = usePublicBars();
 
   const { favoriteTeams } = useFavorites();
   const { showToast } = useToast();
@@ -25,38 +30,15 @@ export default function VarslingerPage() {
   // Local state for push-specific selections
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const [selectedBarIds, setSelectedBarIds] = useState<string[]>([]);
-  const [bars, setBars] = useState<Bar[]>([]);
-  const [barsLoading, setBarsLoading] = useState(true);
   const [teamQuery, setTeamQuery] = useState('');
   const [hasSaved, setHasSaved] = useState(false);
 
-  // Initialize selected teams from favorites
-  useEffect(() => {
-    if (favoriteTeams.length > 0 && selectedTeams.length === 0 && !hasSaved) {
-      setSelectedTeams(favoriteTeams);
+  const effectiveSelectedTeams = useMemo(() => {
+    if (!hasSaved && selectedTeams.length === 0 && favoriteTeams.length > 0) {
+      return favoriteTeams;
     }
-  }, [favoriteTeams, selectedTeams.length, hasSaved]);
-
-  // Fetch public bars for bar selection
-  useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      try {
-        const res = await fetch('/api/bars');
-        if (!res.ok) return;
-        const data = (await res.json()) as { bars?: Bar[] };
-        if (!cancelled && Array.isArray(data.bars)) {
-          setBars(data.bars);
-        }
-      } catch {
-        // ignore
-      } finally {
-        if (!cancelled) setBarsLoading(false);
-      }
-    };
-    void run();
-    return () => { cancelled = true; };
-  }, []);
+    return selectedTeams;
+  }, [favoriteTeams, selectedTeams, hasSaved]);
 
   const filteredTeamOptions = useMemo(() => {
     const q = teamQuery.trim().toLowerCase();
@@ -64,9 +46,18 @@ export default function VarslingerPage() {
     return FAVORITE_TEAM_OPTIONS.filter((t) => t.name.toLowerCase().includes(q));
   }, [teamQuery]);
 
+  const liveBarIds = useMemo(() => new Set(liveBars.map((bar) => bar.id)), [liveBars]);
+  const selectedLiveBarIds = useMemo(
+    () => selectedBarIds.filter((barId) => liveBarIds.has(barId)),
+    [selectedBarIds, liveBarIds],
+  );
+
   const toggleTeam = (name: string) => {
-    setSelectedTeams((prev) =>
-      prev.includes(name) ? prev.filter((t) => t !== name) : [...prev, name],
+    const baseSelection = effectiveSelectedTeams;
+    setSelectedTeams(
+      baseSelection.includes(name)
+        ? baseSelection.filter((team) => team !== name)
+        : [...baseSelection, name],
     );
   };
 
@@ -78,7 +69,7 @@ export default function VarslingerPage() {
 
   const handleSave = async () => {
     try {
-      await savePreferences(selectedTeams, selectedBarIds);
+      await savePreferences(effectiveSelectedTeams, selectedLiveBarIds);
       setHasSaved(true);
       showToast({ description: t('push_saved'), variant: 'success' });
     } catch (e) {
@@ -133,7 +124,7 @@ export default function VarslingerPage() {
           {/* Team selection */}
           {isPushEnabled && (
             <TeamSelection
-              selectedTeams={selectedTeams}
+              selectedTeams={effectiveSelectedTeams}
               teamQuery={teamQuery}
               onTeamQueryChange={setTeamQuery}
               filteredOptions={filteredTeamOptions}
@@ -144,11 +135,20 @@ export default function VarslingerPage() {
           {/* Bar selection */}
           {isPushEnabled && (
             <BarSelection
-              bars={bars}
+              bars={liveBars}
               barsLoading={barsLoading}
-              selectedBarIds={selectedBarIds}
+              selectedBarIds={selectedLiveBarIds}
               onToggle={toggleBar}
             />
+          )}
+
+          {isPushEnabled && barsError && (
+            <section className="rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4">
+              <p className="text-xs text-amber-800 dark:text-amber-200">
+                Kunne ikke laste barlisten akkurat nå. Du kan fortsatt lagre varsler for lag,
+                men bar-varsler er midlertidig utilgjengelige.
+              </p>
+            </section>
           )}
 
           {/* Save button */}
@@ -161,6 +161,15 @@ export default function VarslingerPage() {
             >
               {isSaving ? t('push_saving') : t('push_save')}
             </button>
+          )}
+
+          {isPushEnabled && !deviceToken && (
+            <section className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900/80 p-4">
+              <p className="text-xs text-zinc-600 dark:text-zinc-300">
+                Varslinger er slått på, men appen har ennå ikke levert en gyldig push-token.
+                Vent litt og prøv igjen.
+              </p>
+            </section>
           )}
         </div>
       </main>

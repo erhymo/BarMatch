@@ -1,8 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { dummyBars } from '@/lib/data/bars';
-import { Bar } from '@/lib/models';
+import type { Bar } from '@/lib/models';
+
+type PublicBarsResponse = {
+  bars?: Bar[];
+  error?: string;
+};
 
 /**
  * Henter synlige barer fra Firestore via det offentlige API-et.
@@ -12,31 +17,39 @@ export function usePublicBars() {
   const [publicBars, setPublicBars] = useState<Bar[] | null>(null);
   const [publicBarsError, setPublicBarsError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    const run = async () => {
-      try {
-        setPublicBarsError(null);
-        const res = await fetch('/api/bars');
-        if (!res.ok) throw new Error(`Failed to load bars (${res.status})`);
-        const data = (await res.json()) as { bars?: Bar[] };
-        if (!cancelled) {
-          setPublicBars(Array.isArray(data.bars) ? data.bars : []);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setPublicBars(null);
-          setPublicBarsError(e instanceof Error ? e.message : 'Failed to load bars');
-        }
+  const loadBars = useCallback(async (signal?: AbortSignal) => {
+    try {
+      setPublicBarsError(null);
+      const res = await fetch('/api/bars', { signal });
+      const data = (await res.json().catch(() => null)) as PublicBarsResponse | null;
+
+      if (!res.ok) {
+        throw new Error(
+          typeof data?.error === 'string' && data.error.trim()
+            ? data.error.trim()
+            : `Failed to load bars (${res.status})`,
+        );
       }
-    };
-    void run();
-    return () => {
-      cancelled = true;
-    };
+
+      setPublicBars(Array.isArray(data?.bars) ? data.bars : []);
+    } catch (e) {
+      if (signal?.aborted) return;
+      setPublicBars(null);
+      setPublicBarsError(e instanceof Error ? e.message : 'Failed to load bars');
+    }
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadBars(controller.signal);
+    return () => {
+      controller.abort();
+    };
+  }, [loadBars]);
+
   const isLoading = publicBars === null && !publicBarsError;
+  const liveBars = useMemo(() => (publicBars === null ? [] : publicBars), [publicBars]);
+  const usingFallbackBars = publicBarsError !== null;
 
   const bars = useMemo(() => {
     if (publicBarsError) return dummyBars;
@@ -44,6 +57,12 @@ export function usePublicBars() {
     return publicBars;
   }, [publicBars, publicBarsError]);
 
-  return { bars, isLoading, error: publicBarsError };
+  return {
+    bars,
+    liveBars,
+    isLoading,
+    error: publicBarsError,
+    usingFallbackBars,
+  };
 }
 

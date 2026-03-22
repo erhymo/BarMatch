@@ -102,7 +102,9 @@ export function usePushNotifications() {
   /** Save push notification preferences (teams & bars) to the backend */
   const savePreferences = useCallback(
     async (teams: string[], barIds: string[]) => {
-      if (!deviceToken) return;
+      if (!deviceToken) {
+        throw new Error('Mangler push-token. Åpne siden på nytt og prøv igjen.');
+      }
       setIsSaving(true);
       try {
         const res = await fetch('/api/push/preferences', {
