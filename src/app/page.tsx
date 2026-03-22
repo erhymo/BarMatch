@@ -13,11 +13,12 @@ import { CITY_COORDINATES, type CityId } from '@/lib/data/cities';
 import { Bar } from '@/lib/models';
 import type { Fixture, LeagueKey } from '@/lib/types/fixtures';
 import { getFixtureProvider } from '@/lib/providers/fixtures';
-import { ALL_LEAGUE_KEYS, getCompetitionByKey } from '@/lib/config/competitions';
+import { ALL_LEAGUE_KEYS } from '@/lib/config/competitions';
 import { BarFixtureSelectionService, BarService } from '@/lib/services';
 import { usePublicBars } from '@/lib/hooks/usePublicBars';
 import { useCandidateBars } from '@/lib/hooks/useCandidateBars';
 import { useFavoriteCity } from '@/lib/hooks/useFavoriteCity';
+import { useTabletLandscapeLayout } from '@/lib/hooks/useTabletLandscapeLayout';
 import { useTranslation } from '@/lib/i18n';
 
 const DEFAULT_RANGE_DAYS = 14;
@@ -49,6 +50,7 @@ function HomeContent() {
   const [isCityPanelOpen, setIsCityPanelOpen] = useState(false);
   const [isFavoritesPanelOpen, setIsFavoritesPanelOpen] = useState(false);
   const [isNearestListOpen, setIsNearestListOpen] = useState(false);
+  const isTabletLandscape = useTabletLandscapeLayout();
 
   // Extracted hooks
   const { bars: baseBars, isLoading: isLoadingPublicBars, error: publicBarsError } = usePublicBars();
@@ -92,7 +94,7 @@ function HomeContent() {
 			    } finally {
 			      setIsLoadingFixtures(false);
 			    }
-			  }, [fixtureProvider, range.from, range.to]);
+			  }, [fixtureProvider, range.from, range.to, t]);
 
 				  // Ensure fixtures are loaded when coming from /kamper with a specific matchId
 				  useEffect(() => {
@@ -270,20 +272,11 @@ function HomeContent() {
 					      minute: '2-digit',
 					    });
 					    return `${activeMatch.homeTeam} - ${activeMatch.awayTeam}, ${date} ${t('time_at')} ${time}`;
-					  }, [activeMatch]);
+			  }, [activeMatch, t]);
 
 					const handleClearMatchFilter = () => {
 					  router.push('/');
 					};
-				
-					const handleTeamSelect = (teamName: string | null) => {
-		  setSelectedTeam(teamName);
-		};
-
-		const handleLeagueChange = (league: LeagueKey) => {
-		  setSelectedLeague(league);
-		  setSelectedTeam(null);
-		};
 
 		  const ensureFixturesLoaded = useCallback(() => {
 		    if (fixtures.length > 0) return;
@@ -307,10 +300,6 @@ function HomeContent() {
 			    // slik at kartet følger by-valget i stedet for forrige "finn nærmeste bar".
 			    setMapFocusPosition(null);
 		  };
-
-				  const leagueOptions = useMemo(() => {
-				    return LEAGUES.map((key) => ({ key, label: getCompetitionByKey(key).label }));
-				  }, []);
 				
 				  const toggleCityPanel = () => {
 				    setIsCityPanelOpen((prev) => {
@@ -319,18 +308,6 @@ function HomeContent() {
 						        setIsNearestListOpen(false);
 						        setIsFavoritesPanelOpen(false);
 						      }
-				      return next;
-				    });
-				  };
-				
-				  const toggleFavoritesPanel = () => {
-				    setIsFavoritesPanelOpen((prev) => {
-				      const next = !prev;
-				      if (next) {
-				        ensureFixturesLoaded();
-				        setIsCityPanelOpen(false);
-				        setIsNearestListOpen(false);
-				      }
 				      return next;
 				    });
 				  };
@@ -359,9 +336,10 @@ function HomeContent() {
 				  }, []);
 
 		  const mapCenter = favoriteCity ? CITY_COORDINATES[favoriteCity] : undefined;
+		  const shouldShiftNearestButton = isTabletLandscape && (isNearestListOpen || Boolean(selectedBar));
 		
 		  return (
-			    <div className="flex flex-col h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black">
+			    <div className="home-screen-shell flex flex-col bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black">
         {/* Header Section */}
         <HomeHeader
           matchId={matchId}
@@ -436,7 +414,10 @@ function HomeContent() {
  					        {/* Active match filter banner when navigated from /kamper (moved to header) */}
 
 			        {/* Find nearest bar */}
-					<div className="pointer-events-none absolute bottom-20 md:bottom-4 right-4 flex flex-col items-end gap-2 px-4">
+					<div
+					  className="pointer-events-none absolute bottom-20 right-4 flex flex-col items-end gap-2 px-4 transition-[right] duration-300 md:bottom-4"
+					  style={shouldShiftNearestButton ? { right: 'calc(min(32rem, 42vw) + 1.5rem)' } : undefined}
+					>
 			          <button
 			            type="button"
 			            onClick={handleFindNearestBar}
@@ -477,7 +458,7 @@ function HomeContent() {
 	  return (
 	    <Suspense
 	      fallback={
-	        <div className="flex h-screen items-center justify-center bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black text-zinc-500 dark:text-zinc-400">
+		        <div className="home-screen-shell flex items-center justify-center bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black text-zinc-500 dark:text-zinc-400">
 	          Loading...
 	        </div>
 	      }

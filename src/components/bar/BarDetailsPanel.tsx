@@ -8,6 +8,7 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 import { useRatings } from '@/contexts/RatingsContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useCampaigns } from '@/lib/hooks';
+import { useTabletLandscapeLayout } from '@/lib/hooks/useTabletLandscapeLayout';
 import StarRating from '@/components/rating/StarRating';
 import ContactFormModal from '@/components/bar/ContactFormModal';
 import type { Fixture } from '@/lib/types/fixtures';
@@ -55,6 +56,7 @@ export default function BarDetailsPanel({
   const { showToast } = useToast();
   const { getCampaignsForBar } = useCampaigns();
   const { t } = useTranslation();
+  const isTabletLandscape = useTabletLandscapeLayout();
 
   const [showChat, setShowChat] = useState(false);
   const [isFacilitiesOpen, setIsFacilitiesOpen] = useState(true);
@@ -189,6 +191,7 @@ export default function BarDetailsPanel({
 	  if (facilities?.hasProjector) facilityBadges.push(t('bar_projector_badge'));
 
 	  const handleSheetDragStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+		    if (isTabletLandscape) return;
 	    if (event.pointerType === 'mouse' && event.button !== 0) return;
 	    if (dragPointerIdRef.current !== null) return;
 
@@ -200,6 +203,7 @@ export default function BarDetailsPanel({
 	  };
 
 	  const handleSheetDragMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+		    if (isTabletLandscape) return;
 	    if (dragPointerIdRef.current !== event.pointerId) return;
 
 	    const nextOffset = Math.max(0, event.clientY - dragStartYRef.current);
@@ -215,6 +219,7 @@ export default function BarDetailsPanel({
 	  };
 
 	  const handleSheetDragEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+		    if (isTabletLandscape) return;
 	    if (dragPointerIdRef.current !== event.pointerId) return;
 
 	    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -235,6 +240,7 @@ export default function BarDetailsPanel({
 	  };
 
 	  const handleSheetDragCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+		    if (isTabletLandscape) return;
 	    if (dragPointerIdRef.current !== event.pointerId) return;
 
 	    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -244,10 +250,17 @@ export default function BarDetailsPanel({
 	    resetSheetDrag();
 	  };
 
-	  const backdropOpacity = Math.max(
-	    0,
-	    1 - dragOffsetY / SHEET_BACKDROP_FADE_DISTANCE_PX,
-	  );
+		  const backdropOpacity = isTabletLandscape
+		    ? 1
+		    : Math.max(0, 1 - dragOffsetY / SHEET_BACKDROP_FADE_DISTANCE_PX);
+		  const panelStyle = isTabletLandscape
+		    ? {
+		        top: 'calc(env(safe-area-inset-top) + 6rem)',
+		        right: '1rem',
+		        bottom: 'calc(env(safe-area-inset-bottom) + 1rem)',
+		        width: 'min(32rem, 42vw)',
+		      }
+		    : { transform: `translateY(${dragOffsetY}px)` };
 
   return (
     <>
@@ -260,25 +273,34 @@ export default function BarDetailsPanel({
 
       {/* Panel */}
       <div
-        className={`fixed bottom-0 left-0 right-0 z-50 flex max-h-[80vh] flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl transition-transform ease-out dark:bg-zinc-900 ${
+        className={`fixed z-50 flex flex-col overflow-hidden bg-white shadow-2xl transition-transform ease-out dark:bg-zinc-900 ${
+          isTabletLandscape
+            ? 'rounded-3xl border border-zinc-200/80 dark:border-zinc-800'
+            : 'bottom-0 left-0 right-0 max-h-[80vh] rounded-t-3xl'
+        } ${
           isDraggingSheet ? 'duration-0' : 'duration-300'
         }`}
-        style={{ transform: `translateY(${dragOffsetY}px)` }}
+        style={panelStyle}
       >
         
-        {/* Handle bar */}
-        <div
-          className="flex cursor-grab touch-none select-none justify-center pt-3 pb-2 active:cursor-grabbing"
-          onPointerDown={handleSheetDragStart}
-          onPointerMove={handleSheetDragMove}
-          onPointerUp={handleSheetDragEnd}
-          onPointerCancel={handleSheetDragCancel}
-        >
-          <div className="w-12 h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-full" />
-        </div>
+        {!isTabletLandscape && (
+          <div
+            className="flex cursor-grab touch-none select-none justify-center pt-3 pb-2 active:cursor-grabbing"
+            onPointerDown={handleSheetDragStart}
+            onPointerMove={handleSheetDragMove}
+            onPointerUp={handleSheetDragEnd}
+            onPointerCancel={handleSheetDragCancel}
+          >
+            <div className="w-12 h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-full" />
+          </div>
+        )}
 
         {/* Content */}
-        <div className="min-h-0 overflow-y-auto px-6 pb-8">
+        <div
+          className={`min-h-0 overflow-y-auto px-6 tablet-panel-safe-bottom ${
+            isTabletLandscape ? 'pt-6 pb-6' : 'pb-8'
+          }`}
+        >
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">

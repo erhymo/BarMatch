@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
+import { useTabletLandscapeLayout } from '@/lib/hooks/useTabletLandscapeLayout';
 import { BarService } from '@/lib/services';
 import type { Bar, Position } from '@/lib/models';
 import { useTranslation } from '@/lib/i18n';
@@ -17,6 +18,7 @@ export default function NearestBarListPanel(props: {
 }) {
   const { bars, userPosition, onSelectBar, onClose } = props;
   const { t } = useTranslation();
+  const isTabletLandscape = useTabletLandscapeLayout();
   const [dragOffsetY, setDragOffsetY] = useState(0);
   const [isDraggingSheet, setIsDraggingSheet] = useState(false);
 
@@ -38,6 +40,7 @@ export default function NearestBarListPanel(props: {
   }, [bars, userPosition]);
 
   const handleSheetDragStart = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (isTabletLandscape) return;
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     if (dragPointerIdRef.current !== null) return;
 
@@ -49,6 +52,7 @@ export default function NearestBarListPanel(props: {
   };
 
   const handleSheetDragMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (isTabletLandscape) return;
     if (dragPointerIdRef.current !== event.pointerId) return;
 
     const nextOffset = Math.max(0, event.clientY - dragStartYRef.current);
@@ -64,6 +68,7 @@ export default function NearestBarListPanel(props: {
   };
 
   const handleSheetDragEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (isTabletLandscape) return;
     if (dragPointerIdRef.current !== event.pointerId) return;
 
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -84,6 +89,7 @@ export default function NearestBarListPanel(props: {
   };
 
   const handleSheetDragCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (isTabletLandscape) return;
     if (dragPointerIdRef.current !== event.pointerId) return;
 
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -93,7 +99,17 @@ export default function NearestBarListPanel(props: {
     resetSheetDrag();
   };
 
-  const backdropOpacity = Math.max(0, 1 - dragOffsetY / SHEET_BACKDROP_FADE_DISTANCE_PX);
+  const backdropOpacity = isTabletLandscape
+    ? 1
+    : Math.max(0, 1 - dragOffsetY / SHEET_BACKDROP_FADE_DISTANCE_PX);
+  const panelStyle = isTabletLandscape
+    ? {
+        top: 'calc(env(safe-area-inset-top) + 6rem)',
+        right: '1rem',
+        bottom: 'calc(env(safe-area-inset-bottom) + 1rem)',
+        width: 'min(28rem, 38vw)',
+      }
+    : { transform: `translateY(${dragOffsetY}px)` };
 
   return (
     <>
@@ -106,23 +122,32 @@ export default function NearestBarListPanel(props: {
 
       {/* Panel */}
       <div
-        className={`fixed bottom-0 left-0 right-0 z-50 flex max-h-[75vh] flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl transition-transform ease-out dark:bg-zinc-900 ${
+        className={`fixed z-50 flex flex-col overflow-hidden bg-white shadow-2xl transition-transform ease-out dark:bg-zinc-900 ${
+          isTabletLandscape
+            ? 'rounded-3xl border border-zinc-200/80 dark:border-zinc-800'
+            : 'bottom-0 left-0 right-0 max-h-[75vh] rounded-t-3xl'
+        } ${
           isDraggingSheet ? 'duration-0' : 'duration-300'
         }`}
-        style={{ transform: `translateY(${dragOffsetY}px)` }}
+        style={panelStyle}
       >
-        {/* Handle bar */}
-        <div
-          className="flex cursor-grab touch-none select-none justify-center pt-3 pb-2 active:cursor-grabbing"
-          onPointerDown={handleSheetDragStart}
-          onPointerMove={handleSheetDragMove}
-          onPointerUp={handleSheetDragEnd}
-          onPointerCancel={handleSheetDragCancel}
-        >
-          <div className="h-1.5 w-12 rounded-full bg-zinc-300 dark:bg-zinc-700" />
-        </div>
+        {!isTabletLandscape && (
+          <div
+            className="flex cursor-grab touch-none select-none justify-center pt-3 pb-2 active:cursor-grabbing"
+            onPointerDown={handleSheetDragStart}
+            onPointerMove={handleSheetDragMove}
+            onPointerUp={handleSheetDragEnd}
+            onPointerCancel={handleSheetDragCancel}
+          >
+            <div className="h-1.5 w-12 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+          </div>
+        )}
 
-        <div className="min-h-0 overflow-y-auto px-6 pb-6">
+        <div
+          className={`min-h-0 overflow-y-auto px-6 tablet-panel-safe-bottom ${
+            isTabletLandscape ? 'pt-6 pb-6' : 'pb-6'
+          }`}
+        >
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{t('nearest_bars_title')}</h2>

@@ -24,3 +24,19 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.home-screen-shell {
+  min-height: 100vh;
+  height: 100vh;
+}
+
+@media (min-width: 768px) and (max-width: 1366px) and (pointer: coarse) {
+  .home-screen-shell {
+    min-height: 100dvh;
+    height: 100dvh;
+  }
+
+  .tablet-panel-safe-bottom {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+  }
+}
