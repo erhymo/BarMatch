@@ -27,7 +27,9 @@ export default function HomeHeader({
 }: HomeHeaderProps) {
   const { t, locale, setLocale } = useTranslation();
   const [langOpen, setLangOpen] = useState(false);
-  const isNativeApp = useNativeAppPlatform() !== null;
+  const nativeAppPlatform = useNativeAppPlatform();
+  const isNativeApp = nativeAppPlatform !== null;
+  const shouldShowLargeScreenNav = !isNativeApp || nativeAppPlatform === 'ios';
   const langRef = useRef<HTMLDivElement>(null);
 
   // Close language dropdown on outside click
@@ -142,7 +144,7 @@ export default function HomeHeader({
         <div className="hidden items-center justify-between gap-3 md:flex">
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {languageSwitcher}
-            {!isNativeApp && (
+            {shouldShowLargeScreenNav && (
               <div className="flex items-center gap-1.5">
                 <Link
                   href="/"
