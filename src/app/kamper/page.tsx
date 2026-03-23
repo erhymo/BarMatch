@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { LeagueKey } from "@/lib/types/fixtures";
@@ -30,7 +30,7 @@ function getApiErrorFromBody(body: unknown): { error?: string; details?: unknown
 
 const IS_DEV = process.env.NODE_ENV !== "production";
 
-export default function KamperPage() {
+function KamperPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useTranslation();
@@ -244,5 +244,23 @@ export default function KamperPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function KamperPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-black">
+          <main className="container mx-auto px-4 py-8 pb-24">
+            <div className="max-w-4xl mx-auto rounded-2xl border border-zinc-200 bg-white/80 p-6 text-sm text-zinc-600 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-300">
+              Laster kamper...
+            </div>
+          </main>
+        </div>
+      }
+    >
+      <KamperPageContent />
+    </Suspense>
   );
 }
