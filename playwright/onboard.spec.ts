@@ -1,10 +1,13 @@
 import { expect, test } from '@playwright/test';
+import { mockRatingsApi } from './helpers/mockRatingsApi';
 
 test.use({
   colorScheme: 'dark',
 });
 
 test('onboard page matches layout baseline', async ({ page }) => {
+  await mockRatingsApi(page);
+
   await page.route('**/api/invites/validate**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -22,6 +25,7 @@ test('onboard page matches layout baseline', async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.clear();
     window.localStorage.setItem('w2w_locale', 'no');
+    window.localStorage.setItem('where2watch_user_id', 'layout-lock-user');
   });
 
   await page.goto('/onboard?token=layout-lock-token');

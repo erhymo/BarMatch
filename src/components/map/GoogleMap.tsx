@@ -495,9 +495,9 @@ interface GoogleMapProps {
 			                const ratingValueInner =
 			                  partnerRating?.averageRating ?? selectedBar.rating ?? 0;
 			                const totalRatings =
-			                  partnerRating?.totalRatings ?? (selectedBar.rating ? 1 : 0);
+					                  partnerRating?.totalRatings ?? selectedBar.ratingCount ?? 0;
 			  
-			                if (!ratingValueInner) return null;
+					                if (!ratingValueInner && totalRatings <= 0) return null;
 			  
 			                return (
 			                  <div className="flex items-center mt-1">
@@ -505,9 +505,11 @@ interface GoogleMapProps {
 			                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50 mr-1">
 			                      {ratingValueInner.toFixed(1)}
 			                    </span>
-			                    <span className="text-xs text-zinc-500">
-			                      ({totalRatings})
-			                    </span>
+					                    {totalRatings > 0 && (
+					                      <span className="text-xs text-zinc-500">
+					                        ({totalRatings})
+					                      </span>
+					                    )}
 			                  </div>
 			                );
 			              })()}

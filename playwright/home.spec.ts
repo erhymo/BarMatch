@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { mockRatingsApi } from './helpers/mockRatingsApi';
 
 test.use({
   colorScheme: 'dark',
@@ -7,6 +8,8 @@ test.use({
 });
 
 test('home page matches layout baseline', async ({ page }) => {
+  await mockRatingsApi(page);
+
   await page.route('**/api/bars', async (route) => {
     await route.fulfill({
       status: 200,
@@ -18,6 +21,7 @@ test('home page matches layout baseline', async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.clear();
     window.localStorage.setItem('w2w_locale', 'no');
+    window.localStorage.setItem('where2watch_user_id', 'layout-lock-user');
   });
 
   await page.goto('/?layoutLock=1');
@@ -35,6 +39,8 @@ test('home header keeps Hjem and Kamper visible in iOS native app on larger scre
   const viewport = page.viewportSize();
   test.skip(!viewport || viewport.width < 768, 'desktop/tablet only');
 
+  await mockRatingsApi(page);
+
   await page.route('**/api/bars', async (route) => {
     await route.fulfill({
       status: 200,
@@ -46,6 +52,7 @@ test('home header keeps Hjem and Kamper visible in iOS native app on larger scre
   await page.addInitScript(() => {
     window.localStorage.clear();
     window.localStorage.setItem('w2w_locale', 'no');
+    window.localStorage.setItem('where2watch_user_id', 'layout-lock-user');
     window.webkit = {
       messageHandlers: {
         'push-permission-request': { postMessage: () => undefined },
@@ -64,6 +71,8 @@ test('home header keeps Hjem and Kamper hidden in Android native app on larger s
   const viewport = page.viewportSize();
   test.skip(!viewport || viewport.width < 768, 'desktop/tablet only');
 
+  await mockRatingsApi(page);
+
   await page.route('**/api/bars', async (route) => {
     await route.fulfill({
       status: 200,
@@ -75,6 +84,7 @@ test('home header keeps Hjem and Kamper hidden in Android native app on larger s
   await page.addInitScript(() => {
     window.localStorage.clear();
     window.localStorage.setItem('w2w_locale', 'no');
+    window.localStorage.setItem('where2watch_user_id', 'layout-lock-user');
     window.AndroidBridge = {
       requestPushPermission: () => undefined,
       queryPushState: () => undefined,
@@ -91,6 +101,8 @@ test('home keeps mobile navigation on iPhone-sized iOS native screens', async ({
   const viewport = page.viewportSize();
   test.skip(!viewport || viewport.width >= 768, 'mobile only');
 
+  await mockRatingsApi(page);
+
   await page.route('**/api/bars', async (route) => {
     await route.fulfill({
       status: 200,
@@ -102,6 +114,7 @@ test('home keeps mobile navigation on iPhone-sized iOS native screens', async ({
   await page.addInitScript(() => {
     window.localStorage.clear();
     window.localStorage.setItem('w2w_locale', 'no');
+    window.localStorage.setItem('where2watch_user_id', 'layout-lock-user');
     window.webkit = {
       messageHandlers: {
         'push-permission-request': { postMessage: () => undefined },
@@ -121,6 +134,8 @@ test('home keeps mobile navigation on Android native mobile screens', async ({ p
   const viewport = page.viewportSize();
   test.skip(!viewport || viewport.width >= 768, 'mobile only');
 
+  await mockRatingsApi(page);
+
   await page.route('**/api/bars', async (route) => {
     await route.fulfill({
       status: 200,
@@ -132,6 +147,7 @@ test('home keeps mobile navigation on Android native mobile screens', async ({ p
   await page.addInitScript(() => {
     window.localStorage.clear();
     window.localStorage.setItem('w2w_locale', 'no');
+    window.localStorage.setItem('where2watch_user_id', 'layout-lock-user');
     window.AndroidBridge = {
       requestPushPermission: () => undefined,
       queryPushState: () => undefined,

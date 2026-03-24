@@ -153,7 +153,8 @@ export default function BarDetailsPanel({
   const storedBarRating = getBarRating(bar.id);
   const userRating = getUserRatingForBar(bar.id);
   const displayRatingValue = storedBarRating?.averageRating ?? bar.rating ?? 0;
-  const displayTotalRatings = storedBarRating?.totalRatings;
+  const displayTotalRatings = storedBarRating?.totalRatings ?? bar.ratingCount;
+  const hasDisplayTotalRatings = typeof displayTotalRatings === 'number' && displayTotalRatings > 0;
 
   const activeCampaigns = getCampaignsForBar(bar.id).filter((c) => c.isActive);
 
@@ -403,7 +404,7 @@ export default function BarDetailsPanel({
                   {t('bar_rating')}
                 </h3>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  {displayTotalRatings
+                  {hasDisplayTotalRatings
                     ? `${displayRatingValue.toFixed(1)} ★ (${displayTotalRatings})`
                     : displayRatingValue
                     ? `${displayRatingValue.toFixed(1)} ★`
@@ -413,12 +414,20 @@ export default function BarDetailsPanel({
               {userRating && (
                 <button
                   type="button"
-                  onClick={() => {
-                    clearRatingForBar(bar.id);
+                  onClick={async () => {
+                    const result = await clearRatingForBar(bar.id);
+                    if (result.ok) {
+                      showToast({
+                        title: t('bar_rating_removed'),
+                        description: t('bar_rating_removed_desc'),
+                        variant: 'info',
+                      });
+                      return;
+                    }
+
                     showToast({
-                      title: t('bar_rating_removed'),
-                      description: t('bar_rating_removed_desc'),
-                      variant: 'info',
+                      description: t('bar_rating_remove_error'),
+                      variant: 'error',
                     });
                   }}
                   className="text-xs font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 underline"
@@ -432,12 +441,20 @@ export default function BarDetailsPanel({
               <StarRating
                 value={displayRatingValue}
                 totalRatings={displayTotalRatings}
-                onChange={(rating) => {
-                  rateBar(bar.id, rating);
+                onChange={async (rating) => {
+                  const result = await rateBar(bar.id, rating);
+                  if (result.ok) {
+                    showToast({
+                      title: t('bar_thanks'),
+                      description: t('bar_rating_given', { name: bar.name, rating: String(rating) }),
+                      variant: 'success',
+                    });
+                    return;
+                  }
+
                   showToast({
-                    title: t('bar_thanks'),
-                    description: t('bar_rating_given', { name: bar.name, rating: String(rating) }),
-                    variant: 'success',
+                    description: t('bar_rating_save_error'),
+                    variant: 'error',
                   });
                 }}
                 label={userRating ? t('bar_your_rating', { rating: String(userRating.rating) }) : t('bar_give_rating')}

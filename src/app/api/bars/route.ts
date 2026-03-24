@@ -77,6 +77,9 @@ function toPublicBar(docId: string, data: Record<string, unknown>): Bar | null {
 	  if (typeof data.phone === 'string' && data.phone.trim()) bar.phone = data.phone.trim();
   if (typeof data.imageUrl === 'string' && data.imageUrl.trim()) bar.imageUrl = data.imageUrl.trim();
   if (typeof data.rating === 'number' && Number.isFinite(data.rating)) bar.rating = data.rating;
+	  if (typeof data.ratingCount === 'number' && Number.isFinite(data.ratingCount) && data.ratingCount >= 0) {
+	    bar.ratingCount = data.ratingCount;
+	  }
 	  if (typeof data.googlePlaceId === 'string' && data.googlePlaceId.trim()) {
 	    bar.googlePlaceId = data.googlePlaceId.trim();
 	  }

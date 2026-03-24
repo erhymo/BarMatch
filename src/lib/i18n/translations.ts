@@ -74,8 +74,10 @@ export const translations = {
     bar_remove_rating: 'Fjern min vurdering',
     bar_rating_removed: 'Vurdering fjernet',
     bar_rating_removed_desc: 'Din vurdering er fjernet.',
+	    bar_rating_remove_error: 'Kunne ikke fjerne vurderingen.',
     bar_thanks: 'Takk!',
     bar_rating_given: 'Du ga {name} {rating} stjerner.',
+	    bar_rating_save_error: 'Kunne ikke lagre vurderingen.',
     bar_your_rating: 'Din vurdering: {rating}★',
     bar_give_rating: 'Gi din vurdering',
 
@@ -356,8 +358,10 @@ export const translations = {
     bar_remove_rating: 'Remove my rating',
     bar_rating_removed: 'Rating removed',
     bar_rating_removed_desc: 'Your rating has been removed.',
+	    bar_rating_remove_error: 'Could not remove the rating.',
     bar_thanks: 'Thanks!',
     bar_rating_given: 'You gave {name} {rating} stars.',
+	    bar_rating_save_error: 'Could not save the rating.',
     bar_your_rating: 'Your rating: {rating}★',
     bar_give_rating: 'Give your rating',
 

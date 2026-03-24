@@ -1,41 +1,94 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BarRating } from '../models';
+import { BarRating, UserRating } from '../models';
 import { RatingService } from '../services';
+
+const USER_ID_STORAGE_KEY = 'where2watch_user_id';
+
+type RatingsResponse = {
+  ratings?: BarRating[];
+};
+
+type RatingMutationResponse = {
+  ok?: boolean;
+  rating?: BarRating;
+  error?: string;
+};
+
+type RatingActionResult = {
+  ok: boolean;
+  error?: string;
+};
+
+function upsertBarRating(current: BarRating[], next: BarRating): BarRating[] {
+  const index = current.findIndex((rating) => rating.barId === next.barId);
+  if (index === -1) return [...current, next];
+
+  const updated = [...current];
+  updated[index] = next;
+  return updated;
+}
+
+function removeBarRating(current: BarRating[], barId: string): BarRating[] {
+  return current.filter((rating) => rating.barId !== barId);
+}
 
 /**
  * React hook for managing bar ratings
- * Wraps RatingService with React state management
+ * Wraps remote ratings API with React state management
  */
 export function useRatings() {
   const [ratings, setRatings] = useState<BarRating[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Load ratings and userId from localStorage on mount
+  // Load/generate anonymous user id on mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const loadedRatings = RatingService.loadRatings(localStorage);
-	    // eslint-disable-next-line react-hooks/set-state-in-effect
-	    setRatings(loadedRatings);
-
-	    const existingUserId = localStorage.getItem('where2watch_user_id');
+	    const existingUserId = localStorage.getItem(USER_ID_STORAGE_KEY);
     if (existingUserId) {
 	      setUserId(existingUserId);
     } else {
       const newUserId = `user-${Math.random().toString(36).slice(2)}-${Date.now()}`;
-	      localStorage.setItem('where2watch_user_id', newUserId);
+	      localStorage.setItem(USER_ID_STORAGE_KEY, newUserId);
 	      setUserId(newUserId);
     }
-
-	    setIsInitialized(true);
   }, []);
 
-  // Save ratings to localStorage whenever they change
   useEffect(() => {
-    if (!isInitialized || typeof window === 'undefined') return;
-    RatingService.saveRatings(ratings, localStorage);
-  }, [ratings, isInitialized]);
+    if (!userId) return;
+
+    let cancelled = false;
+
+    const run = async () => {
+      try {
+        const params = new URLSearchParams({ userId });
+        const response = await fetch(`/api/ratings?${params.toString()}`, {
+          method: 'GET',
+          cache: 'no-store',
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to load ratings (${response.status})`);
+        }
+
+        const data = (await response.json()) as RatingsResponse;
+        if (!cancelled) {
+          setRatings(Array.isArray(data.ratings) ? data.ratings : []);
+        }
+      } catch (error) {
+        console.error('Failed to load ratings from API:', error);
+        if (!cancelled) {
+          setRatings([]);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   /**
    * Get rating data for a specific bar
@@ -62,9 +115,29 @@ export function useRatings() {
    * Rate a bar (1-5 stars)
    */
   const rateBar = useCallback(
-    (barId: string, rating: number) => {
-      if (!userId) return;
-      setRatings((prev) => RatingService.addOrUpdateRating(userId, barId, rating, prev));
+    async (barId: string, rating: number): Promise<RatingActionResult> => {
+      if (!userId) return { ok: false, error: 'Missing user id' };
+
+      try {
+        const response = await fetch('/api/ratings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId, barId, rating }),
+        });
+
+        const data = (await response.json()) as RatingMutationResponse;
+        if (!response.ok || !data.rating) {
+          return { ok: false, error: data.error ?? 'Could not save rating' };
+        }
+
+        setRatings((prev) => upsertBarRating(prev, data.rating!));
+        return { ok: true };
+      } catch (error) {
+        console.error('Failed to save rating:', error);
+        return { ok: false, error: error instanceof Error ? error.message : 'Could not save rating' };
+      }
     },
     [userId]
   );
@@ -73,9 +146,36 @@ export function useRatings() {
    * Remove current user's rating for a bar
    */
   const clearRatingForBar = useCallback(
-    (barId: string) => {
-      if (!userId) return;
-      setRatings((prev) => RatingService.removeRating(userId, barId, prev));
+    async (barId: string): Promise<RatingActionResult> => {
+      if (!userId) return { ok: false, error: 'Missing user id' };
+
+      try {
+        const params = new URLSearchParams({ userId, barId });
+        const response = await fetch(`/api/ratings?${params.toString()}`, {
+          method: 'DELETE',
+        });
+
+        const data = (await response.json()) as RatingMutationResponse;
+        if (!response.ok) {
+          return { ok: false, error: data.error ?? 'Could not remove rating' };
+        }
+
+        if (data.rating) {
+          const nextUserRating: UserRating | null = RatingService.getUserRatingForBar(userId, barId, [data.rating]);
+          if (data.rating.totalRatings <= 0 && !nextUserRating) {
+            setRatings((prev) => removeBarRating(prev, barId));
+          } else {
+            setRatings((prev) => upsertBarRating(prev, data.rating!));
+          }
+        } else {
+          setRatings((prev) => removeBarRating(prev, barId));
+        }
+
+        return { ok: true };
+      } catch (error) {
+        console.error('Failed to remove rating:', error);
+        return { ok: false, error: error instanceof Error ? error.message : 'Could not remove rating' };
+      }
     },
     [userId]
   );

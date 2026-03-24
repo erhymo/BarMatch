@@ -68,6 +68,7 @@ export interface Bar {
   address?: string;
   description?: string;
   rating?: number;
+  ratingCount?: number;
   imageUrl?: string;
   /**
    * Optional Google Places-ID brukt til å koble en bar mot data fra

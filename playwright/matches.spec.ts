@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { mockRatingsApi } from './helpers/mockRatingsApi';
 
 type FixtureRecord = {
   id: string;
@@ -50,6 +51,8 @@ test.use({
 });
 
 test('matches page matches layout baseline', async ({ page }) => {
+  await mockRatingsApi(page);
+
   await page.route('**/api/fixtures**', async (route) => {
     const url = new URL(route.request().url());
     const leagueKey = url.searchParams.get('leagueKey');
@@ -65,6 +68,7 @@ test('matches page matches layout baseline', async ({ page }) => {
   await page.addInitScript(() => {
     window.localStorage.clear();
     window.localStorage.setItem('w2w_locale', 'no');
+    window.localStorage.setItem('where2watch_user_id', 'layout-lock-user');
   });
 
   await page.goto('/kamper?layoutLock=1');
