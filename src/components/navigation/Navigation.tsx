@@ -26,17 +26,16 @@ export default function Navigation() {
 	    return () => document.removeEventListener('mousedown', handleClickOutside);
 	  }, []);
 
-	  const navItems = useMemo(
-	    () => [
-	      { name: t('nav_home'), href: '/' },
-	      { name: t('nav_matches'), href: '/kamper' },
-	    ],
-	    [t],
-	  );
+		  const navItems = useMemo(
+		    () => [
+		      { name: t('nav_home'), href: '/' },
+		    ],
+		    [t],
+		  );
 
 	  // Hide the public navigation inside admin/onboarding areas
 	  // (admin has its own layout/header)
-	  if (pathname?.startsWith('/admin') || pathname?.startsWith('/onboard')) {
+		  if (pathname === '/' || pathname?.startsWith('/admin') || pathname?.startsWith('/onboard')) {
 	    return null;
 	  }
 
