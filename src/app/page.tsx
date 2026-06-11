@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 
 const CONTACT_EMAIL = 'support@where2watch.no';
 
@@ -43,12 +42,6 @@ export default function PausedPage() {
           Takk til alle som har testet og brukt Where2Watch.
         </p>
 
-        <Link
-          href="/personvern"
-          className="mt-6 text-sm text-zinc-400 underline underline-offset-4 transition hover:text-zinc-200"
-        >
-          Personvernerklæring
-        </Link>
       </section>
     </main>
   );
